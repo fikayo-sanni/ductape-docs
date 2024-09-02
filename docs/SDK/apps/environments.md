@@ -2,7 +2,7 @@
 sidebar_position: 4
 ---
 
-# Setting Up Environments
+# Environments Setup
 
 Ductape allows you to provision apps & services in multiple environments, for example, a single application can have **production**, **staging** and **development** environments
 
@@ -25,7 +25,7 @@ const data =  { // environment details
     base_url: "https://dev.example.app",
     reqest_type: DataFormats.JSON
 }
-const environments  = app.createEnvs(data) // create app env
+const environments = await app.createEnvs(data) // create app env
 ```
 
 The fields required to creat an app are as below
@@ -65,7 +65,7 @@ const data =  { // updated environment details
     base_url: "https://prd.example.app",
     reqest_type: DataFormats.JSON
 }
-const environments  = app.updateEnv(slug, data) // update app env
+const environments  = await app.updateEnv(slug, data) // update app env
 ```
 
 ## Fetch Environements
@@ -77,6 +77,6 @@ const environments  = app.fetchEnvs() // fetch app envs
 ## Fetch Single Environment
 
 ``` typescript
-const environments  = app.fetchEnvs() // fetch app envs
+const environments = app.fetchEnvs() // fetch app envs
 ```
 

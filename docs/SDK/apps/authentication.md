@@ -2,7 +2,7 @@
 sidebar_position: 5
 ---
 
-# Setting Up Authentication
+# Authentication Setup
 
 Ductape allows you to set up various authentication rules for users or systems that need to access your application. Authentication setup in Ductape is flexible, supporting both credential-based and token-based authentication methods.
 

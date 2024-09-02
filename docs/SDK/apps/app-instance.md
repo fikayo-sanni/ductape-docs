@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# Create an App Instance
+# Create App Builder Instance
 
 You can create a reusable app instance which can be used for interacting with the app interface
 
