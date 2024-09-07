@@ -25,6 +25,6 @@ const details = {
     description: "You can add a product description here",
 }
 
-const integration = await ductape.createProduct(details)
+const product = await productBuilder.createProduct(details)
 
 ```
