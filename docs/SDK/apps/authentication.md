@@ -45,7 +45,7 @@ The `TokenPeriods` enum provides options for specifying the token's lifespan, al
 | **MONTHS** | months  |
 | **YEARS**  | years   |
 
-The `ACTION_TAG` defines the tag of the action that can refresh the token, such as a login action or a token refresh action defined in your integration steps. Ductape will automatically handle credential-based token refreshes when third parties interact with your application, ensuring secure and continuous access.
+The `ACTION_TAG` defines the tag of the action that can refresh the token, such as a login action or a token refresh action defined in your product steps. Ductape will automatically handle credential-based token refreshes when third parties interact with your application, ensuring secure and continuous access.
 
 ### **Token-Based Authentication**
 

@@ -20,7 +20,7 @@ The credentials you’ll receive include the following fields:
 - **user_id**
 - **private_key**
 
-These credentials form a unique trifecta that grants you access to your workspace resources. It’s essential to handle them with care to ensure the security of your integrations and data.
+These credentials form a unique trifecta that grants you access to your workspace resources. It’s essential to handle them with care to ensure the security of your products and data.
 
 ## Initialize SDK with Credentials
 
@@ -38,4 +38,4 @@ const credentials = {
 const ductape = new Ductape(credentials);
 ```
 
-By initializing the SDK with these credentials, you establish a secure connection to your workspace, enabling you to manage and interact with your third-party integrations effectively. Make sure that your credentials are stored securely, such as in environment variables, to protect them from unauthorized access.
+By initializing the SDK with these credentials, you establish a secure connection to your workspace, enabling you to manage and interact with your third-party products effectively. Make sure that your credentials are stored securely, such as in environment variables, to protect them from unauthorized access.

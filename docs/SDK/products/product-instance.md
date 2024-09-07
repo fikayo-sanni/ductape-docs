@@ -2,9 +2,9 @@
 sidebar_position: 3
 ---
 
-# Create App Builder Instance
+# Create Product Instance
 
-You can create a reusable app instance which can be used for interacting with the app interface
+You can create a reusable product instance which can be used for interacting with the productBuilder interface
 
 ```typescript
 import Ductape from 'ductape'; // import ductape sdk
@@ -15,13 +15,13 @@ const credentials = { // initialize ductape credentials
     private_key: process.env.DUCTAPE_PRIVATE_KEY
 };
 
-const app_tag = process.env.DUCTAPE_APP_TAG // assumes you've stored the APP_TAG in the 
+const product_tag = process.env.DUCTAPE_PRODUCT_TAG // assumes you've stored the PRODUCT_TAG in the .env
 
 const ductape = new Ductape(credentials); // initialize ductape sdk
 
-const appBuilder = await ductape.getAppBuilder(); // initialize appBuilder
+const productBuilder = await ductape.getProductBuilder(); // initialize productBuilder
 
-export const app = await appBuilder.initializeAppByTag(app_tag); // fetch  app instance by id
+export const product = await appBuilder.initializeProductByTag(product_tag); // fetch product instance by id
 
 ```
 

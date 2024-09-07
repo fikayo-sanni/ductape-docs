@@ -1,8 +1,8 @@
 {
   "label": "Processor",
-  "position": 5,
+  "position": 4,
   "link": {
     "type": "generated-index",
-    "description": "Integrations with Ductape"
+    "description": "Products with Ductape"
   }
 }

@@ -1,9 +1,9 @@
 {
-    "label": "Integrations",
+    "label": "CLI",
     "position": 4,
     "link": {
       "type": "generated-index",
-      "description": "Integrations with Ductape"
+      "description": "Getting Started with Ductape"
     }
   }
   

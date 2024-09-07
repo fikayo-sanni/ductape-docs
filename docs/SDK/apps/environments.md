@@ -8,7 +8,7 @@ Ductape allows you to provision apps & services in multiple environments, for ex
 
 Environments allow you to have a seamless development environment when building products
 
-Ductape allows you to have default workspace environments that get created each time an application is created, these default workspace environments can be updated on the ductape web platform on either the application or integration tabs
+Ductape allows you to have default workspace environments that get created each time an application is created, these default workspace environments can be updated on the ductape web platform on either the application or product tabs
 
 
 ## Create App Environment
@@ -77,6 +77,7 @@ const environments  = app.fetchEnvs() // fetch app envs
 ## Fetch Single Environment
 
 ``` typescript
-const environments = app.fetchEnvs() // fetch app envs
+const slug = "prd";
+const environment = app.fetchEnv(slug) // fetch app env
 ```
 

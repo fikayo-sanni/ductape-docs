@@ -19,7 +19,7 @@ You’ll be prompted to provide the following information:
 - **Email Address**
 - **Password**
 
-These details are essential for creating your user account, allowing you to access and manage your integrations within the Ductape platform.
+These details are essential for creating your user account, allowing you to access and manage your products within the Ductape platform.
 
 ## Sign In
 
@@ -34,6 +34,6 @@ This command will prompt you to enter your credentials:
 - **Ductape Email**
 - **Ductape Password**
 
-Your Ductape Email and Password are the same as those you provided during registration. After successfully logging in, you'll have full access to all the powerful tools and features offered by the Ductape CLI, enabling you to manage your integrations with ease.
+Your Ductape Email and Password are the same as those you provided during registration. After successfully logging in, you'll have full access to all the powerful tools and features offered by the Ductape CLI, enabling you to manage your products with ease.
 
 On a successful login, you are expected to select or create a workspace, you should proceed accordingly

@@ -2,4 +2,5 @@
 sidebar_position: 2
 ---
 
-# Environments
+# Defining Inputs
+
