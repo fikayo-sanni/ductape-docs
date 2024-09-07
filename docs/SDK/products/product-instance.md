@@ -21,8 +21,8 @@ const ductape = new Ductape(credentials); // initialize ductape sdk
 
 const productBuilder = await ductape.getProductBuilder(); // initialize productBuilder
 
-export const product = await appBuilder.initializeProductByTag(product_tag); // fetch product instance by id
+export const product = await productBuilder.initializeProductByTag(product_tag); // fetch product instance by id
 
 ```
 
-This provides an interface to the appBuilder class and makes it available 
+This provides an interface to the productBuilder class and makes it available 

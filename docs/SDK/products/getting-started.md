@@ -48,6 +48,6 @@ Functions in Ductape are reusable pieces of code that can be executed within the
 
 Ductape provides tools for easily building and monitoring data caches, optimizing performance by reducing the need for repeated data retrieval. This caching mechanism allows for faster execution of tasks and ensures efficient use of resources by minimizing redundant operations.
 
-## Features
+### Features
 
 Features are a core offering of Ductape. With Ductape, you can combine various components—such as functions, products, and jobs—to create seamless execution workflows in code that can be easily reused. Features represent a collection of sequences that can be executed either in a defined order or concurrently, depending on your configuration. This flexibility allows you to build robust, scalable solutions tailored to your specific needs.
