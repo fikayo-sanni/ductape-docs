@@ -44,7 +44,7 @@ You can retrieve these workspace credentials directly through the Ductape CLI by
 ductape credentials --info
 ```
 
-The credentials you’ll receive would include the following fields:
+The credentials you’ll receive include the following fields:
 
 - **workspace_id**
 - **user_id**
