@@ -13,10 +13,10 @@ The first step in integrating an app into your product is to create a connection
 ### Example: Creating App Access
 
 ```typescript
-import { product } from "product-instance"; // Import your product instance
+// ... product builder instance
 
 const app_tag = process.env.DUCTAPE_APP_TAG; // Get the app tag from environment variables
-const appAccess = await product.createAppAccessTag(app_tag); // Create app access
+const appAccess = await productBuilder.createAppAccessTag(app_tag); // Create app access
 ```
 
 In the example above, we establish a connection between the app and the product using an app tag. This `appAccess` object will be used in subsequent steps to configure the app's environments.
@@ -105,7 +105,7 @@ const details = {
     envs
 };
 
-await product.addApp(details); // Add the app with the specified details for both environments
+await productBuilder.addApp(details); // Add the app with the specified details for both environments
 ```
 
 ### Key Components

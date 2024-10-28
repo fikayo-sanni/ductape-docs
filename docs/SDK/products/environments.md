@@ -4,56 +4,65 @@ sidebar_position: 4
 
 # Product Environments
 
-Ductape allows you to set up environments for your product projects, where you can define and configure the specific environments you are building on. Product environments enable you to coordinate different app environments, allowing them to work together seamlessly. This setup is essential for building complex functionalities, ensuring that your products run exactly as you need them to in different contexts.
-
+Ductape provides the capability to set up product environments to support development, testing, and production configurations within your projects. Product environments help manage different app settings, ensuring that products run smoothly in varied contexts, facilitating a seamless coordination of app functionalities.
 
 ## Creating Product Environments
 
-``` typescript
-import { DataFormats } from "ductape/types/enums"
-import { product } from "product-instance" // product instance file 
+To set up a new environment, use the `createEnv` function on the `product` instance. Below is an example and a table of required fields for creating a product environment.
 
-const data =  { // environment details
+```typescript
+import { DataFormats } from "ductape/types/enums";
+
+// ... product instance
+
+const data = {
     env_name: "develop",
     slug: "dev",
-    description: "development environment",
-}
-const environments = await product.createEnv(data) // create app env
+    description: "Development environment",
+};
+const environments = await product.createEnv(data); // Create app environment
 ```
 
-The fields required to creat an app are as below
+| Field        | Type     | Description                                                    | Required |
+|--------------|----------|----------------------------------------------------------------|----------|
+| `env_name`   | `string` | Name of the environment                                        | Yes      |
+| `slug`       | `string` | Unique 3-letter identifier for the environment (lowercase)     | Yes      |
+| `description`| `string` | Brief description of the environment                           | No       |
 
-- **env_name:** name of environment ***required*** *
-- **slug:** 3 letter slug, in small letters that serves as unique identifier for environment ***required*** *
-- **description:** environment description text
 
+## Updating a Product Environment
 
+To update an existing environment, specify the `slug` for the environment you wish to update along with the new environment details.
 
-## Update Product Environment
+```typescript
+import { DataFormats } from "ductape/types/enums";
+import { product } from "product-instance"; // product instance file
 
-``` typescript
-import { DataFormats } from "ductape/types/enums"
-import { product } from "product-instance" // product instance file
-
-const slug = "prd"; // environment slug
-const data =  { // updated environment details
+const slug = "prd"; // Environment slug
+const data = {
     env_name: "production",
-    description: "production environment",
-}
-const environments  = await product.updateEnv(slug, data) // update product env
+    description: "Production environment",
+};
+const environments = await product.updateEnv(slug, data); // Update environment
 ```
 
-## Fetch Environments
 
-``` typescript
-const environments  = product.fetchEnvs() // fetch product envs
+
+## Fetching Environments
+
+You can retrieve all configured environments for your product or fetch a specific one by its `slug`.
+
+### Fetch All Environments
+
+```typescript
+const environments = await product.fetchEnvs(); // Fetch all product environments
 ```
 
-## Fetch Single Environment
+### Fetch a Single Environment
 
-``` typescript
-
+```typescript
 const slug = "prd";
-const environment = product.fetchEnv(slug) // fetch product envs
+const environment = await product.fetchEnv(slug); // Fetch specific environment by slug
 ```
 
+These functions allow easy retrieval and management of environments within the Ductape platform, ensuring you can view, update, or configure each environment as required.

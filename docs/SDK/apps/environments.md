@@ -4,42 +4,40 @@ sidebar_position: 4
 
 # Environments Setup
 
-Ductape allows you to provision apps & services in multiple environments, for example, a single application can have **production**, **staging** and **development** environments
+Ductape allows you to provision apps and services in multiple environments. For example, a single application can have **production**, **staging**, and **development** environments.
 
-Environments allow you to have a seamless development environment when building products
-
-Ductape allows you to have default workspace environments that get created each time an application is created, these default workspace environments can be updated on the ductape web platform on either the application or product tabs
-
+Environments enable seamless development workflows when building products. Ductape also provides default workspace environments that are created each time an application is provisioned. These default environments can be updated in the Ductape web platform under the application or product tabs.
 
 ## Create App Environment
 
-``` typescript
-import { DataFormats } from "ductape/types/enums"
-import { app } from "app-instance" // app instance file 
+```typescript
+import { DataFormats } from "ductape/types/enums";
 
-const data =  { // environment details
+// ... app builder instance
+
+const data = { // environment details
     env_name: "develop",
     slug: "dev",
-    description: "development environment",
+    description: "Development environment",
     active: true,
     base_url: "https://dev.example.app",
-    reqest_type: DataFormats.JSON
-}
-const environments = await app.createEnvs(data) // create app env
+    request_type: DataFormats.JSON // fixed typo here
+};
+
+const environments = await app.createEnvs(data); // create app environment
 ```
 
-The fields required to creat an app are as below
+### Required Fields for Creating an App Environment
 
-- **env_name:** name of environment ***required*** *
-- **slug:** 3 letter slug, in small letters that serves as unique identifier for environment ***required*** *
-- **description:** environment description text
-- **active:** boolean field, set as true if the environment is active and false if not (defaulted to false)
-- **base_url:** the base url of the environment
-- **request type:** the type of request accepted by environment, you are expected to choose a value from the DataFormats enum
+- **env_name:** The name of the environment (***required***).
+- **slug:** A 3-letter identifier in lowercase that serves as a unique identifier for the environment (***required***).
+- **description:** A description of the environment.
+- **active:** A boolean indicating if the environment is active (defaults to `false`).
+- **base_url:** The base URL of the environment.
+- **request_type:** The type of requests accepted by the environment, using a value from the `DataFormats` enum.
 
 ### Request Type Data Formats
 
-Here are the options available in the DataFormats enum
 | Key            | Value                             |
 |----------------|-----------------------------------|
 | **JSON**       | application/json                  |
@@ -48,36 +46,35 @@ Here are the options available in the DataFormats enum
 | **SOAP**       | SOAP                              |
 | **HTML**       | html                              |
 
-
-
 ## Update App Environment
 
-``` typescript
+```typescript
+import { DataFormats } from "ductape/types/enums";
 
-import { DataFormats } from "ductape/types/enums"
-import { app } from "app-instance" // app instance file
+// ... app builder instance
 
 const slug = "prd"; // environment slug
-const data =  { // updated environment details
+
+const data = { // updated environment details
     env_name: "production",
-    description: "production environment",
+    description: "Production environment",
     active: true,
     base_url: "https://prd.example.app",
-    reqest_type: DataFormats.JSON
-}
-const environments  = await app.updateEnv(slug, data) // update app env
+    request_type: DataFormats.JSON
+};
+
+const environments = await appBuilder.updateEnv(slug, data); // update app environment
 ```
 
-## Fetch Environements
+## Fetch Environments
 
-``` typescript
-const environments  = app.fetchEnvs() // fetch app envs
+```typescript
+const environments = await appBuilder.fetchEnvs(); // fetch app environments
 ```
 
-## Fetch Single Environment
+## Fetch a Single Environment
 
-``` typescript
+```typescript
 const slug = "prd";
-const environment = app.fetchEnv(slug) // fetch app env
+const environment = await appBuilder.fetchEnv(slug); // fetch a single app environment
 ```
-

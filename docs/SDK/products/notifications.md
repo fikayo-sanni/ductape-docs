@@ -26,8 +26,10 @@ To create a notification, use the `createNotification` function of the product i
 ### Creating a Firebase Push Notification
 
 ```typescript
-import { product } from "product-instance";
-import { Notifiers } from "ductape/types/enums";
+import { Notifiers } from "ductape-sdk/dist/types/enums";
+import { IProductNotification } from "ductape-sdk/dist/types/productsBuilder.types";
+
+// ... product builder instance
 
 const notifications = { // Optional: Define a push notification
     type: Notifiers.FIREBASE, // FIREBASE or EXPO
@@ -41,14 +43,14 @@ const notifications = { // Optional: Define a push notification
     }
 }
 
-const details = {
+const details: IProductNotification = {
     tag: 'notify_payment',
     name: 'Notify Payment',
     description: 'Notify users when a payment happens',
     notifications,
 }
 
-const notification = await product.createNotification(details);
+const notification = await productBuilder.createNotification(details);
 ```
 
 In the example above, `{{sender_username}}`, `{{currency}}`, `{{amount}}`, and `{{receiver_name}}` are all variables that can be dynamically populated in your notification template using the `{{}}` wrapper.
@@ -73,7 +75,7 @@ const details = {
     notifications,
 }
 
-const notification = await product.createNotification(details);
+const notification = await productBuilder.createNotification(details);
 ```
 
 In both Firebase and Expo examples, the notification's content can be customized with placeholders for dynamic values, making it flexible for various use cases.
@@ -84,7 +86,7 @@ In both Firebase and Expo examples, the notification's content can be customized
 You can extend the `details` object to also handle email notifications by adding your email config.
 
 ``` typescript
-const details = {
+const details: IProductNotification = {
     ...details,
     emails: {
         host: process.env.SMTP_HOST,
@@ -111,7 +113,7 @@ The `template` value allows you to define a html template with variables that ca
 You can extend the `details` object to also handle webhook notifications by adding your callback url.
 
 ```typescript
-const details = {
+const details: IProductNotification = {
     ...details,
     webhook: {
         url: '',

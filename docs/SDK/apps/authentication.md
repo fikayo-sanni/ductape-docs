@@ -8,7 +8,8 @@ Ductape allows you to set up various authentication rules for users or systems t
 
 ```typescript
 import { AuthTypes, TokenPeriods } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+
+// ... app builder instance
 
 const setup = {
     name: "Login Access",
@@ -19,7 +20,7 @@ const setup = {
     action_tag: "login",
 };
 
-const auth = await app.createAuth(setup);
+const auth = await appBuilder.createAuth(setup);
 ```
 
 There are two main types of authentication setups covered in the `AuthTypes` enum:
@@ -47,52 +48,54 @@ The `TokenPeriods` enum provides options for specifying the token's lifespan, al
 
 The `ACTION_TAG` defines the tag of the action that can refresh the token, such as a login action or a token refresh action defined in your product steps. Ductape will automatically handle credential-based token refreshes when third parties interact with your application, ensuring secure and continuous access.
 
+
 ### **Token-Based Authentication**
 
-**Token-based access** is used when access to your service is controlled by a token that does not expire. This type of authentication is suitable for scenarios where long-term access is needed without the overhead of managing token refreshes. For this setup, you do not need to provide any expiry details, but you will need to supply a sample of the required token format. Here's an example:
+**Token-based access** is designed for scenarios where long-term access is required without token expiration or the overhead of managing token refreshes. You don't need to specify an expiry, but you must provide a sample token and specify where it should be used in your requests. Here's an example:
 
 ```typescript
 import { AuthTypes, InputTypes } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+
+// ... app builder instance
 
 const setup = {
     name: "Token Access",
     tag: "token_access",
     setup_type: AuthTypes.TOKEN,
     tokens: {
-        type: InputTypes.JSON,
-        sample: {
-            token: "91a7882e61ef143ad2fd115a758fcc40c1be9b5e4a87b177"
+        params: {  // for tokens added to the request URL parameters
+            token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
+        },
+        body: {    // for tokens included in the request body (e.g., for POST/PUT requests)
+            access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
+        },
+        query: {   // for tokens added to the query string of the URL
+            api_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
+        },
+        header: {  // for tokens included in the request headers
+            Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ" // sample token
         }
     }
 };
 
-const auth = await app.createAuth(setup);
+const auth = await appBuilder.createAuth(setup);
 ```
 
-In this example, a non-expiring token is defined under the `tokens` object, with the token type set to `InputTypes.JSON` and a sample token provided. This setup is ideal for services that require permanent access credentials without the need for periodic renewals.
-
-By using these authentication setups, you can ensure that your application is securely accessible according to your specific requirements, whether you need short-lived access for secure operations or persistent tokens for ongoing access.
-
-Here's the `InputsTypes` enum keys and values
-
-| Key       | Value |
-|-----------|-------|
-| **JSON**  | json  |
-| **XML**   | xml   |
-| **HTML**  | html  |
-| **PLAIN** | plain |
-
+### Explanation:
+- **params:** The token is passed as a URL parameter. Example: `https://example.com/resource/:token`, where `:token` is replaced by the provided token.
+- **body:** The token is included in the body of the request. Example: `{ access_token: "your_token" }` in the body of a `POST` or `PUT` request.
+- **query:** The token is passed as a query parameter. Example: `https://example.com/resource?api_key=your_token`.
+- **header:** The token is included in the headers, often under the `Authorization` key.
 
 ## Fetching Authentication
 
 ``` typescript
-const auths  = app.fetchAuths() // fetch all app auths
+const auths  = appBuilder.fetchAuths() // fetch all app auths
 ```
 
 ``` typescript
 const auth_tag = "login_access"
-const auth  = app.fetchAuth(auth_tag) // fetch single app auth
+const auth = appBuilder.fetchAuth(auth_tag) // fetch single app auth
 ```
 
 ## Updating Authentication
@@ -109,5 +112,5 @@ const update = {
     period: TokenPeriods.DAYS,
 }
 
-const auth  = app.updateAuth(auth_tag, update) // fetch single app auth
+const auth = appBuilder.updateAuth(auth_tag, update) // fetch single app auth
 ```
