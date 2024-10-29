@@ -2,27 +2,23 @@
 sidebar_position: 3
 ---
 
-# Create App Builder Instance
+# Initialize App Builder
 
-You can create a reusable app instance which can be used for interacting with the app interface
+To work with apps and services, start by using the App Builder interface to initialize the app you created in the previous step.
+
+Initializing the app retrieves the application instance, enabling interaction in subsequent steps.
 
 ```typescript
-import Ductape from 'ductape'; // import ductape sdk
+// ... Ductape Instance
 
-const credentials = { // initialize ductape credentials
-    user_id: process.env.DUCTAPE_USER_ID,
-    workspace_id: process.env.DUCTAPE_WORKSPACE_ID,
-    private_key: process.env.DUCTAPE_PRIVATE_KEY
-};
+// Ensure APP_TAG is stored in your .env file
+const appTag = process.env.DUCTAPE_APP_TAG;
 
-const app_tag = process.env.DUCTAPE_APP_TAG // assumes you've stored the APP_TAG in the 
+// Initialize the App Builder
+const appBuilder = await ductape.getAppBuilder();
 
-const ductape = new Ductape(credentials); // initialize ductape sdk
-
-const appBuilder = await ductape.getAppBuilder(); // initialize appBuilder
-
-export const app = await appBuilder.initializeAppByTag(app_tag); // fetch  app instance by id
+// Fetch the app instance by its tag for further interaction
+await appBuilder.initializeAppByTag(appTag);
 
 ```
 
-This provides an interface to the appBuilder class and makes it available 

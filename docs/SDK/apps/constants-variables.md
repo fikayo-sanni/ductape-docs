@@ -15,7 +15,8 @@ To create a constant, refer to the example below
 
 ``` typescript
 import { DataTypes } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+
+// ... app builder instance
 
 const details = {
     key: "USER_TYPE",
@@ -24,7 +25,7 @@ const details = {
     description: "The User Type field, to be used during user registration"
 }
 
-const constants = await app.createConstant(details);
+const constants = await appBuilder.createConstant(details);
 ```
 
 The following fields are allowed
@@ -55,7 +56,8 @@ To update an existing constant, refer to the example below
 
 ``` typescript
 import { DataTypes } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+
+// ... app builder instance
 
 const details = {
     value: "user",
@@ -63,19 +65,19 @@ const details = {
     description: "The User Type field, to be used during user registration"
 }
 
-const constant = await app.updateConstant(details);
+const constant = await appBuilder.updateConstant(details);
 ```
 
 
 ### Fetch Constants
 
 ``` typescript
-const constants = await app.fetchConstants(); // fetch all app constants
+const constants = appBuilder.fetchConstants(); // fetch all app constants
 ```
 
 ``` typescript
 const key = "USER_TYPE"
-const constant = await app.fetchConstant(key) // fetch single variable
+const constant = appBuilder.fetchConstant(key) // fetch single variable
 ```
 
 ## Variables
