@@ -8,7 +8,7 @@ const config: Config = {
   favicon: 'img/ductape.ico',
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https:/docs.ductape.app',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -67,10 +67,10 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/ductape.png',
     navbar: {
-      title: 'Ductape',
+      title: '',
       logo: {
         alt: 'Ductape Logo',
-        src: 'img/ductape.png',
+        src: 'img/ductape-logo.svg',
       },
       items: [
         {
