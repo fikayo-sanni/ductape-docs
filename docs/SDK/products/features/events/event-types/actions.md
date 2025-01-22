@@ -14,7 +14,7 @@ An **Action Event** specifies the necessary parameters for external API calls, m
 
 ``` typescript
 interface IFeatureEvent {
-  app: string;                   // Required: The app tag identifying the application context for the event.
+  app: string;                   // Required: The app access tag    .
   type: FeatureEventTypes;       // Required: Specifies the type of event (should be FeatureEventTypes.ACTION).
   event: string;                 // Required: The action tag that uniquely identifies the specific action being performed.
   input: {                       // Required: Input parameters for the event, sample can be fetched from CLI.
