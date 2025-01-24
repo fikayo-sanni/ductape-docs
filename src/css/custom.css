@@ -45,8 +45,8 @@ h1, h2, h3, h4, h5 {
 /* Resize navbar logo */
 .navbar__logo img {
   margin-top: 8px;
-  margin-left: 25px;
-  max-height: 25px;  /* Adjust to the desired height */
+  margin-left: 12px;
+  max-height: 24px;  /* Adjust to the desired height */
   width: auto;  /* Keep the aspect ratio */
 }
 
@@ -86,6 +86,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .sidebar {
   background-color: #F7F9FC;
+  border: none !important;
+}
+
+.docSidebar--responsive,
+.docSidebar {
+  border: none !important; /* Removes any border */
+}
+
+/* Remove the border from the sidebar menu */
+.menu {
+  border: none !important; /* Removes border from the menu list */
+}
+
+/* In case there are borders on individual sidebar items */
+.menu__link {
+  border: none !important; /* Removes any border from individual menu items */
 }
 
 .menu__link {
