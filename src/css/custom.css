@@ -89,6 +89,10 @@ h1, h2, h3, h4, h5, h6 {
   border: none !important;
 }
 
+pre code {
+  background-color: #F7F9FC !important;
+}
+
 .docSidebar--responsive,
 .docSidebar {
   border: none !important; /* Removes any border */
