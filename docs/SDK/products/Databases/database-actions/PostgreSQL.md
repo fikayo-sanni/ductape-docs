@@ -14,9 +14,9 @@ sidebar_position: 3
 
 ---
 
-### Creating Postgres Database Actions
+## Creating Postgres Database Actions
 
-#### Create Operation
+### Create Operation
 
 ```typescript
 const data: IProductDatabaseAction = {
@@ -33,7 +33,7 @@ const data: IProductDatabaseAction = {
 const action = await product.createDatabaseAction(data);
 ```
 
-#### Read Operation
+### Read Operation
 
 ```typescript
 const data: IProductDatabaseAction = {
@@ -48,7 +48,7 @@ const data: IProductDatabaseAction = {
 const action = await product.createDatabaseAction(data);
 ```
 
-#### Update Operation
+### Update Operation
 
 ```typescript
 const data: IProductDatabaseAction = {
@@ -66,7 +66,7 @@ const data: IProductDatabaseAction = {
 const action = await product.createDatabaseAction(data);
 ```
 
-#### Delete Operation
+### Delete Operation
 
 ```typescript
 const data: IProductDatabaseAction = {

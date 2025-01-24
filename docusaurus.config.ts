@@ -8,7 +8,7 @@ const config: Config = {
   favicon: 'img/ductape.ico',
 
   // Set the production url of your site here
-  url: 'https:/docs.ductape.app',
+  url: 'https://docs.ductape.app',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',

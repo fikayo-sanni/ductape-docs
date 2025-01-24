@@ -69,7 +69,7 @@ const data: IProductDatabaseAction = {
 ```
 
 ``` typescript
-const action = await product.createDatabaseAction('mongo', data);
+const action = await product.createDatabaseAction(data);
 ```
 
 ### Read Operation
@@ -112,7 +112,7 @@ const data: IProductDatabaseAction = {
   }
 };
 
-const action = await product.createDatabaseAction('mongo', data);
+const action = await product.createDatabaseAction(data);
 ```
 
 ### Delete Operation
@@ -129,5 +129,5 @@ const data: IProductDatabaseAction = {
   }
 };
 
-const action = await product.createDatabaseAction('mongo', data);
+const action = await product.createDatabaseAction(data);
 ```

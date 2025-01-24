@@ -41,3 +41,88 @@ h1, h2, h3, h4, h5 {
 /*.table_of_content__link {
   font-size: 25px;
 }*/
+
+/* Resize navbar logo */
+.navbar__logo img {
+  margin-top: 8px;
+  margin-left: 25px;
+  max-height: 25px;  /* Adjust to the desired height */
+  width: auto;  /* Keep the aspect ratio */
+}
+
+.navbar {
+  height: 80px;  /* Adjust the height to your preference */
+}
+
+/* Increase padding inside navbar */
+.navbar__inner {
+  padding: 0 20px;  /* Adjust the horizontal padding */
+}
+
+/* Increase font size for the navbar items */
+.navbar__item {
+  font-size: 18px;  /* Increase the font size of navbar items */
+}
+
+
+body {
+  font-size: 1.0rem;  /* Adjust to a smaller size (default is typically 1rem) */
+}
+
+/* Optional: Adjust headings */
+h1, h2, h3, h4, h5, h6 {
+  font-size: 1.5rem;  /* Reduce size of headings slightly */
+}
+
+/* Optional: Adjust navbar items */
+.navbar__item {
+  font-size: 0.9rem;  /* Adjust navbar text size */
+}
+
+/* Optional: Adjust sidebar text size (if applicable) */
+.sidebar .menu__link {
+  font-size: 0.9rem;  /* Adjust sidebar item text size */
+}
+
+.sidebar {
+  background-color: #F7F9FC;
+}
+
+.menu__link {
+  display: block;
+  color: rgb(120,121,122);         /* Default text color */
+  text-decoration: none;  /* Remove underline */
+  border-radius: 4px;     /* Rounded corners for menu items */
+  margin: 5px 0;          /* Space between items */
+  font-weight: 600;
+  transition: background-color 0.3s ease; /* Smooth hover transition */
+}
+
+.menu__link--active {
+  background-color: rgb(233,236,240);  /* Active item background */
+  color: rgb(8,70,166);               /* Active item text color */
+}
+
+.breadcrumbs__link {
+  font-size: 16px;   /* Increase the font size of the breadcrumb links */
+  font-weight: bold; /* Optionally, make the links bold */
+  text-decoration: none; /* Remove underline */
+  margin-right: 5px;  /* Space between the breadcrumb items */
+  transition: color 0.3s ease; /* Smooth transition on hover */
+}
+
+.breadcrumbs__link--active {
+  color: rgb(8,70,166);     /* Customize the link color */
+  font-weight: 600;
+}
+
+.breadcrumbs__link--hover {
+  color: rgb(8,70,166);     /* Customize the link color */
+  font-weight: 700;
+}
+
+.table-of-contents__link{
+  font-size: 15px;
+  font-weight: 600;
+  color: black;
+}
