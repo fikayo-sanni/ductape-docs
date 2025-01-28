@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Import Actions
+# Importing Actions
 
 To get started, you need to import your app actions. Actions are individual endpoints that perform specific functions (e.g., sending money from one user to another). You can import your actions from existing API documentation from the following sources:
 

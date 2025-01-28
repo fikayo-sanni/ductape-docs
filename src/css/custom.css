@@ -85,7 +85,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar {
-  background-color: #F7F9FC;
   border: none !important;
 }
 
@@ -137,6 +136,7 @@ pre code .theme-code-block {
 .breadcrumbs__link--active {
   color: rgb(8,70,166);     /* Customize the link color */
   font-weight: 600;
+  background-color: #F7F9FC;
 }
 
 .breadcrumbs__link--hover {

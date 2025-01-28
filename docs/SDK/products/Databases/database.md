@@ -2,12 +2,13 @@
 sidebar_position: 1
 ---
 
-# Databases
+# Managing Databases
 
-Ductape allows you to set up different databases for your project, you can define the database for each of the environments you are building on. We support the following database types:
+Ductape allows you to set up different databases for your project, you can define the database for each of the environments you are building on. We currently support the following database types:
 
-- **Mongo**
+- **MongoDB**
 - **PostgreSQL**
+- **MySQL**
 
 ## Creating Databases
 
