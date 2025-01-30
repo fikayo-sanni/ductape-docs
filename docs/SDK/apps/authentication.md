@@ -7,9 +7,8 @@ sidebar_position: 5
 Ductape allows you to set up various authentication rules for users or systems that need to access your application. Authentication setup in Ductape is flexible, supporting both credential-based and token-based authentication methods.
 
 ```typescript
-import { AuthTypes, TokenPeriods } from "ductape/types/enums";
-
-// ... app builder instance
+import { AuthTypes, TokenPeriods } from "ductape-sdk/types";
+e
 
 const setup = {
     name: "Login Access",
@@ -20,7 +19,7 @@ const setup = {
     action_tag: "login",
 };
 
-const auth = await appBuilder.createAuth(setup);
+const auth = await ductape.app.auth.create(setup);
 ```
 
 There are two main types of authentication setups covered in the `AuthTypes` enum:
@@ -54,9 +53,7 @@ The `ACTION_TAG` defines the tag of the action that can refresh the token, such 
 **Token-based access** is designed for scenarios where long-term access is required without token expiration or the overhead of managing token refreshes. You don't need to specify an expiry, but you must provide a sample token and specify where it should be used in your requests. Here's an example:
 
 ```typescript
-import { AuthTypes, InputTypes } from "ductape/types/enums";
-
-// ... app builder instance
+import { AuthTypes, InputTypes } from "ductape-sdk/types";
 
 const setup = {
     name: "Token Access",
@@ -78,7 +75,7 @@ const setup = {
     }
 };
 
-const auth = await appBuilder.createAuth(setup);
+const auth = await ductape.app.auth.create(setup);
 ```
 
 ### Explanation:
@@ -90,12 +87,12 @@ const auth = await appBuilder.createAuth(setup);
 ## Fetching Authentication
 
 ``` typescript
-const auths  = appBuilder.fetchAuths() // fetch all app auths
+const auths  = ductape.app.auth.fetchAll() // fetch all app auths
 ```
 
 ``` typescript
 const auth_tag = "login_access"
-const auth = appBuilder.fetchAuth(auth_tag) // fetch single app auth
+const auth = ductape.app.auth.fetch(auth_tag) // fetch single app auth
 ```
 
 ## Updating Authentication
@@ -112,5 +109,5 @@ const update = {
     period: TokenPeriods.DAYS,
 }
 
-const auth = appBuilder.updateAuth(auth_tag, update) // fetch single app auth
+const auth = ductape.app.auth.update(auth_tag, update) // fetch single app auth
 ```

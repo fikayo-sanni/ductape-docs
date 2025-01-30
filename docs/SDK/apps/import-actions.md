@@ -10,52 +10,23 @@ To get started, you need to import your app actions. Actions are individual endp
 - **Postman V2.0** (*currently unavailable*)
 - **OpenAPI 3.0** (*currently unavailable*)
 
-## Importing Postman V2.1
+## Importing Actions
 
-To import Postman V2.1 documentation:
-
-```typescript
-
-import postmanV21 from './postman_docs_v2.1'; // JSON file containing exported Postman documentation
-
-// ... Ductape instance
-
-const importer = await ductape.getActionImporter();
-
-await importer.importPostmanV21(postmanV21, true);
-```
-
-For more details about the Action Importer and the `importPostmanV21` function, refer to our glossary.
-
-## Importing Postman V2.0
-
-*Currently unavailable*
+To import actions into an existing app
 
 ```typescript
-import postmanV20 from './postman_docs_v2.0'; // JSON file containing exported Postman documentation
+import { ImportDocTypes } from "ductape-sdk/types"
 
-// ... Ductape instance
-
-const importer = await ductape.getActionImporter();
-
-await importer.importPostmanV20(postmanV20, true);
+const file: Buffer = ""// file buffer or blob here
+const appTag = "app_tag"
+await ductape.app.actions.import({ file, type: ImportDocTypes.postmanV21, appTag });
 ```
 
-For more details about the Action Importer and the `importPostmanV21` function, refer to our glossary.
-
-## Importing OpenAPI 3.0
-
-*Currently unavailable*
+To import and create a new app
 
 ```typescript
-import openApi30 from './open_api_3.0'; // JSON file containing exported OpenAPI documentation
+import { ImportDocTypes } from "ductape-sdk/types"
 
-// ... Ductape instance
-
-const importer = await ductape.getActionImporter();
-
-await importer.importOpenApi30(openApi30, true);
-
+const file: Buffer = ""// file buffer or blob here
+await ductape.app.actions.import({ file, type: ImportDocTypes.postmanV21 });
 ```
-
-For more details about the Action Importer and the `importPostmanV21` function, refer to our glossary.

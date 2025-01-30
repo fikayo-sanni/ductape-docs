@@ -11,9 +11,7 @@ Environments enable seamless development workflows when building products. Ducta
 ## Create App Environment
 
 ```typescript
-import { DataFormats } from "ductape/types/enums";
-
-// ... app builder instance
+import { DataFormats } from "ductape-sdk/types";
 
 const data = { // environment details
     env_name: "develop",
@@ -24,7 +22,7 @@ const data = { // environment details
     request_type: DataFormats.JSON // fixed typo here
 };
 
-const environments = await app.createEnvs(data); // create app environment
+const environments = await ductape.app.environments.create(data); // create app environment
 ```
 
 ### Required Fields for Creating an App Environment
@@ -49,9 +47,7 @@ const environments = await app.createEnvs(data); // create app environment
 ## Update App Environment
 
 ```typescript
-import { DataFormats } from "ductape/types/enums";
-
-// ... app builder instance
+import { DataFormats } from "ductape-sdk/types";
 
 const slug = "prd"; // environment slug
 
@@ -63,18 +59,18 @@ const data = { // updated environment details
     request_type: DataFormats.JSON
 };
 
-const environments = await appBuilder.updateEnv(slug, data); // update app environment
+const environments = await ductape.app.environments.update(slug, data); // update app environment
 ```
 
 ## Fetch Environments
 
 ```typescript
-const environments = await appBuilder.fetchEnvs(); // fetch app environments
+const environments = await ductape.app.environments.fetchAll(); // fetch app environments
 ```
 
 ## Fetch a Single Environment
 
 ```typescript
 const slug = "prd";
-const environment = await appBuilder.fetchEnv(slug); // fetch a single app environment
+const environment = await ductape.app.environments.fetch(slug); // fetch a single app environment
 ```

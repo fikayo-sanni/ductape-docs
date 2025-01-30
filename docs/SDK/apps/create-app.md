@@ -2,32 +2,28 @@
 sidebar_position: 2
 ---
 
-# Managing Products
+# Managing an App
 
+## Creating an App
 
-## Creating a Product
-
-To create a product you need use the product builder interface's `create` function
+To create an app you need use the app builder interface's `create` function
 
 ``` typescript
 
-import ductape from './ductapeClient';
-
 const details = {
-    name: "Product Name",
+    name: "App Name",
     description: "You can add a product description here",
 }
 
-const product = await ductape.product.create(details)
+const product = await ductape.app.create(details)
 
 ```
 
-## Updating a Product
+## Updating an App
 
 To update a product you need use the product builder interface's `update` function
 
 ``` typescript
-import ductape from './ductapeClient';
 
 const tag = "product_tag";
 
@@ -35,7 +31,7 @@ const details = {
     description: "You can add a product description here",
 }
 
-const product = await ductape.product.update(tag, details)
+const product = await ductape.app.update(tag, details)
 
 ```
 
@@ -44,7 +40,6 @@ const product = await ductape.product.update(tag, details)
 To fetch a product by tag you need use the product builder interface's `fetch` function
 
 ``` typescript
-import ductape from './ductapeClient';
 
 const tag = "product_tag";
 

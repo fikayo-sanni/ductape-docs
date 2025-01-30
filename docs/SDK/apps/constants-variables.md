@@ -14,9 +14,7 @@ Ductape provides interfaces for managing the constants and variables being used 
 To create a constant, refer to the example below
 
 ``` typescript
-import { DataTypes } from "ductape/types/enums";
-
-// ... app builder instance
+import { DataTypes } from "ductape-sdk/types";
 
 const details = {
     key: "USER_TYPE",
@@ -25,7 +23,7 @@ const details = {
     description: "The User Type field, to be used during user registration"
 }
 
-const constants = await appBuilder.createConstant(details);
+const constants = await ductape.app.constant.create(details);
 ```
 
 The following fields are allowed
@@ -55,7 +53,7 @@ Here is the `DataTypes` enum converted into a markdown table:
 To update an existing constant, refer to the example below
 
 ``` typescript
-import { DataTypes } from "ductape/types/enums";
+import { DataTypes } from "ductape-sdk/types";
 
 // ... app builder instance
 
@@ -65,19 +63,19 @@ const details = {
     description: "The User Type field, to be used during user registration"
 }
 
-const constant = await appBuilder.updateConstant(details);
+const constant = await ductape.app.constant.update(details);
 ```
 
 
 ### Fetch Constants
 
 ``` typescript
-const constants = appBuilder.fetchConstants(); // fetch all app constants
+const constants = ductape.app.constant.fetchAll(); // fetch all app constants
 ```
 
 ``` typescript
 const key = "USER_TYPE"
-const constant = appBuilder.fetchConstant(key) // fetch single variable
+const constant = ductape.app.constant.fetch(key) // fetch single variable
 ```
 
 ## Variables
@@ -90,8 +88,7 @@ Defining variables is similar to defining constants, but the values are not goin
 To create a variable, refer to the example below
 
 ``` typescript
-import { DataTypes } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+import { DataTypes } from "ductape-sdk/types";
 
 const details = {
     key: "PUBLIC_KEY"
@@ -99,7 +96,7 @@ const details = {
     description: "The User's Public Key"
 }
 
-const variable = await app.createVariable(details);
+const variable = await ductape.app.variable.create(details);
 ```
 
 ### Update Variables
@@ -107,8 +104,7 @@ const variable = await app.createVariable(details);
 To update an existing variables, refer to the example below
 
 ``` typescript
-import { DataTypes } from "ductape/types/enums";
-import { app } from "app-instance" // app instance file 
+import { DataTypes } from "ductape-sdk/types";
 
 const key = "PUBLIC_KEY"
 const update = {
@@ -116,16 +112,16 @@ const update = {
     description: "The User's Public Key"
 }
 
-const variable = await app.updateVariable(key, update);
+const variable = await ductape.app.variable.update(key, update);
 ```
 
 ### Fetch Variables
 
 ``` typescript
-const variables = await app.fetchVariables(); // fetch all app constants
+const variables = await ductape.app.variable.fetchAll(); // fetch all app variables
 ```
 
 ``` typescript
 const key = "USER_TYPE"
-const variable = await app.fetchVariable(key) // fetch single app
+const variable = await ductape.app.variable.fetch(key) // fetch single app variable
 ```
