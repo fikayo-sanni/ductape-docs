@@ -24,7 +24,7 @@ Each component has a unique structure and purpose, allowing you to create comple
 Below is an example of defining a feature, including details on each necessary field.
 
 ```typescript
-import { AuthTypes, InputTypes, DataTypes, FeatureEventTypes } from "ductape/types/enums";
+import { AuthTypes, InputTypes, DataTypes, FeatureEventTypes } from "ductape-sdk/types";
 
 // ... productBuilder instance
 
@@ -40,7 +40,7 @@ const details: IProductFeature = {
     output: output_object,
 }
 
-await product.createFeature(details);
+await ductape.product.features.create(details);
 ```
 
 ### Feature Fields
