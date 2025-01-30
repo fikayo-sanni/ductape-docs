@@ -88,7 +88,7 @@ const updatedWebhook = await ductape.app.webhooks.update("new-webhook", {
             slug: "prd",
             registration_url: "https://live.webhook.com/register",
             method: HttpMethods.POST,
-            sample: {
+            auth: {
                 headers: {
                     Authorization: "Bearer ehwywjwjsnsnsnsnsns"
                 },
