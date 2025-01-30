@@ -3,7 +3,7 @@ sidebar_position: 1
 slug: /
 ---
 
-# Ductape
+# Introducing Ductape
 
 Let's discover **Ductape in less than 5 minutes**. 
 

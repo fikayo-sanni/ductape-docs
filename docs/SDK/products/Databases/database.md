@@ -6,17 +6,16 @@ sidebar_position: 1
 
 Ductape allows you to set up different databases for your project, you can define the database for each of the environments you are building on. We currently support the following database types:
 
-- **MongoDB**
-- **PostgreSQL**
-- **MySQL**
+- **MongoDB:** `DatabaseTypes.MONGODB`
+- **PostgreSQL:** `DatabaseTypes.POSTGRES`
+- **MySQL:** `DatabaseTypes.MYSQL`
 
 ## Creating Databases
 
 To create a database use the `createDatabase` function of the product instance. It takes the database object and a boolean field which determines whether an existing database is updated when the tag exists or an error is thrown.
 
 ```typescript
-import { DatabaseTypes } from 'ductape/types/productsBuilder.types';
-import { product } from 'product-instance'; // product instance file
+import { DatabaseTypes } from 'ductape-sdk/types';
 
 const data = {
   type: DatabaseTypes.MONG0DB,
@@ -34,7 +33,7 @@ const data = {
   name: 'Mongo database'
 };
 
-const database = await builder.createDatabase(data, true);
+const database = await ductape.product.databases.create(data);
 ```
 
 The fields required to create a database are as below
@@ -50,8 +49,6 @@ The fields required to create a database are as below
 To update a database use the `updateDatabase` function of the product instance. It takes the database tag and the update payload.
 
 ```typescript
-import { product } from 'product-instance'; // product instance file
-
 const data = {
   envs: [
     {
@@ -62,25 +59,22 @@ const data = {
   name: 'Mongo database details'
 };
 
-const database = await builder.updateDatabase('postgres', data);
+const database = await ductape.product.databases.update("postgres-db-tag",data);
 ```
 
 ## Fetch Databases
 
-To fetch the databases for a product use the `fetchDatabases` function of the product intsance.
+To fetch the databases for a product use the `fetchAll` function of the `product.databases` interface.
 
 ```typescript
-import { product } from 'product-instance'; // product instance file
-
-const databases = product.fetchDatabases()
+const databases = ductape.product.databases.fetchAll()
 ```
 
 ## Fetch Database
 
-To fetch a single database use the `fetchDatabase` function of the product instance. It takes in the database tag.
+To fetch a single database use the `fetch` function of the `product.databases` interface. It takes in the database tag.
 
 ```typescript
-import { product } from 'product-instance'; // product instance file
 
-const databases = product.fetchDatabase('mongo')
+const databases = ductape.product.databases.fetch('mongo-db-tag')
 ```

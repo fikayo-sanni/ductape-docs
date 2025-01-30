@@ -8,15 +8,13 @@ To create a product you need use the product builder interface's `createProduct`
 
 ``` typescript
 
-// ... ductape instance
-
-const productBuilder = await ductape.getProductBuilder(); // initialize product builder
+import ductape from './ductapeClient';
 
 const details = {
     name: "Product Name",
     description: "You can add a product description here",
 }
 
-const product = await productBuilder.createProduct(details)
+const product = await ductape.product.create(details)
 
 ```

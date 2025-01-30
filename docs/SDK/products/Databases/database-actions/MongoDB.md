@@ -69,7 +69,7 @@ const data: IProductDatabaseAction = {
 ```
 
 ``` typescript
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```
 
 ### Read Operation
@@ -86,7 +86,7 @@ const data: IProductDatabaseAction = {
   }
 };
 
-const action = await product.createDatabaseAction('mongo', data);
+const action = await ductape.product.databases.actions.create('mongo', data);
 ```
 
 ### Update Operation
@@ -112,7 +112,7 @@ const data: IProductDatabaseAction = {
   }
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```
 
 ### Delete Operation
@@ -129,5 +129,5 @@ const data: IProductDatabaseAction = {
   }
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```

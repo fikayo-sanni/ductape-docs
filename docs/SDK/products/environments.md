@@ -8,45 +8,39 @@ Ductape provides the capability to set up product environments to support develo
 
 ## Creating Product Environments
 
-To set up a new environment, use the `createEnv` function on the `product` instance. Below is an example and a table of required fields for creating a product environment.
+To set up a new environment, use the `create` function on the `product.env` instance. Below is an example and a table of required fields for creating a product environment.
 
 ```typescript
-import { DataFormats } from "ductape/types/enums";
-
-// ... product instance
+import ductape from "ductape-sdk";
 
 const data = {
     env_name: "develop",
     slug: "dev",
     description: "Development environment",
 };
-const environments = await product.createEnv(data); // Create app environment
+const environment = await ductape.product.environments.create(data); // Create product environment
 ```
 
 | Field        | Type     | Description                                                    | Required |
-|--------------|----------|----------------------------------------------------------------|----------|
-| `env_name`   | `string` | Name of the environment                                        | Yes      |
-| `slug`       | `string` | Unique 3-letter identifier for the environment (lowercase)     | Yes      |
-| `description`| `string` | Brief description of the environment                           | No       |
-
+|-------------|----------|----------------------------------------------------------------|----------|
+| `env_name`  | `string` | Name of the environment                                        | Yes      |
+| `slug`      | `string` | Unique 3-letter identifier for the environment (lowercase)     | Yes      |
+| `description` | `string` | Brief description of the environment                           | No       |
 
 ## Updating a Product Environment
 
 To update an existing environment, specify the `slug` for the environment you wish to update along with the new environment details.
 
 ```typescript
-import { DataFormats } from "ductape/types/enums";
-import { product } from "product-instance"; // product instance file
+import ductape from "ductape-sdk";
 
 const slug = "prd"; // Environment slug
 const data = {
-    env_name: "production",
+    env_name: "Production",
     description: "Production environment",
 };
-const environments = await product.updateEnv(slug, data); // Update environment
+const updatedEnvironment = await ductape.product.environments.update(slug, data); // Update environment
 ```
-
-
 
 ## Fetching Environments
 
@@ -55,14 +49,14 @@ You can retrieve all configured environments for your product or fetch a specifi
 ### Fetch All Environments
 
 ```typescript
-const environments = await product.fetchEnvs(); // Fetch all product environments
+const environments = await ductape.product.environments.fetchAll(); // Fetch all product environments
 ```
 
 ### Fetch a Single Environment
 
 ```typescript
 const slug = "prd";
-const environment = await product.fetchEnv(slug); // Fetch specific environment by slug
+const environment = await ductape.product.environments.fetch(slug); // Fetch specific environment by slug
 ```
 
 These functions allow easy retrieval and management of environments within the Ductape platform, ensuring you can view, update, or configure each environment as required.

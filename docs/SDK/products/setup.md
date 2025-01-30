@@ -2,13 +2,13 @@
 sidebar_position: 4
 ---
 
-# Adding Apps and Services
+# Adding Apps to Products
 
 To begin building a product with Ductape, you'll first need to add the apps and services that will form the foundation of your product. This guide will walk you through the process of creating app access, setting up app environments, and mapping them to your product environments.
 
 ## Creating App Access
 
-The first step in integrating an app into your product is to create a connection between the app and your product. This connection is essential for incorporating various functionalities as you build and scale your product. You can create this connection using the `createAppAccessTag` function from the `productBuilder` instance.
+The first step in integrating an app into your product is to create a connection between the app and your product. This connection is essential for incorporating various functionalities as you build and scale your product. You can create this connection using the `app.connect` function from the `productBuilder` instance.
 
 ### Example: Creating App Access
 
@@ -16,7 +16,7 @@ The first step in integrating an app into your product is to create a connection
 // ... product builder instance
 
 const app_tag = process.env.DUCTAPE_APP_TAG; // Get the app tag from environment variables
-const appAccess = await productBuilder.createAppAccessTag(app_tag); // Create app access
+const appAccess = await builder.product.apps.connect(app_tag); // Create app access
 ```
 
 In the example above, we establish a connection between the app and the product using an app tag. This `appAccess` object will be used in subsequent steps to configure the app's environments.
@@ -105,7 +105,7 @@ const details = {
     envs
 };
 
-await productBuilder.addApp(details); // Add the app with the specified details for both environments
+await ductape.product.apps.add(details); // Add the app with the specified details for both environments
 ```
 
 ### Key Components

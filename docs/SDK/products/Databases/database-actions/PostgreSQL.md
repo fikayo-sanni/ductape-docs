@@ -30,7 +30,7 @@ const data: IProductDatabaseAction = {
   `
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```
 
 ### Read Operation
@@ -45,7 +45,7 @@ const data: IProductDatabaseAction = {
   `
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```
 
 ### Update Operation
@@ -63,7 +63,7 @@ const data: IProductDatabaseAction = {
   `
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```
 
 ### Delete Operation
@@ -78,5 +78,5 @@ const data: IProductDatabaseAction = {
   `
 };
 
-const action = await product.createDatabaseAction(data);
+const action = await ductape.product.databases.actions.create(data);
 ```

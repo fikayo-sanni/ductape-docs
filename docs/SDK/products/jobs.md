@@ -8,13 +8,11 @@ Jobs are scheduled events in Ductape that allow you to execute tasks at a specif
 
 ## Creating Jobs
 
-To create a job, use the `createJob` function of the `productBuilder` interface:
+To create a job, use the `create` function of the `product.jobs` interface:
 
 ```typescript
-import { JobEventTypes } from "ductape-sdk/dist/types/enums";
-import { IProductJob } from "ductape-sdk/dist/types/productsBuilder.types";
-
-// ... product builder instance
+import ductape from './ductapeClient'
+import { JobEventTypes, IProductJob } from "ductape-sdk/dist/types";
 
 const details: IProductJob = {
     name: 'Example Job',          // name of job
@@ -25,7 +23,7 @@ const details: IProductJob = {
     intervals: 60000,              // interval in milliseconds
     start_at: 198766789,           // start time as a Unix timestamp
 };
-await productBuilder.createJob(details);
+await ductape.product.jobs.create(details);
 ```
 
 | Field        | Type                   | Description                                                                                  |
@@ -60,22 +58,22 @@ const data: Partial<IProductJob> = {
     executions: 10,               // optional updated execution limit
     intervals: 120000,            // optional updated interval
 };
-await productBuilder.updateJob(tag, data);
+await ductape.product.jobs.update(tag, data);
 ```
 
 ## Fetching Jobs
 
-To retrieve a list of all jobs, use the `fetchJobs` function:
+To retrieve a list of all jobs, use the `fetchAll` function:
 
 ```typescript
-const jobs = await productBuilder.fetchJobs(); // returns an array of all jobs
+const jobs = await ductape.product.jobs.fetchAll(); // returns an array of all jobs
 ```
 
-To fetch a specific job, use the `fetchJob` function with the job `tag`:
+To fetch a specific job, use the `fetch` function with the job `tag`:
 
 ```typescript
 const tag = 'example_job';
-const job = await productBuilder.fetchJob(tag); // retrieves a specific job by tag
+const job = await ductape.product.jobs.fetch(tag); // retrieves a specific job by tag
 ```
 
 These functions provide flexibility for creating, updating, and managing scheduled events across your Ductape applications.

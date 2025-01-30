@@ -111,12 +111,15 @@ pre code .theme-code-block {
 
 .menu__link {
   display: block;
-  color: rgb(120,121,122);         /* Default text color */
   text-decoration: none;  /* Remove underline */
   border-radius: 4px;     /* Rounded corners for menu items */
   margin: 5px 0;          /* Space between items */
   font-weight: 600;
   transition: background-color 0.3s ease; /* Smooth hover transition */
+}
+
+.menu__link--dark{
+  color: white;         /* Default text color */
 }
 
 .menu__link--active {

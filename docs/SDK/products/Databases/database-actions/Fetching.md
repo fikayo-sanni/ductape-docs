@@ -8,7 +8,7 @@ sidebar_position: 5
 Use the `fetchDatabaseActions` function with the database tag to retrieve all actions.
 
 ```typescript
-const actions = await product.fetchDatabaseActions('mongo');
+const actions = await ductape.product.databases.actions.fetchAll('mongo-db-tag');
 ```
 
 ### Fetch a Single Database Action
@@ -16,5 +16,5 @@ const actions = await product.fetchDatabaseActions('mongo');
 Use the `fetchDatabaseAction` function with both the database tag and the action tag to fetch a specific action.
 
 ```typescript
-const action = await product.fetchDatabaseAction('mongo:create-user');
+const action = await ductape.product.databases.actions.fetch('mongo-db-tag:create-user');
 ```

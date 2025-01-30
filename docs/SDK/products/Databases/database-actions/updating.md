@@ -11,8 +11,9 @@ To update an existing database action, use the `updateDatabaseAction` function. 
 The same rules with regards `insertOne` and `insertMany` and other templating rules are expected to still be observed. In templating you can set new templates as you wish
 
 ```typescript
-const updatedData: IProductDatabaseAction = {
-  tag: 'mongo-db-tag:create-user',
+import { IProductDatabaseAction } from 'ductape-sdk/types';
+
+const updateData: IProductDatabaseAction = {
   tableName: 'users',
   type: DatabaseActionTypes.CREATE,
   template: {
@@ -28,14 +29,15 @@ const updatedData: IProductDatabaseAction = {
   }
 };
 
-const action = await product.updateDatabaseAction(updatedData);
+const action = await ductape.product.databases.actions.update('mongo-db-tag:create-user', updateData);
 ```
 
 ## Updating MySQL Action
 
 ```typescript
-const data: IProductDatabaseAction = {
-  tag: 'mysql-db-tag:create-user',
+import { IProductDatabaseAction } from 'ductape-sdk/types';
+
+const updateData: IProductDatabaseAction = {
   tableName: 'users',
   type: DatabaseActionTypes.CREATE,
   template: `
@@ -44,15 +46,16 @@ const data: IProductDatabaseAction = {
   `
 }
 
-const action = await product.updateDatabaseAction(updatedData);
+const action = await ductape.product.databases.actions.update('mysql-db-tag:create-user', updateData);
 ```
 
 
 ## Updating PostgresSQL Action
 
 ```typescript
-const data: IProductDatabaseAction = {
-  tag: 'postgres-db-tag:create-user',
+import { IProductDatabaseAction } from 'ductape-sdk/types';
+
+const updateData: IProductDatabaseAction = {
   tableName: 'users',
   type: DatabaseActionTypes.CREATE,
   template: `
@@ -61,5 +64,5 @@ const data: IProductDatabaseAction = {
   `
 }
 
-const action = await product.updateDatabaseAction(updatedData);
+const action = await ductape.product.databases.actions.update('postgres-db-tag:create-user', updatedData);
 ```
