@@ -41,7 +41,7 @@ An environment can have either, but not both
 import { Notifiers } from 'ductape-sdk/types';
 
 const push_notifications = {
-    type: Notifiers.FIREBASE
+    type: Notifiers.EXPO
 };
 ```
 
