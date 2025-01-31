@@ -13,7 +13,7 @@ A callback notification has the same structure as an action request, it has 4 pa
 
 
 ``` typescript
-const push_notification: {
+const callback = {
     body: {
         transaction_id: "{{transactionId}}",
         bank_code: "{{bankCode}}",

@@ -11,7 +11,7 @@ An notification has two parts
 
 
 ``` typescript
-const push_notification: {
+const email: {
     subject: "Credit Alert From {{username}}",
     template: "<html><body><p>{{username}} sent you {{amount}} {{currency}}</p></body></html>",
 }
