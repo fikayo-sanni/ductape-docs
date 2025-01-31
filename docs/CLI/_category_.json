@@ -1,9 +1,9 @@
 {
     "label": "CLI",
-    "position": 4,
+    "position": 8,
     "link": {
       "type": "generated-index",
-      "description": "Getting Started with Ductape"
+      "description": "Ductape CLI guide"
     }
   }
   

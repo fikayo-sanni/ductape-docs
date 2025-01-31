@@ -1,6 +1,6 @@
 {
-    "label": "Products",
-    "position": 2,
+    "label": "Glossary",
+    "position": 9,
     "link": {
       "type": "generated-index",
       "description": "Products with Ductape"
