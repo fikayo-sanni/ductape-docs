@@ -1,0 +1,8 @@
+{
+  "label": "Message Brokers",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Message Brokers with Ductape"
+  }
+}

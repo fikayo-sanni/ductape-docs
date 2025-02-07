@@ -1,0 +1,8 @@
+{
+  "label": "Cloud Functions",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Processing Cloud Functions with Ductape"
+  }
+}
