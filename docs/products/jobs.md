@@ -45,7 +45,8 @@ The `JobEventTypes` enum specifies the type of events you can schedule as jobs.
 | `ACTION`           | Executes an action event.                  |
 | `NOTIFICATION`     | Executes a notification event.             |
 | `DATABASE_ACTION`  | Executes a database action.                |
-| `FUNCTION`         | Executes a custom function.                |
+| `FUNCTION`         | Executes a cloud function.                 |
+| `MESSAGEBROKER`    | Executes a message broker event emit       |
 
 ## Updating Jobs
 
