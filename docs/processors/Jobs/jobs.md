@@ -30,6 +30,8 @@ An object containing details for executing a job processor.
   - `IFunctionRequest` - When job schedules a cloud function call
   - `IStorageRequest` - When job schedules file storage
   - `Record<string, unknown>` - When job schedules a feature
+- **start_at** (`number`, **required**) - Unix timestamp of what time to start the job. Set to 0 to start immediately
+
 
 ## Returns  
 A `Promise<unknown>` that resolves with the result of the job execution. The response structure depends on the specific job being processed.  
@@ -50,7 +52,8 @@ const data: IJobProcessorInput = {
       data: { trackingId: "XYZ987" },
       device_token: "abcdef123456"
     }
-  }
+  },
+  start_at: 198766789,
 };
 
 const res = await ductape.processor.job.schedule(data);
