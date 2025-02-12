@@ -16,6 +16,7 @@ export interface IJobProcessorInput {
   app?: string;
   input: IActionRequest | INotificationRequest | IDbActionRequest | IFunctionRequest | IStorageRequest | Record<string, unknown>;
   event: string;
+  start_at?: number
 }
 ```
 ### Properties:  
@@ -24,6 +25,7 @@ export interface IJobProcessorInput {
 - **event** (`string`, **required**) – The tag of the job event to be triggered.  
 - **app** (`string`, **optional**) – The name of the application related to the job.  
 - **input** (`object`, **required**) – The job input data, which can be one of multiple specific request types.  
+- **start_at** (`number`, **required**) - Unix timestamp of what time to start the job. Set to 0 to start immediately
 
 ---
 

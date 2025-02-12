@@ -21,7 +21,6 @@ const details: IProductJob = {
     event_tag: 'action_tag',       // tag of the event to run
     executions: 5,                 // set to 0 for unlimited executions
     intervals: 60000,              // interval in milliseconds
-    start_at: 198766789,           // start time as a Unix timestamp
 };
 await ductape.product.jobs.create(details);
 ```
@@ -34,7 +33,6 @@ await ductape.product.jobs.create(details);
 | `event_tag`  | `string`               | The tag for the event being executed, corresponding to the specific event type chosen.       |
 | `executions` | `number`               | The number of times to execute the job. Set to `0` for unlimited executions.                 |
 | `intervals`  | `number` (milliseconds)| The interval, in milliseconds, between each job execution.                                   |
-| `start_at`   | `number` (timestamp)   | The Unix timestamp that specifies when the job should begin execution.                       |
 
 ### Job Event Types
 
