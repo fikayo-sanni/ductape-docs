@@ -1,0 +1,9 @@
+{
+    "label": "Database Migrations",
+    "position": 3,
+    "link": {
+      "type": "generated-index",
+      "description": "Database Migrations with Ductape"
+    }
+  }
+  

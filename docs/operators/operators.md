@@ -310,6 +310,55 @@ $Replace("2024-02-09", "-", "/")  # Result: "2024/02/09"
 
 ---
 
+## 13. **$Filter**
+
+### **Description:**  
+Filters an array based on a comparison operator and a value, returning all elements that satisfy the condition.
+
+### **Syntax:**  
+```typescript
+$Filter(array, "operator", value)
+```
+
+### **Parameters:**  
+| **Parameter** | **Type**       | **Description**                                  |
+|---------------|----------------|--------------------------------------------------|
+| `array`       | Array           | Array of values to be filtered.                  |
+| `"operator"`  | String          | Comparison operator (`">"`, `"<"`, `">="`, `"<="`, `"=="`, `"!=="`). |
+| `value`       | Any             | Value to compare each element of the array against. |
+
+### **Example:**  
+```typescript
+$Filter([1, 2, 3, 4, 5], ">", 3)      # Result: [4, 5]
+$Filter(["apple", "banana"], "==", "apple")  # Result: ["apple"]
+```
+
+---
+
+## 14. **$Find**
+
+### **Description:**  
+Finds and returns the first element in an array that matches the given comparison operator and value.
+
+### **Syntax:**  
+```typescript
+$Find(array, "operator", value)
+```
+
+### **Parameters:**  
+| **Parameter** | **Type**       | **Description**                                  |
+|---------------|----------------|--------------------------------------------------|
+| `array`       | Array           | Array of values to search.                       |
+| `"operator"`  | String          | Comparison operator (`">"`, `"<"`, `">="`, `"<="`, `"=="`, `"!=="`). |
+| `value`       | Any             | Value to compare each element of the array against. |
+
+### **Example:**  
+```typescript
+$Find([1, 2, 3, 4, 5], "==", 3)      # Result: 3
+$Find(["apple", "banana"], "==", "banana")  # Result: "banana"
+$Find([1, 4, 6], ">", 4)             # Result: 6
+```
+
 ## **Final Notes:**
 - Errors are thrown for invalid inputs or out-of-bounds indices.
 - Operators are designed to be nestable and composable for complex transformations.
