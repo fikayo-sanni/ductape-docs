@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Logic in Ductape
+# Sequences in Ductape
 
 In Ductape, a **product** is a collection of features, with each feature representing a distinct functionality. Features are designed as a sequence of actions and events executed in a specific order to fulfill a defined task, making Ductape highly adaptable for complex workflows.
 
