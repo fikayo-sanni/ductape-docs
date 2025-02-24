@@ -63,6 +63,16 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      '@easyops-cn/docusaurus-search-local',
+      {
+        hashed: true, // Enables better caching
+        docsRouteBasePath: '/', // Include docs
+      },
+    ],
+  ],
+
   themeConfig: {
     // Replace with your project's social card
     image: 'img/ductape.png',
@@ -73,11 +83,7 @@ const config: Config = {
         src: 'img/ductape-logo.svg',
       },
       items: [
-        {
-          href: 'https://github.com/facebook/docusaurus',
-          label: 'GitHub',
-          position: 'right',
-        },
+        { type: 'search', position: 'right' }, // 🔍 Adds the search bar to the navbar
       ],
     },
     footer: {
