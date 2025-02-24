@@ -29,8 +29,8 @@ The `decoratorPosition` property determines where the decorator appears relative
 
 | **Enum**  | **Value**   | **Description**                     | **Example** |
 |-----------|-------------|-------------------------------------|-------------|
-| `APPEND`  | "append"    | Decorator appears **after** the value. | `100$`      |
-| `PREPEND` | "prepend"   | Decorator appears **before** the value. | `$100`      |
+| `APPEND`  | "AFTER"    | Decorator appears **after** the value. | `100$`      |
+| `PREPEND` | "BEFORE"   | Decorator appears **before** the value. | `$100`      |
 | `UNSET`   | ""          | No decorator applied.                | `100`       |
 
 ---
@@ -109,7 +109,7 @@ await ductape.apps.validation("$Body{createProduct}{product}{price}", {
   required: true,
   type: "float",
   decorator: "$",
-  decoratorPosition: "prepend",
+  decoratorPosition: DecoratorPositions.PREPEND,
   defaultValue: 0.0,
 });
 ```
