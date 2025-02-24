@@ -4,6 +4,8 @@ sidebar_position: 3
 
 # PostgresSQL Database Actions
 
+> **Note:** Database Action tags are expected to follow the format: `databaseTag:dbActionTag`. This convention ensures clarity and prevents conflicts across different databases and their actions.
+
 | **Action Type** | **SQL Query Type**          |
 |------------------|-----------------------------|
 | Read             | SELECT                     |
@@ -11,8 +13,6 @@ sidebar_position: 3
 | Update           | UPDATE                     |
 | Delete           | DELETE                     |
 | Aggregate        | SELECT (for aggregations)  |
-
----
 
 ## Creating Postgres Database Actions
 

@@ -4,6 +4,8 @@ sidebar_position: 1
 
 # MongoDB Database Actions
 
+> **Note:** Database Action tags are expected to follow the format: `databaseTag:dbActionTag`. This convention ensures clarity and prevents conflicts across different databases and their actions.
+
 | **Action Type** | **MongoDB Operations**                     |
 |------------------|--------------------------------------------|
 | Read             | `find`, `findOne`                         |
@@ -13,7 +15,6 @@ sidebar_position: 1
 | Delete           | `deleteOne`, `deleteMany`                 |
 | Aggregate        | `aggregate`                               |
 
----
 
 ## MongoDB Database Actions Creation
 

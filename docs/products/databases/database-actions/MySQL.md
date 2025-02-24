@@ -4,6 +4,8 @@ sidebar_position: 2
 
 # MySQL Database Actions
 
+> **Note:** Database Action tags are expected to follow the format: `databaseTag:dbActionTag`. This convention ensures clarity and prevents conflicts across different databases and their actions.
+
 | **Action Type** | **SQL Query Type**          |
 |------------------|-----------------------------|
 | Read             | SELECT                     |
@@ -12,7 +14,6 @@ sidebar_position: 2
 | Delete           | DELETE                     |
 | Aggregate        | SELECT (for aggregations)  |
 
----
 
 ## Creating MySQL Database Actions
 
