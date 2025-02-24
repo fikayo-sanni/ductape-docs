@@ -6,6 +6,8 @@ sidebar_position: 2
 
 Ductape allows you to manage notification messages efficiently. Notification messages serve as a way to inform users about important events via various channels such as push notifications, callbacks, and emails.
 
+> **Note:** Notifiation Message tags are expected to follow the format: `notificationTag:messageTag`. This convention ensures clarity and prevents conflicts across different notifiers and messages.
+
 ## Setting Up Notification Messages  
 
 To create a notification message in Ductape, use the `create` function of the `product.notifications.messages` interface.  
