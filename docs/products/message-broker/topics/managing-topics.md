@@ -10,8 +10,6 @@ A **Message Broker Topic** consists of a unique combination of identifiers and p
 
 > **Note:** Message Broker Topic tags are expected to follow the format: `messageBrokerTag:topicTag`. This convention ensures clarity and prevents conflicts across different brokers and topics.
 
----
-
 ## Create a Message Broker Topic
 
 To create a Message Broker Topic, use the example below:
