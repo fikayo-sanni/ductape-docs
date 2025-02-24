@@ -2,16 +2,15 @@
 sidebar_position: 1
 ---
 
-# FLows in Ductape
+# Flows in Ductape
 
 In Ductape, a **product** is a collection of features, with each feature representing a distinct functionality. Features are designed as a sequence of actions and events executed in a specific order to fulfill a defined task, making Ductape highly adaptable for complex workflows.
 
 ## Primary Components of a Feature
 
 A feature in Ductape has three essential components:
-1. **tag**: feature unique identifier
-2. **input_type**: `InputTypes` enum field, currently features only support `JSON` inputs
-1. **Input**: Data or parameters required to start the feature's process.
+
+1. **Input**: Data or parameters schema required to start the feature's process.
 2. **Event Sequence**: A series of actions and events performed in a sequence to process the input and complete the feature's task.
 3. **Output**: The result generated after the execution of the event sequence.
 
