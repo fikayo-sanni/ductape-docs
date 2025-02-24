@@ -10,7 +10,6 @@ In Ductape, you can update the validation rules for different input data points 
 
 | **Property**        | **Type**                           | **Description**                                                |
 |---------------------|------------------------------------|----------------------------------------------------------------|
-| `sampleValue`       | `string \| number \| object`       | Example demonstrating the expected data format.                |
 | `description`       | `string`                           | Explanation of the data point's purpose.                       |
 | `required`          | `boolean`                          | Determines if the field is mandatory.                          |
 | `maxLength`         | `number`                           | Maximum allowed length for strings.                            |
@@ -19,8 +18,9 @@ In Ductape, you can update the validation rules for different input data points 
 | `decoratorPosition` | [`DecoratorPositions`](#decorator-positions) | Position of the decorator relative to the value.              |
 | `type`              | [`DataTypes`](#data-types)         | Defines the data type and format.                              |
 | `defaultValue`      | `string \| number \| boolean`       | Default value if none is provided.                             |
+| `sampleValue`       | `string \| number \| object`       | Example demonstrating the expected data format.                |
 
-All fields are optional
+
 ---
 
 ## **Decorator Positions**
