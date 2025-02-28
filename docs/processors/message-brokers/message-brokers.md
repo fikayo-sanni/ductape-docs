@@ -54,8 +54,7 @@ Subscribing to an event allows you to listen for messages from a message broker 
 - **`env`** – Environment where the subscription should be active.  
 - **`event`** – The event is in the format brokerTag:topicTag 
 - **`product_tag`** – Identifier for the product.  
-- **`input`** – Contains the subscription details, including:  
-  - **`topicTag`** – Unique identifier for the topic.  
+- **`input`** – Contains the subscription details, including:
   - **`callback`** – Function to handle received messages.  
 
 ### Example Usage
