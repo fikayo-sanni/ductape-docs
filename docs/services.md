@@ -42,8 +42,7 @@ Integrate any app into a product, allowing them to work together seamlessly.
 Set up resources that your product depends on:  
 - **Storage:** Configure cloud storage for files or data.  
 - **Message Brokers:** Set up messaging queues like RabbitMQ, AWS SQS, Google PubSub, Redis or Kafka.  
-- **Databases:** Connect to relational or NoSQL databases, and define database actions (e.g., queries or updates).  
-- **Cloud Functions:** Define serverless functions to process data, handle business logic, or integrate with other services.  
+- **Databases:** Connect to relational or NoSQL databases, and define database actions (e.g., queries or updates).
 - **Notifications:** Configure communication channels and create reusable notification messages.  
 - **Jobs:** Define background tasks for asynchronous processing.  
 - **Features (Workflows):** Create reusable features by combining actions across apps and resources.  
@@ -54,8 +53,7 @@ Leverage the product resources you’ve defined to build and execute functionali
 
 - **Storage:** Upload, retrieve, or delete files using the Ductape SDK.  
 - **Message Brokers:** Publish and subscribe to messages in your queues to enable event-driven architecture.  
-- **Databases:** Perform CRUD operations through predefined database actions to manage your product’s data.  
-- **Cloud Functions:** Invoke serverless functions directly in your code to execute custom business logic.  
+- **Databases:** Perform CRUD operations through predefined database actions to manage your product’s data. 
 - **Notifications:** Trigger and send notifications based on user actions or system events.  
 - **Jobs:** Schedule and execute background jobs to handle asynchronous processing.  
 - **Caches:** Retrieve and update cached data to minimize latency and optimize performance.  

@@ -51,12 +51,6 @@ The `storage` interface allows you to manage product storage:
 
 - `save(data: IProductStorageProcessorInput)`: Saves data to storage using the processor service.
 
-### Cloud Functions
-
-The `cloudFunction` interface allows you to invoke cloud functions:
-
-- `invoke(data: IProductFunctionProcessorInput)`: Invokes a cloud function using the processor service.
-
 ### Message Brokers
 
 The `messageBroker` interface allows you to handle message queues:
