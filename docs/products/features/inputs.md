@@ -57,8 +57,10 @@ The following `DataTypes` are available for defining feature inputs:
 | `STRING`          | Free-form text                                  |
 | `NOSPACES_STRING` | String without spaces                           |
 | `EMAIL_STRING`    | String in a valid email format                  |
+| `DATE _STRING`    | String in a valid date format                   |
 | `NUMBER_STRING`   | String representing a number                    |
 | `INTEGER`         | Integer value                                   |
+| `DATE`            | Date value                                      |
 | `FLOAT`           | Floating-point number                           |
 | `DOUBLE`          | Double-precision floating-point number          |
 | `UUID`            | Universally Unique Identifier (UUID)            |
