@@ -8,7 +8,6 @@ Ductape allows you to set up various authentication rules for users or systems t
 
 ```typescript
 import { AuthTypes, TokenPeriods } from "ductape-sdk/types";
-e
 
 const setup = {
     name: "Login Access",

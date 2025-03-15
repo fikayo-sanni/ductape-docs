@@ -28,6 +28,45 @@ Please note that in MongoDB, the templates are  defined as
   }
 ```
 
+## Data Validation
+To define data validation for each datapoint you can follow the pattern
+```typescript
+'{{key:type:minlength:maxlength}}'
+```
+
+All fields asides the key are optional
+
+e.g
+
+```typescript
+'{{key}}' is valid
+```
+
+When the non key values are not defined
+
+The default values are 
+- type - (string)
+- minlength - (1) one
+- maxlength - (0) unlimited
+
+### Available `DataTypes` Options
+
+The following `DataTypes` are available for defining feature inputs:
+
+| Type              | Description                                     |
+|-------------------|-------------------------------------------------|
+| `STRING`          | Free-form text                                  |
+| `NOSPACES_STRING` | String without spaces                           |
+| `EMAIL_STRING`    | String in a valid email format                  |
+| `NUMBER_STRING`   | String representing a number                    |
+| `INTEGER`         | Integer value                                   |
+| `FLOAT`           | Floating-point number                           |
+| `DOUBLE`          | Double-precision floating-point number          |
+| `UUID`            | Universally Unique Identifier (UUID)            |
+| `ARRAY`           | Array of items                                  |
+| `OBJECT`          | JSON object                                     |
+| `BOOLEAN`         | Boolean value (`true` or `false`)               |
+
 ### Create Operation
 
 ```typescript
@@ -37,12 +76,12 @@ const data: IProductDatabaseAction = {
   type: DatabaseActionTypes.CREATE,
   template: {
     insertOne: {
-      username: '{{username}}',
-      firstname: '{{firstname}}',
-      lastname: '{{lastname}}',
-      dateOfBirth: '{{dateOfBirth}}',
-      address: '{{address}}',
-      occupation: '{{occupation}}'
+      username: `{{username:${DataTypes.NOSPACES_STRING}:3:20}}`,
+      firstname: `{{firstname:${DataTypes.STRING}}}`,
+      lastname: `{{lastname:string:${DataTypes.STRING}}}`,
+      dateOfBirth: `{{dateOfBirth:date_string${DataTypes.DATE_STRING}}}`,
+      address: `{{address:string:${DataTypes.STRING}}}`,
+      occupation: `{{occupation:${DataTypes.STRING}}}`
     }
   }
 };
@@ -57,12 +96,12 @@ const data: IProductDatabaseAction = {
   type: DatabaseActionTypes.CREATE,
   template: {
     insertMany: [{
-      username: '{{username}}',
-      firstname: '{{firstname}}',
-      lastname: '{{lastname}}',
-      dateOfBirth: '{{dateOfBirth}}',
-      address: '{{address}}',
-      occupation: '{{occupation}}'
+      username: `{{username:${DataTypes.NOSPACES_STRING}:3:20}}`,
+      firstname: `{{firstname:${DataTypes.STRING}}}`,
+      lastname: `{{lastname:string:${DataTypes.STRING}}}`,
+      dateOfBirth: `{{dateOfBirth:date_string${DataTypes.DATE_STRING}}}`,
+      address: `{{address:string:${DataTypes.STRING}}}`,
+      occupation: `{{occupation:${DataTypes.STRING}}}`
     }]
   }
 };
@@ -100,9 +139,9 @@ const data: IProductDatabaseAction = {
   template: {
     updateOne: {
       set: {
-        firstname: '{{firstname}}',
-        lastname: '{{lastname}}',
-        address: '{{address}}'
+        username: `{{username:${DataTypes.NOSPACES_STRING}:3:20}}`,
+        firstname: `{{firstname:${DataTypes.STRING}}}`,
+        lastname: `{{lastname:string:${DataTypes.STRING}}}`,
       }
     }
   },

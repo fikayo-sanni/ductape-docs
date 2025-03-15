@@ -14,6 +14,45 @@ sidebar_position: 2
 | Delete           | DELETE                     |
 | Aggregate        | SELECT (for aggregations)  |
 
+## Data Validation
+To define data validation for each datapoint you can follow the pattern
+```typescript
+'{{key:type:minlength:maxlength}}'
+```
+
+All fields asides the key are optional
+
+e.g
+
+```typescript
+'{{key}}' is valid
+```
+
+When the non key values are not defined
+
+The default values are 
+- type - (string)
+- minlength - (1) one
+- maxlength - (0) unlimited
+
+### Available `DataTypes` Options
+
+The following `DataTypes` are available for defining feature inputs:
+
+| Type              | Description                                     |
+|-------------------|-------------------------------------------------|
+| `STRING`          | Free-form text                                  |
+| `NOSPACES_STRING` | String without spaces                           |
+| `EMAIL_STRING`    | String in a valid email format                  |
+| `NUMBER_STRING`   | String representing a number                    |
+| `INTEGER`         | Integer value                                   |
+| `FLOAT`           | Floating-point number                           |
+| `DOUBLE`          | Double-precision floating-point number          |
+| `UUID`            | Universally Unique Identifier (UUID)            |
+| `ARRAY`           | Array of items                                  |
+| `OBJECT`          | JSON object                                     |
+| `BOOLEAN`         | Boolean value (`true` or `false`)               |
+
 
 ## Creating MySQL Database Actions
 
@@ -26,7 +65,7 @@ const data: IProductDatabaseAction = {
   type: DatabaseActionTypes.CREATE,
   template: `
     INSERT INTO users (username, firstname, lastname, date_of_birth, address, occupation)
-    VALUES ('{{username}}', '{{firstname}}', '{{lastname}}', '{{dateOfBirth}}', '{{address}}', '{{occupation}}')
+    VALUES ('{{username:${DataTypes.NOSPACES_STRING}:3:20}}', '{{firstname:${DataTypes.STRING}}}', '{{lastname}}', '{{dateOfBirth}}', '{{address}}', '{{occupation}}')
   `
 };
 
