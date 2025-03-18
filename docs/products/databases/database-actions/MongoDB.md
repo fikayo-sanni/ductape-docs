@@ -31,7 +31,7 @@ Please note that in MongoDB, the templates are  defined as
 ## Data Validation
 To define data validation for each datapoint you can follow the pattern
 ```typescript
-'{{key:type:minlength:maxlength}}'
+'{{key:type:minlength:maxlength:unique}}'
 ```
 
 All fields asides the key are optional
@@ -48,6 +48,7 @@ The default values are
 - type - (string)
 - minlength - (1) one
 - maxlength - (0) unlimited
+- unique - (boolean) false
 
 ### Available `DataTypes` Options
 
