@@ -132,8 +132,9 @@ export interface IStorageProcessorInput {
 #### IStorageRequest  
 ```typescript
 export interface IStorageRequest {
-  blob: Blob;
+  buffer: Buffer;
   mimeType?: string;
+  fileName?: string;
 }
 ```
 - **blob** (`Blob`, **required**) – File data to be stored.  
