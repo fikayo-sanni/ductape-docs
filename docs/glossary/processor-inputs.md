@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 # Processor Inputs  
@@ -10,30 +10,30 @@ This glossary provides a detailed reference for all processor input interfaces u
 Represents a general job processor request. It can handle multiple types of inputs, such as database actions, function execution, notifications, and storage tasks.  
 
 ```typescript
-export interface IJobProcessorInput {
+interface IJobProcessorInput {
   env: string;
   product_tag: string;
   app?: string;
   input: IActionRequest | INotificationRequest | IDbActionRequest | IFunctionRequest | IStorageRequest | Record<string, unknown>;
   event: string;
-  start_at?: number
+  start_at?: number;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Environment where the job should be executed (e.g., `"dev"`, `"prd"`).  
-- **product_tag** (`string`, **required**) – Unique identifier for the product associated with the job.  
-- **event** (`string`, **required**) – The tag of the job event to be triggered.  
-- **app** (`string`, **optional**) – The name of the application related to the job.  
-- **input** (`object`, **required**) – The job input data, which can be one of multiple specific request types.  
-- **start_at** (`number`, **required**) - Unix timestamp of what time to start the job. Set to 0 to start immediately
 
----
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Environment where the job should be executed (e.g., `"dev"`, `"prd"`). |
+| product_tag  | string     | Yes      | Unique identifier for the product associated with the job. |
+| app          | string     | No       | The name of the application related to the job.      |
+| input        | object     | Yes      | The job input data, which can be one of multiple specific request types. |
+| event        | string     | Yes      | The tag of the job event to be triggered.            |
+| start_at     | number     | No       | Unix timestamp of when to start the job. Set to 0 to start immediately. |
 
 ## IFunctionProcessorInput  
 Represents a request for invoking a cloud function.  
 
 ```typescript
-export interface IFunctionProcessorInput {
+interface IFunctionProcessorInput {
   env: string;
   product_tag: string;
   input: IFunctionRequest;
@@ -41,28 +41,34 @@ export interface IFunctionProcessorInput {
   retries?: number;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Execution environment.  
-- **product_tag** (`string`, **required**) – Product identifier.  
-- **event** (`string`, **required**) – Function event tag.  
-- **input** (`IFunctionRequest`, **required**) – Function request data.  
-- **retries** (`number`, **optional**) – Number of retry attempts in case of failure.  
 
-#### IFunctionRequest  
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Execution environment.                               |
+| product_tag  | string     | Yes      | Product identifier.                                  |
+| event        | string     | Yes      | Function event tag.                                  |
+| input        | IFunctionRequest | Yes  | Function request data.                               |
+| retries      | number     | No       | Number of retry attempts in case of failure.         |
+
+### IFunctionRequest  
+Represents the input for a function request, extending `IActionRequest`.  
+
 ```typescript
-export interface IFunctionRequest extends IActionRequest {
+interface IFunctionRequest extends IActionRequest {
   payload: Record<string, any>;
 }
 ```
-- **payload** (`Record<string, any>`, **required**) – Additional input data for the function.  
 
----
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| payload      | object     | Yes      | Additional input data for the function.             |
+
 
 ## IDBActionProcessorInput  
 Represents a request for performing database actions.  
 
 ```typescript
-export interface IDBActionProcessorInput {
+interface IDBActionProcessorInput {
   env: string;
   product_tag: string;
   input: IDbActionRequest;
@@ -70,49 +76,55 @@ export interface IDBActionProcessorInput {
   retries?: number;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Execution environment.  
-- **product_tag** (`string`, **required**) – Product identifier.  
-- **event** (`string`, **required**) – Database action event tag.  
-- **input** (`IDbActionRequest`, **required**) – Database request data.  
-- **retries** (`number`, **optional**) – Number of retry attempts in case of failure.  
 
-#### IDbActionRequest  
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Execution environment.                               |
+| product_tag  | string     | Yes      | Product identifier.                                  |
+| event        | string     | Yes      | Database action event tag.                           |
+| input        | IDbActionRequest | Yes  | Database request data.                               |
+| retries      | number     | No       | Number of retry attempts in case of failure.         |
+
+
+### IDbActionRequest  
+Represents the request data for database actions.  
+
 ```typescript
-export interface IDbActionRequest {
+interface IDbActionRequest {
   data: Record<string, unknown>;
   filter?: Record<string, unknown>;
 }
 ```
-- **data** (`Record<string, unknown>`, **required**) – Data to be inserted, updated, or deleted.  
-- **filter** (`Record<string, unknown>`, **optional**) – Conditions for selecting records.  
 
----
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| data         | object     | Yes      | Data to be inserted, updated, or deleted.           |
+| filter       | object     | No       | Conditions for selecting records.                    |
 
 ## IProcessorInput  
 Represents a request for running a feature processor.  
 
 ```typescript
-export interface IProcessorInput {
+interface IProcessorInput {
   product_tag: string;
   env: string;
   input: Record<string, unknown>;
   feature_tag: string;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Execution environment.  
-- **product_tag** (`string`, **required**) – Product identifier.  
-- **feature_tag** (`string`, **required**) – Feature event tag.  
-- **input** (`Record<string, unknown>`, **required**) – Input parameters.  
 
----
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Execution environment.                               |
+| product_tag  | string     | Yes      | Product identifier.                                  |
+| feature_tag  | string     | Yes      | Feature event tag.                                   |
+| input        | object     | Yes      | Input parameters.                                    |
 
 ## IStorageProcessorInput  
 Represents a request for performing storage operations.  
 
 ```typescript
-export interface IStorageProcessorInput {
+interface IStorageProcessorInput {
   env: string;
   product_tag: string;
   app?: string;
@@ -121,32 +133,38 @@ export interface IStorageProcessorInput {
   retries?: number;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Execution environment.  
-- **product_tag** (`string`, **required**) – Product identifier.  
-- **event** (`string`, **required**) – Storage event tag.  
-- **app** (`string`, **optional**) – Application name.  
-- **input** (`IStorageRequest`, **required**) – Storage request data.  
-- **retries** (`number`, **optional**) – Number of retry attempts in case of failure.  
 
-#### IStorageRequest  
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Execution environment.                               |
+| product_tag  | string     | Yes      | Product identifier.                                  |
+| event        | string     | Yes      | Storage event tag.                                   |
+| app          | string     | No       | Application name.                                    |
+| input        | IStorageRequest | Yes  | Storage request data.                                |
+| retries      | number     | No       | Number of retry attempts in case of failure.         |
+
+### IStorageRequest  
+Represents the request data for storage operations.  
+
 ```typescript
-export interface IStorageRequest {
+interface IStorageRequest {
   buffer: Buffer;
   mimeType?: string;
   fileName?: string;
 }
 ```
-- **blob** (`Blob`, **required**) – File data to be stored.  
-- **mimeType** (`string`, **optional**) – MIME type of the file.  
 
----
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| buffer       | Buffer     | Yes      | File data to be stored.                              |
+| mimeType     | string     | No       | MIME type of the file.                               |
+| fileName     | string     | No       | File name for storage.                               |
 
 ## INotificationProcessorInput  
 Represents a request for sending notifications.  
 
 ```typescript
-export interface INotificationProcessorInput {
+interface INotificationProcessorInput {
   env: string;
   product_tag: string;
   input: INotificationRequest;
@@ -154,16 +172,20 @@ export interface INotificationProcessorInput {
   retries?: number;
 }
 ```
-### Properties:  
-- **env** (`string`, **required**) – Execution environment.  
-- **product_tag** (`string`, **required**) – Product identifier.  
-- **event** (`string`, **required**) – Notification event tag.  
-- **input** (`INotificationRequest`, **required**) – Notification request data.  
-- **retries** (`number`, **optional**) – Number of retry attempts in case of failure.  
 
-#### INotificationRequest  
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| env          | string     | Yes      | Execution environment.                               |
+| product_tag  | string     | Yes      | Product identifier.                                  |
+| event        | string     | Yes      | Notification event tag.                              |
+| input        | INotificationRequest | Yes  | Notification request data.                           |
+| retries      | number     | No       | Number of retry attempts in case of failure.         |
+
+### INotificationRequest  
+Represents the request data for sending notifications.  
+
 ```typescript
-export interface INotificationRequest extends IActionRequest {
+interface INotificationRequest extends IActionRequest {
   slug: string;
   push_notification: {
     title: Record<string, unknown>;
@@ -184,7 +206,10 @@ export interface INotificationRequest extends IActionRequest {
   };
 }
 ```
-- **slug** (`string`, **required**) – Unique identifier for the notification.  
-- **push_notification** (`object`, **required**) – Push notification details.  
-- **email** (`object`, **optional**) – Email details.  
-- **callback** (`object`, **optional**) – Callback request details.  
+
+| Property     | Type       | Required | Description                                          |
+|--------------|------------|----------|------------------------------------------------------|
+| slug         | string     | Yes      | Unique identifier for the notification.              |
+| push_notification | object  | Yes      | Push notification details.                           |
+| email        | object     | No       | Email details.                                       |
+| callback     | object     | No       | Callback request details.                            |

@@ -22,16 +22,29 @@
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme="dark"] {
-  --ifm-color-primary: #0846A6;
-  --ifm-color-primary-dark: #0846A6;
-  --ifm-color-primary-darker: #0846A6;
-  --ifm-color-primary-darkest: #0846A6;
-  --ifm-color-primary-light: #0846A6;
-  --ifm-color-primary-lighter: #0846A6;
-  --ifm-color-primary-lightest: #0846A6;
+  --ifm-color-primary: #0B64EA;
+  --ifm-color-primary-dark: #0B64EA;
+  --ifm-color-primary-darker: #0B64EA;
+  --ifm-color-primary-darkest: #0B64EA;
+  --ifm-color-primary-light: #0B64EA;
+  --ifm-color-primary-lighter: #0B64EA;
+  --ifm-color-primary-lightest: #0B64EA;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
   font-family: "Raleway", sans-serif !important;
+  background-color: #212330 !important;
   font-size: 16px;
+}
+
+/* Change navbar background in dark mode */
+html[data-theme='dark'] .navbar {
+  
+  background-color:  #212330 !important;
+  border-bottom: 1px solid#434557;
+}
+
+html[data-theme='dark'] .sidebar {
+  
+  background-color:  #212330 !important;
 }
 
 h1, h2, h3, h4, h5 {
@@ -84,6 +97,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.9rem;  /* Adjust sidebar item text size */
 }
 
+
 .sidebar {
   border: none !important;
 }
@@ -124,7 +138,7 @@ pre code .theme-code-block {
 
 .menu__link--active {
   background-color: rgb(233,236,240);  /* Active item background */
-  color: rgb(8,70,166);               /* Active item text color */
+  color: #0B64EA;               /* Active item text color */
 }
 
 .breadcrumbs__link {
@@ -137,13 +151,13 @@ pre code .theme-code-block {
 }
 
 .breadcrumbs__link--active {
-  color: rgb(8,70,166);     /* Customize the link color */
+  color: #0B64EA;     /* Customize the link color */
   font-weight: 600;
   background-color: #F7F9FC;
 }
 
 .breadcrumbs__link--hover {
-  color: rgb(8,70,166);     /* Customize the link color */
+  color: #0B64EA;     /* Customize the link color */
   font-weight: 700;
 }
 

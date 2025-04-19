@@ -2,122 +2,166 @@
 sidebar_position: 1
 ---
 
-# Managing Webhooks  
+# Managing Webhooks
 
-Ductape allows you to automatically handle webhooks and their logic. Each webhook can have multiple events attached to it, serving as a single point of registration for multiple events your app emits. Ductape enables you to manage multiple webhooks and events that your partners will receive.  
+Ductape allows you to automatically handle webhooks and their associated logic. Each webhook can have multiple events attached to it, acting as a single point of registration for the events your app emits. You can manage multiple webhooks and configure the events your partners will receive.
 
-## Setting Up Webhooks  
+## Setting Up Webhooks
 
-To create a webhook in Ductape, use the `create` function of the `app.webhooks` interface. Each webhook must be configured with the appropriate settings for different environments.  
+There are two main ways to set up webhooks:
 
-### Example  
+- Generating a link for use in a dashboard
+- Registering directly with Ductape
 
-```typescript
+To create a webhook in Ductape, use the `create` function from the `app.webhooks` interface. Each webhook must be configured with appropriate settings depending on the registration method and environment.
+
+### Example: Users Register Directly with Ductape
+
+```ts
 const webhook = await ductape.app.webhooks.create({
-    name: "New Webhook",
-    tag: "new-webhook",
-    description: "New Webhook Description"
-    envs: [
-        {
-            slug: "prd",
-            registration_url: "https://api.webhook.com/register",
-            method: HttpMethods.POST,
-            sample: {
-                headers: {
-                    Authorization: "Bearer ehwywjwjsnsnsnsnsns"
-                },
-                query: {},
-                body: {},
-                params: {}
-            }
+  name: "New Webhook",
+  tag: "new-webhook",
+  description: "New Webhook Description",
+  envs: [
+    {
+      slug: "prd",
+      registration_url: "https://api.webhook.com/register",
+      method: HttpMethods.POST,
+      sample: {
+        headers: {
+          Authorization: "Bearer ehwywjwjsnsnsnsnsns",
         },
-        {
-            slug: "snd",
-            registration_url: "https://sandbox.webhook.com/register",
-            method: HttpMethods.POST,
-            sample: {
-                headers: {
-                    Authorization: "Bearer ehwywjwjsnsnsnsnsns"
-                },
-                query: {},
-                body: {},
-                params: {}
-            }
-        }
-    ]
+        query: {},
+        body: {},
+        params: {},
+      },
+    },
+    {
+      slug: "snd",
+      registration_url: "https://sandbox.webhook.com/register",
+      method: HttpMethods.POST,
+      sample: {
+        headers: {
+          Authorization: "Bearer ehwywjwjsnsnsnsnsns",
+        },
+        query: {},
+        body: {},
+        params: {},
+      },
+    },
+  ],
 });
 ```
 
-## Webhook Fields  
+In this example, you provide the full registration flow details: the API URL, HTTP method, and the data structure expected from the user.
 
-| Field              | Type                 | Description |
-|--------------------|----------------------|-------------|
-| `name`            | `string`             | A human-readable name for the webhook. |
-| `tag`             | `string`             | A unique identifier for the webhook. |
-| `description`     | `string`             | A quick description of the webhook.  |
-| `envs`            | `EnvConfig[]`        | An array of environment-specific configurations. |
+### Example: Users Generate a Link and Supply It to a Dashboard
 
-### `EnvConfig` Fields  
+```ts
+const webhook = await ductape.app.webhooks.create({
+  name: "New Webhook",
+  tag: "new-webhook",
+  description: "New Webhook Description",
+  envs: [
+    { slug: "prd" },
+    { slug: "snd" },
+  ],
+});
+```
 
-| Field              | Type                 | Description |
-|--------------------|----------------------|-------------|
-| `slug`            | `string`             | The environment identifier (e.g., `"prd"` for production, `"snd"` for sandbox). |
-| `registration_url` | `string`             | The URL where the webhook will be registered. |
-| `method`          | `HttpMethods`        | The HTTP method used for the webhook (e.g., `POST`, `GET`). |
-| `sample`          | `WebhookSample`      | A sample payload structure for testing the webhook. |
+In this case, you only provide the environment slugs. Ductape will generate a webhook link that users can supply to their dashboard.
 
-### `WebhookSample` Fields  
+**Note:** You can mix both methods. The example below is valid and combines both approaches:
 
-| Field      | Type                 | Description |
-|-----------|----------------------|-------------|
-| `headers` | `Record<string, string>` | HTTP headers sent with the webhook request. |
-| `query`   | `Record<string, any>` | Query parameters included in the webhook request. |
-| `body`    | `Record<string, any>` | The request body sent with the webhook. |
-| `params`  | `Record<string, any>` | URL parameters included in the webhook request. |
+```ts
+const webhook = await ductape.app.webhooks.create({
+  name: "New Webhook",
+  tag: "new-webhook",
+  description: "New Webhook Description",
+  envs: [
+    { slug: "prd" },
+    {
+      slug: "snd",
+      registration_url: "https://sandbox.webhook.com/register",
+      method: HttpMethods.POST,
+      sample: {
+        headers: {
+          Authorization: "Bearer ehwywjwjsnsnsnsnsns",
+        },
+        query: {},
+        body: {},
+        params: {},
+      },
+    },
+  ],
+});
+```
 
-## Updating Webhooks  
+## Webhook Fields
 
-To update an existing webhook, use the `update` function of the `app.webhooks` interface. This allows you to modify configurations for different environments.  
+| Field         | Type              | Description                                         |
+|---------------|-------------------|-----------------------------------------------------|
+| `name`        | `string`          | A human-readable name for the webhook.              |
+| `tag`         | `string`          | A unique identifier for the webhook.                |
+| `description` | `string`          | A brief description of what the webhook does.       |
+| `envs`        | `EnvConfig[]`     | An array of environment-specific configurations.    |
 
-### Example  
+### `EnvConfig` Fields
 
-```typescript
+| Field              | Type             | Description                                                  |
+|--------------------|------------------|--------------------------------------------------------------|
+| `slug`             | `string`         | Environment identifier (e.g., `"prd"` for production).       |
+| `registration_url` | `string`         | URL for registering the webhook.                            |
+| `method`           | `HttpMethods`    | HTTP method used for registration (e.g., `POST`, `GET`).     |
+| `sample`           | `WebhookSample`  | A sample payload structure used for webhook testing.         |
+
+### `WebhookSample` Fields
+
+| Field      | Type                     | Description                                              |
+|------------|--------------------------|----------------------------------------------------------|
+| `headers`  | `Record<string, string>` | HTTP headers to be sent with the webhook request.        |
+| `query`    | `Record<string, any>`    | Query parameters to be included in the webhook request.  |
+| `body`     | `Record<string, any>`    | Request body to be sent with the webhook.                |
+| `params`   | `Record<string, any>`    | URL parameters to be included in the webhook request.    |
+
+## Updating Webhooks
+
+To update an existing webhook, use the `update` function from the `app.webhooks` interface. You can modify environment-specific configurations, including URLs, methods, and payload samples.
+
+### Example
+
+```ts
 const updatedWebhook = await ductape.app.webhooks.update("new-webhook", {
-    envs: [
-        {
-            slug: "prd",
-            registration_url: "https://live.webhook.com/register",
-            method: HttpMethods.POST,
-            auth: {
-                headers: {
-                    Authorization: "Bearer ehwywjwjsnsnsnsnsns"
-                },
-                query: {},
-                body: {},
-                params: {}
-            }
-        }
-    ]
+  envs: [
+    {
+      slug: "prd",
+      registration_url: "https://live.webhook.com/register",
+      method: HttpMethods.POST,
+      sample: {
+        headers: {
+          Authorization: "Bearer ehwywjwjsnsnsnsnsns",
+        },
+        query: {},
+        body: {},
+        params: {},
+      },
+    },
+  ],
 });
 ```
 
+## Fetching Webhooks
 
-## Fetching Webhooks  
+To retrieve all webhooks associated with your app, use the `fetchAll` function:
 
-To retrieve all webhooks for an app, use the `fetchAll` function.  
-
-### Example  
-
-```typescript
+```ts
 const webhooks = await ductape.app.webhooks.fetchAll();
 ```
 
-## Fetching a Single Webhook  
+## Fetching a Single Webhook
 
-To retrieve a specific webhook, use the `fetch` function, passing the webhook tag as an argument.  
+To retrieve a specific webhook, use the `fetch` function and pass the webhook's tag:
 
-### Example  
-
-```typescript
+```ts
 const webhook = await ductape.app.webhooks.fetch("new-webhook");
 ```

@@ -1,4 +1,4 @@
-# Logs
+# Fetching Logs
 
 The Logs module provides functionality to fetch and analyze logs for both apps and products within the Ductape platform.
 
@@ -17,24 +17,24 @@ The `fetch` method retrieves logs based on the provided query parameters.
 
 ### Parameters
 
-- **params.component** - *Required*. Specifies the component type ('app' or 'product')
-- **params.type** - *Optional*. Type of analysis ('apps', 'process', 'feature', 'integrations', etc.)
-- **params.groupBy** - *Optional*. Time period for grouping ('day', 'week', 'month', 'year')
-- **params.search** - *Optional*. Search term for filtering logs
-- **params.page** - *Optional*. Page number for pagination (≥ 1)
-- **params.limit** - *Optional*. Number of items per page (≥ 1)
-- **params.status** - *Optional*. Filter by status ('success', 'processing', 'fail')
+- **component** - *Required*. Specifies the component type ('app' or 'product')
+- **type** - *Optional*. Type of analysis ('apps', 'process', 'feature', 'integrations', etc.)
+- **groupBy** - *Optional*. Time period for grouping ('day', 'week', 'month', 'year')
+- **search** - *Optional*. Search term for filtering logs
+- **page** - *Optional*. Page number for pagination (≥ 1)
+- **limit** - *Optional*. Number of items per page (≥ 1)
+- **status** - *Optional*. Filter by status ('success', 'processing', 'fail')
 
 #### For component='app':
-- **params.tag** - *Optional*. Tag identifier (only valid when type='actions')
-- **params.env** - *Optional*. Environment filter
-- **params.name** - *Optional*. Name filter
-- **params.action** - *Optional*. Specific action filter
+- **tag** - *Optional*. Tag identifier (only valid when type='actions')
+- **env** - *Optional*. Environment filter
+- **name** - *Optional*. Name filter
+- **action** - *Optional*. Specific action filter
 
 #### For component='product':
-- **params.env** - *Optional*. Environment filter
-- **params.name** - *Optional*. Name filter
-- **params.action** - *Optional*. Specific action filter
+- **env** - *Optional*. Environment filter
+- **name** - *Optional*. Name filter
+- **action** - *Optional*. Specific action filter
 
 ### Examples
 

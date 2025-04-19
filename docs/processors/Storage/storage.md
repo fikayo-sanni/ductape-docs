@@ -28,9 +28,10 @@ An object containing details for executing the storage processor.
 ## `IStorageRequest` Schema  
 The `input` property follows the `IStorageRequest` schema:  
 ```typescript
-export interface IStorageRequest {
+interface IStorageRequest {
   buffer: Buffer;
   mimeType?: string;
+  fileName: string;
 }
 ```
 - **`blob`** (`Blob`, **required**) – The file blob to be stored.  
@@ -43,8 +44,6 @@ A `Promise<unknown>` that resolves with the result of the storage operation. The
 
 ## Example Usage  
 ```typescript
-import { ductape } from 'ductape-sdk';
-
 const {buffer, fileName, mimeType} = await ductape.processor.storage.readFile(filePath)
 
 const data: IStorageProcessorInput = {
