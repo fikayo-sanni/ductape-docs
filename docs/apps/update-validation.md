@@ -21,8 +21,6 @@ In Ductape, you can update the validation rules for different input data points 
 | `sampleValue`       | `string \| number \| object`       | Example demonstrating the expected data format.                |
 
 
----
-
 ## **Decorator Positions**
 
 The `decoratorPosition` property determines where the decorator appears relative to the value.
@@ -33,7 +31,6 @@ The `decoratorPosition` property determines where the decorator appears relative
 | `PREPEND` | "BEFORE"   | Decorator appears **before** the value. | `$100`      |
 | `UNSET`   | ""          | No decorator applied.                | `100`       |
 
----
 
 ## **Data Types**
 
@@ -59,7 +56,6 @@ The `type` property defines the expected data format.
 | `UUID_ARRAY`          | "array-uuid"     | Array of UUIDs.            | ["550e8400-e29b-41d4-a716-446655440000"] |
 | `BOOLEAN_ARRAY`       | "array-boolean"  | Array of booleans.         | [true, false, true]                  |
 
----
 
 ## **Updating Data Validation with Ductape**
 
@@ -77,8 +73,6 @@ await ductape.apps.validation(selector: string, update: Partial<IParsedSample>);
   - `$Param{action_tag}{...}{key}`  
   - `$Header{action_tag}{...}{key}`  
 - **`update`**: A partial object of `IParsedSample` containing the validation properties you wish to modify. All fields are optional.  
-
----
 
 ### **Example Usage**
 
@@ -99,7 +93,6 @@ await ductape.apps.validation("$Body{createUser}{user}{username}", {
 - Requires a username without spaces between 3 and 30 characters.  
 - Provides a default value of an empty string.  
 
----
 
 #### **Example 2: Set Validation for Product Price Field**
 
@@ -119,8 +112,6 @@ await ductape.apps.validation("$Body{createProduct}{product}{price}", {
 - Prepends a `$` symbol.  
 - Defaults to `0.0` if no value is provided.  
 
----
-
 #### **Example 3: Update Tags Field to Accept String Arrays**
 
 ```ts
@@ -135,8 +126,6 @@ await ductape.apps.validation("$Body{createBlogPost}{post}{tags}", {
 - Ensures tags are stored as an array of strings.  
 - Default value is an empty array.  
 
----
-
 #### **Example 4: Make UUID Required**
 
 ```ts
@@ -150,8 +139,6 @@ await ductape.apps.validation("$Param{getUser}{id}", {
 **Explanation:**  
 - Enforces a valid UUID format.  
 - Field is required with no default value.  
-
----
 
 ## **Tips & Best Practices**  
 - Use `maxLength` and `minLength` to prevent data overflow or underflow.  
