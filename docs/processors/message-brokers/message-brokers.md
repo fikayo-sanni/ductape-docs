@@ -17,6 +17,7 @@ Publishing a message allows you to send structured data to a message broker, whi
 ### Required Data Fields 
 - **`env`** – Environment where the message should be published (e.g., `"production"` or `"staging"`).  
 - **`event`** – The event is in the format brokerTag:topicTag
+- **`cache`**(`string`, **optional**) - The tag of the cache, if applicable. only to be used when caching requests
 - **`product_tag`** – Identifier for the product.  
 - **`input`** – Contains the actual message payload.  
 

@@ -21,7 +21,8 @@ An object containing details for executing the notification processor.
 #### Properties:  
 - **`env`** (`string`, **required**) – The slug of the environment where the notification should be sent (e.g., `"dev"`, `"prd"`).  
 - **`product_tag`** (`string`, **required**) – A unique identifier for the product associated with the notification.  
-- **`event`** (`string`, **required**) – The tag of the notification event to be triggered.  
+- **`event`** (`string`, **required**) – The tag of the notification event to be triggered.
+- **`cache`**(`string`, **optional**) - The tag of the cache, if applicable. only to be used when caching requests
 - **`input`** (`INotificationRequest`, **required**) – Contains notification details, including push notifications, emails, and callbacks.  
 - **`retries`** (`number`, **optional**) – The number of retry attempts in case of failure.  
 

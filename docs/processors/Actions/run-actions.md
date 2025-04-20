@@ -23,6 +23,7 @@ An object containing details for executing the action processor.
 - **`product_tag`** (`string`, **required**) – A unique identifier for the product associated with the action.  
 - **`app`** (`string`, **required**) – The **`access_tag`** of the application associated with the action.  
 - **`event`** (`string`, **required**) – The tag of the action to be triggered.  
+- **`cache`**(`string`, **optional**) - The tag of the cache, if applicable. only to be used when caching requests
 - **`input`** (`IActionRequest`, **required**) – The input request data containing query parameters, request body, headers, and other relevant input values.  
 - **`retries`** (`number`, **optional**) – The number of retry attempts in case of failure.  
 

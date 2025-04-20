@@ -23,6 +23,7 @@ An object containing details for executing the storage processor.
 - **`product_tag`** (`string`, **required**) – A unique identifier for the product associated with the storage request.  
 - **`event`** (`string`, **required**) – The tag of the storage operation to be performed.  
 - **`input`** (`IStorageRequest`, **required**) – Contains the file blob and optional metadata.  
+- **`cache`**(`string`, **optional**) - The tag of the cache, if applicable. only to be used when caching requests
 - **`retries`** (`number`, **optional**) – The number of retry attempts in case of failure.  
 
 ## `IStorageRequest` Schema  
