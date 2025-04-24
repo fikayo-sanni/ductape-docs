@@ -11,7 +11,7 @@ Ductape provides the capability to set up product environments to support develo
 To set up a new environment, use the `create` function on the `product.env` instance. Below is an example and a table of required fields for creating a product environment.
 
 ```typescript
-import ductape from "ductape-sdk";
+import ductape from "@ductape/sdk";
 
 const data = {
     env_name: "develop",
@@ -32,7 +32,7 @@ const environment = await ductape.product.environments.create(data); // Create p
 To update an existing environment, specify the `slug` for the environment you wish to update along with the new environment details.
 
 ```typescript
-import ductape from "ductape-sdk";
+import ductape from "@ductape/sdk";
 
 const slug = "prd"; // Environment slug
 const data = {

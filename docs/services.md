@@ -12,7 +12,7 @@ Ductape simplifies building and managing products by focusing on apps, resources
 Begin by installing the Ductape SDK in your project to access its core functionality.  
 
 ```bash  
-npm install ductape-sdk  
+npm install @ductape/sdk  
 ```  
 
 ## **2. Create Apps and Import Actions**  

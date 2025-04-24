@@ -9,7 +9,7 @@ sidebar_position: 1
 The Ductape SDK is the core library that allows you to integrate and manage your third-party services seamlessly. To install the SDK, run the following command in your project directory:
 
 ```bash
-npm install ductape-sdk
+npm install @ductape/sdk
 ```
 
 This command will add the Ductape SDK to your project's dependencies, enabling you to start building products immediately.

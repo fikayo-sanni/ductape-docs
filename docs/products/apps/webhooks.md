@@ -4,49 +4,64 @@ sidebar_position: 2
 
 # Managing App Webhooks
 
-Ductape allows product teams to manage webhooks registered by apps using the `ductape.products.webhooks` interface. This enables a product to track and control how its apps integrate webhooks across environments.
+Ductape enables product teams to manage webhook integrations across environments using the `ductape.products.webhooks` interface. Webhooks are essential for allowing third-party apps to notify your product of events in real time. Ductape acts as a middleware—offering visibility, control, and flexibility in how webhooks are registered and used.
 
-## Overview
+There are two ways to set up webhook registrations in Ductape:
+
+1. **Full Registration** – Configure webhooks across all required environments by supplying the necessary configuration up front.
+2. **Generate Registration Link** – Create a Ductape-wrapped URL for a single environment and paste it into a provider dashboard.
+
+
+## Full Registration
+
+Use the `enable` method to register a webhook for multiple environments at once. This is ideal when your provider allows API-based registration or if you want to fully manage all environments centrally.
+
+### Required Fields
+
+| Name           | Type                                  | Description                                |
+|----------------|---------------------------------------|--------------------------------------------|
+| `product`      | `string`                              | Product slug                               |
+| `access_tag`   | `string`                              | Unique access tag for the app              |
+| `webhook_tag`  | `string`                              | Identifier for the webhook                 |
+| `envs`         | `IProductBuilderRegisterWebhookEnvs[]`| List of environment-specific configurations |
+
+### `IProductBuilderRegisterWebhookEnvs`
+
+| Field     | Type             | Description                              |
+|-----------|------------------|------------------------------------------|
+| `slug`    | `string`         | Environment slug (`prd`, `stg`, etc.)    |
+| `url`     | `string`         | Receiver webhook endpoint                |
+| `method`  | `HttpMethods`    | HTTP method used (`POST`, `GET`)         |
+| `auth`    | `IActionRequest` | Request authentication and structure     |
+
+### Example
 
 ```ts
-ductape.products.webhooks
-```
-
-## `fetchAll`
-
-Fetch all webhooks registered by an app using its `accessTag`.
-
-```ts
-const webhooks = await ductape.products.webhooks.fetchAll("my-access-tag");
-```
-
-### Parameters
-
-| Name         | Type     | Description                              |
-|--------------|----------|------------------------------------------|
-| `accessTag`  | `string` | The unique access tag for the target app |
-
-### Returns
-
-Returns an array of registered webhooks associated with the given access tag.
-
-## `enable`
-
-Register or activate a webhook for a specific product and app in a given environment.
-
-```ts
-const result = await ductape.products.webhooks.enable({
+await ductape.products.webhooks.enable({
   product: "my-product",
-  access_tag: "my-access-tag",
-  webhook_tag: "new-webhook",
+  access_tag: "admin",
+  webhook_tag: "order_created",
   envs: [
     {
       slug: "prd",
-      url: "https://webhooks.target.com/register",
+      url: "https://api.example.com/webhooks/orders",
       method: HttpMethods.POST,
       auth: {
         headers: {
-          Authorization: "Bearer mytoken"
+          Authorization: "Bearer <<token>>"
+        },
+        query: {},
+        body: {},
+        params: {}
+      }
+    },
+    {
+      slug: "stg",
+      url: "https://staging.example.com/webhooks/orders",
+      method: HttpMethods.POST,
+      auth: {
+        headers: {
+          Authorization: "Bearer <<token>>"
         },
         query: {},
         body: {},
@@ -57,50 +72,61 @@ const result = await ductape.products.webhooks.enable({
 });
 ```
 
-### Parameters
+## Generating a Registration Link
 
-| Name           | Type                                | Description                                |
-|----------------|-------------------------------------|--------------------------------------------|
-| `product`      | `string`                            | The product slug                           |
-| `access_tag`   | `string`                            | The app's access tag                       |
-| `webhook_tag`  | `string`                            | The tag of the webhook being registered    |
-| `envs`         | `IProductBuilderRegisterWebhookEnvs[]` | Environment-specific webhook configurations |
+Use the `generateLink` method when your provider requires you to manually input the webhook URL in their dashboard. Ductape will generate a wrapped tracking link that routes through its middleware.
 
-### `IProductBuilderRegisterWebhookEnvs`
+### Required Fields
 
-| Field     | Type                  | Description                        |
-|-----------|-----------------------|------------------------------------|
-| `slug`    | `string`              | Environment slug (`prd`, `snd`, etc.) |
-| `url`     | `string`              | Webhook registration URL           |
-| `method`  | `HttpMethods`         | HTTP method used (`POST`, `GET`)   |
-| `auth`    | `IActionRequest`      | Authentication and request structure |
+| Name           | Type          | Description                                  |
+|----------------|---------------|----------------------------------------------|
+| `product`      | `string`      | Product slug                                 |
+| `access_tag`   | `string`      | App's access tag                             |
+| `webhook_tag`  | `string`      | Identifier for the webhook                   |
+| `env`          | `string`      | Environment slug                             |
+| `url`          | `string`      | Original webhook endpoint                    |
+| `method`       | `HttpMethods` | HTTP method (`POST`, `GET`, etc.)            |
 
-## `generateLink`
-
-Generate a Ductape link for a webhook in a specific environment. This is used when the app provides its own link and the product wants to wrap it in a Ductape-generated tracking URL.
+### Example
 
 ```ts
 const link = await ductape.products.webhooks.generateLink({
   product: "my-product",
-  access_tag: "my-access-tag",
-  webhook_tag: "new-webhook",
+  access_tag: "admin",
+  webhook_tag: "order_created",
   env: "prd",
-  url: "https://webhooks.target.com/register",
+  url: "https://api.example.com/webhooks/orders",
   method: HttpMethods.POST
 });
+
+console.log("Register this link in your provider dashboard:", link);
+```
+
+## Fetching Registered Webhooks
+
+To see which webhooks are currently registered for an app, use the `fetchAll` method.
+
+### Example
+
+```ts
+const webhooks = await ductape.products.webhooks.fetchAll("admin");
 ```
 
 ### Parameters
 
-| Name           | Type           | Description                                      |
-|----------------|----------------|--------------------------------------------------|
-| `product`      | `string`       | The product slug                                |
-| `access_tag`   | `string`       | The access tag of the app                       |
-| `webhook_tag`  | `string`       | The tag of the webhook being linked             |
-| `env`          | `string`       | The environment slug                            |
-| `url`          | `string`       | The original URL to be wrapped                  |
-| `method`       | `HttpMethods`  | The HTTP method (`POST`, `GET`, etc.)           |
+| Name        | Type     | Description                          |
+|-------------|----------|--------------------------------------|
+| `accessTag` | `string` | The access tag for the target app    |
 
 ### Returns
 
-Returns a Ductape-generated link that the app can use for webhook registration.
+An array of webhook configurations associated with the given access tag.
+
+
+
+## Choosing the Right Method
+
+| Method                    | Best Use Case                                                                 |
+|---------------------------|-------------------------------------------------------------------------------|
+| **Full Registration**     | You can register webhooks programmatically across all environments at once.  |
+| **Generate Registration Link** | You need a single environment-specific link to paste into a provider UI. |
