@@ -3,6 +3,11 @@ sidebar_position: 1
 slug: /
 ---
 
+---
+sidebar_position: 1
+slug: /
+---
+
 # Introducing Ductape
 
 ## Reusable, Portable, and Environment Agnostic Backend Logic
@@ -20,11 +25,11 @@ Move faster by eliminating duplicated logic across services. Whether it is consu
 **Supports All Backend Components**
 
 ### Use Ductape to manage:
-	•	Database queries and transactions
-	•	Message broker consumers (Kafka, RabbitMQ, etc.)
-	•	Long-running or scheduled jobs
-	•	External APIs like Stripe or Twilio
-	•	Internal shared logic used across services
+-	Database queries and transactions
+-	Message broker consumers (Kafka, RabbitMQ, etc.)
+-	Long-running or scheduled jobs
+-	External APIs like Stripe or Twilio
+-	Internal shared logic used across services
 
 ### Developer Focused and Code First
 Ductape is a framework you write in code. It is flexible, transparent, and built to scale with you.
@@ -32,10 +37,10 @@ Think of it like what Docker does for packaging apps or what Terraform does for 
 
 
 ### Key Benefits
-	•	Modular and reusable components across environments, projects, and teams
-	•	Consistent testing workflows in dedicated environments
-	•	Built-in monitoring and logs to debug and trace behavior
-	•	Faster iteration without duplicating logic or wiring
+-	Modular and reusable components across environments, projects, and teams
+-	Consistent testing workflows in dedicated environments
+-	Built-in monitoring and logs to debug and trace behavior
+-	Faster iteration without duplicating logic or wiring
 
 ### In Summary
 Ductape helps you write backend logic once, make it environment agnostic, and reuse it anywhere.
