@@ -32,6 +32,8 @@ const input_object: Record<string, IFeatureInput> = {}; // Define input schema h
 const output_object: Record<string, IFeatureInput> = {}; // Define output schema here
 
 const details: IProductFeature = {
+    name: 'Example Feature',
+    description: 'Describe Feature',
     tag: 'example_feature',
     input_type: InputTypes.JSON,
     input: input_object,
@@ -46,6 +48,8 @@ await ductape.product.features.create(details);
 
 | Field        | Type                            | Description                                                                                      | Required |
 |--------------|---------------------------------|--------------------------------------------------------------------------------------------------|----------|
+| `name`        | `string`                        |Name of the Feature.             | Yes      |
+| `description`        | `string`                        |Describe the Feature.             | Yes      |
 | `tag`        | `string`                        | Unique identifier for the feature, used to reference the feature within the product.             | Yes      |
 | `input_type` | `InputTypes`                    | Defines the format of input data. Currently, Ductape supports only `JSON` as the input type.     | Yes      |
 | `input`      | `Record<string, IFeatureInput>` | Defines the schema for input data, which is validated before processing the event sequence.      | Yes       |

@@ -19,11 +19,13 @@ const credentials = {
 };
 
 const ductape = new Ductape(credentials);
+ductape.connectRedis();
 
 export default ductape;
 ```
 
 > 🔑 The `redis_url` should point to your authenticated Redis instance and will be used to power local caching.
+> The `ductape.connectRedis()` function call starts the redis server
 
 ### Example Redis URL
 

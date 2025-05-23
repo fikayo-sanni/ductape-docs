@@ -22,6 +22,7 @@ An object containing details for executing the database action.
 - **`env`** (`string`, **required**) – The slug of the environment where the database action should run (e.g., `"dev"`, `"prd"`).  
 - **`product_tag`** (`string`, **required**) – A unique identifier for the product associated with the database action.  
 - **`event`** (`string`, **required**) – The tag of the database action to execute.  
+- **`cache`**(`string`, **optional**) - The tag of the cache, if applicable. only to be used when caching request
 - **`input`** (`IDbActionRequest`, **required**) – Contains the data and optional filter criteria for the database action.  
 - **`retries`** (`number`, **optional**) – The number of retry attempts in case of failure.  
 
