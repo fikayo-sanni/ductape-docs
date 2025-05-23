@@ -2,12 +2,6 @@
 sidebar_position: 1
 slug: /
 ---
-
----
-sidebar_position: 1
-slug: /
----
-
 # Introducing Ductape
 
 ## Reusable, Portable, and Environment Agnostic Backend Logic
