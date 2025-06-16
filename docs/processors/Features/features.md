@@ -4,45 +4,103 @@ sidebar_position: 1
 
 # Processing Features
 
-Feature processing is done using `feature.run(data)` of the `ductape.processor` interface.  
+Features are executed using `ductape.processor.feature.run(data)`, which triggers a defined feature processor within the Ductape system.
 
-This method triggers and executes a feature processor within the Ductape system, handling a feature request based on the provided environment, product tag, and other parameters.  
+This method handles a feature request based on the provided environment, product tag, and optionally user session and cache configurations.
 
-## Function Signature  
-```typescript
+
+## Usage
+
+```ts
 await ductape.processor.feature.run(data: IProcessorInput)
+````
+
+## Input
+
+### `IProcessorInput`
+
+Object containing parameters needed to execute a feature.
+
+| Property      | Type                      | Required   | Description                                                             |
+| ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------- |
+| `product_tag` | `string`                  | ✅ Yes      | Unique identifier for the product executing the feature.                |
+| `env`         | `string`                  | ✅ Yes      | Environment slug (`"dev"`, `"prd"`, etc.).                              |
+| `feature_tag` | `string`                  | ✅ Yes      | Tag of the feature to execute.                                          |
+| `input`       | `Record<string, unknown>` | ✅ Yes      | Input parameters for the feature. Use `{}` if no parameters are needed. |
+| `session`     | `ISession`         | ❌ Optional | Attach user session context to the request.                             |
+| `cache`       | `string`                  | ❌ Optional | Cache tag to cache this request (e.g., `"get-user-details"`).           |
+
+
+### `ISession`
+
+Optional object to enable session tracking and access session-based user data.
+
+```ts
+{
+  tag: string;
+  token: string;
+}
 ```
 
-## Parameters  
+| Field   | Type     | Required | Description                                   |
+| ------- | -------- | -------- | --------------------------------------------- |
+| `tag`   | `string` | ✅ Yes    | Tag identifying the session type.             |
+| `token` | `string` | ✅ Yes    | Token generated when the session was created. |
 
-### `IProcessorInput`  
-An object containing details for executing the feature processor.  
 
-#### Properties:  
-- **`product_tag`** (`string`, **required**) – A unique identifier for the product associated with the feature.  
-- **`env`** (`string`, **required**) – The slug of the environment where the feature should be processed (e.g., `"dev"`, `"prd"`).  
-- **`feature_tag`** (`string`, **required**) – The tag of the feature to be executed.  
-- **`input`** (`Record<string, unknown>`, **required**) – A JSON object containing the feature-specific input parameters.  
+### Injecting Session Data into Input
 
-If `input` is empty or `undefined`, it should be set as an empty object `{}`.  
+You can inject properties from the session payload into the `input` object using the `$Session{tag}{key}` annotation.
 
-## Returns  
-A `Promise<unknown>` that resolves with the result of the feature execution. The response structure depends on the specific feature being processed.  
+* This resolves the value dynamically from the decrypted session object.
+* For example:
 
-## Example Usage  
-```typescript
-import { ductape } from 'ductape-sdk';
+```ts
+input: {
+  userId: "$Session{details}{id}",
+  email: "$Session{details}{email}"
+}
+```
 
-const data: IProcessorInput = {
+> Ensure the session contains a matching `tag` and fields (e.g., `id`, `email`).
+
+
+## Output
+
+A `Promise<unknown>` resolving with the result of the feature execution. The structure depends on the feature implementation.
+
+
+## Example Usage
+
+```ts
+import { ductape } from '@ductape/sdk';
+
+const data = {
   product_tag: "my-product",
   env: "prd",
   feature_tag: "deploy_auction_and_bid",
   input: {
-    time: 5000,
-    beneficiary: "0xe48f2E87f5535ABE82b499E2a501Ce207231cEdA",
+    beneficiary: "$Session{details}{walletAddress}",
     amount: 40
-  }
+  },
+  session: {
+    tag: "user-session",
+    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  cache: "deploy-feature-result"
 };
 
 const res = await ductape.processor.feature.run(data);
 ```
+
+## Notes
+
+* If `input` is empty or not required, use `input: {}`.
+* Caching is useful for idempotent or read-only feature calls.
+* Session injection is resolved server-side after the token is decrypted.
+
+## Related
+
+* [Starting a Session](../sessions/generating)
+* [Decrypting Session Tokens](../sessions/decrypting)
+* [Refreshing Session Tokens](../sessions/refreshing)

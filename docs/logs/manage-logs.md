@@ -1,15 +1,18 @@
-# Fetching Logs
+---
+sidebar_position: 1
+---
+# Managing Logs
 
 The Logs module provides functionality to fetch and analyze logs for both apps and products within the Ductape platform.
 
 ## Initialization
 
-Before fetching logs, you need to initialize the Logs service with either an AppTag, ProductTag, or both:
+Before fetching logs, initialize the Logs service with either an AppTag, ProductTag, or both:
 
 ```javascript
 // Initialize with a product tag
 await ductape.logs.init("ductape_demo_tapes:test_product");
-```
+````
 
 ## Fetching Logs
 
@@ -17,28 +20,37 @@ The `fetch` method retrieves logs based on the provided query parameters.
 
 ### Parameters
 
-- **component** - *Required*. Specifies the component type ('app' or 'product')
-- **type** - *Optional*. Type of analysis ('apps', 'process', 'feature', 'integrations', etc.)
-- **groupBy** - *Optional*. Time period for grouping ('day', 'week', 'month', 'year')
-- **search** - *Optional*. Search term for filtering logs
-- **page** - *Optional*. Page number for pagination (≥ 1)
-- **limit** - *Optional*. Number of items per page (≥ 1)
-- **status** - *Optional*. Filter by status ('success', 'processing', 'fail')
+| Parameter   | Required | Type                   | Description                                                                    |
+| ----------- | -------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `component` | Yes      | `'app'` or `'product'` | Specifies the component type.                                                  |
+| `type`      | No       | `string`               | Type of analysis (e.g., `'apps'`, `'process'`, `'feature'`, `'integrations'`). |
+| `groupBy`   | No       | `string`               | Time period for grouping (e.g., `'day'`, `'week'`, `'month'`, `'year'`).       |
+| `search`    | No       | `string`               | Search term for filtering logs.                                                |
+| `page`      | No       | `number`               | Page number for pagination (≥ 1).                                              |
+| `limit`     | No       | `number`               | Number of items per page (≥ 1).                                                |
+| `status`    | No       | `string`               | Filter by status (`'success'`, `'processing'`, `'fail'`).                      |
 
-#### For component='app':
-- **tag** - *Optional*. Tag identifier (only valid when type='actions')
-- **env** - *Optional*. Environment filter
-- **name** - *Optional*. Name filter
-- **action** - *Optional*. Specific action filter
+#### Additional fields for `component='app'`
 
-#### For component='product':
-- **env** - *Optional*. Environment filter
-- **name** - *Optional*. Name filter
-- **action** - *Optional*. Specific action filter
+| Parameter | Required | Type     | Description                                        |
+| --------- | -------- | -------- | -------------------------------------------------- |
+| `tag`     | No       | `string` | Tag identifier (only valid when `type='actions'`). |
+| `env`     | No       | `string` | Environment filter.                                |
+| `name`    | No       | `string` | Name filter.                                       |
+| `action`  | No       | `string` | Specific action filter.                            |
 
-### Examples
+#### Additional fields for `component='product'`
 
-#### Fetch App Logs
+| Parameter | Required | Type     | Description             |
+| --------- | -------- | -------- | ----------------------- |
+| `env`     | No       | `string` | Environment filter.     |
+| `name`    | No       | `string` | Name filter.            |
+| `action`  | No       | `string` | Specific action filter. |
+
+## Examples
+
+### Fetch App Logs
+
 ```javascript
 const appLogs = await logs.fetch({
   component: 'app',
@@ -48,7 +60,8 @@ const appLogs = await logs.fetch({
 });
 ```
 
-#### Fetch Product Logs
+### Fetch Product Logs
+
 ```javascript
 const productLogs = await logs.fetch({
   component: 'product',
@@ -155,7 +168,8 @@ const productLogs = await logs.fetch({
 
 ## Error Handling
 
-The fetch method may throw the following errors:
-- If the logger service is not initialized
-- If required parameters are missing or invalid
-- If the API request fails
+The `fetch` method may throw errors in the following cases:
+
+* If the Logs service is not initialized.
+* If required parameters are missing or invalid.
+* If the API request fails.

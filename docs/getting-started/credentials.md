@@ -27,7 +27,7 @@ These credentials form a unique trifecta that grants you access to your workspac
 To begin using the Ductape SDK, you must initialize a Ductape instance with your credentials. After fetching your workspace credentials from the CLI, you can initialize the SDK as shown below:
 
 ```typescript
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const credentials = {
     user_id: process.env.DUCTAPE_USER_ID,

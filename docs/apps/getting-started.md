@@ -24,7 +24,7 @@ An application consists of the following main **resources**:
 
 - **Actions:** Specific tasks or operations the app performs, such as sending an email or creating a payment.  
 - **Authentication:** Mechanisms for securely accessing the app, such as API keys or OAuth.  
-- **Events:** Triggers that notify your platform of changes or updates, such as "New User Signed Up" or "Order Completed."  
+- **Webhooks:** Triggers that notify your platform of changes or updates, such as "New User Signed Up" or "Order Completed."
 
 ## App Values  
 

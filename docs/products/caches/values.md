@@ -12,7 +12,7 @@ This is useful when you want to reuse cached data across components or environme
 
 ```ts
 import ductape from './ductapeClient';
-import { FetchRemoteCachePayload } from 'ductape-sdk/dist/types';
+import { FetchRemoteCachePayload } from '@ductape/sdk/dist/types';
 
 const filters: FetchRemoteCachePayload = {
   cache_tag: 'example_cache',

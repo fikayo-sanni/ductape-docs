@@ -11,7 +11,7 @@ To create a new database migration:
 
 ```ts
 import ductape from './ductapeClient';
-import { IProductDatabaseMigration } from 'ductape-sdk/dist/types';
+import { IProductDatabaseMigration } from '@ductape/sdk/dist/types';
 
 const migration: IProductDatabaseMigration = {
   name: 'Create users table',

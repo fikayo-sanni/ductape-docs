@@ -12,7 +12,7 @@ To create a new cache entry, use the `create` function from the `product.cache` 
 
 ```ts
 import ductape from './ductapeClient';
-import { IProductCache } from 'ductape-sdk/dist/types';
+import { IProductCache } from '@ductape/sdk/dist/types';
 
 const details: IProductCache = {
   name: 'Example Cache',              // Name of the cache

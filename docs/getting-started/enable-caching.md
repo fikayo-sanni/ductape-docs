@@ -9,7 +9,7 @@ To enable out-of-the-box caching with `Redis`, simply provide a `redis_url` when
 ## Example
 
 ```typescript
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const credentials = {
   user_id: process.env.DUCTAPE_USER_ID,

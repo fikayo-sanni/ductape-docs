@@ -25,6 +25,7 @@ Ductape makes it easy to handle notifications to your clients, supporting multip
 - **Push Notifications**
 - **Emails**
 - **Callbacks**
+- **Sms**
 
 This enables a flexible approach to keep your users informed with the right messages at the right time.
 
@@ -39,6 +40,12 @@ Ductape offers tools to build and manage data caches, optimizing performance by 
 
 ### Features
 Features in Ductape are collections of sequences that can be executed either in a defined order or concurrently, depending on your configuration. By combining various components like functions, products, and jobs, you can create scalable workflows that enhance your platform’s functionality.
+
+### Quotas
+Quotas in Ductape allow you to share loads between different providers easily and conveniently. Define multiple providers for an action, and share the load amongst them seamlessly in ratios of your own choosing
+
+### Fallbacks
+Fallbacks in Ductape allow you to be more resilient in execution, in case one provider goes down, easily swap to another provider while getting the same customizable output from both
 
 ### Message Brokers
 Ductape integrates with all the popular message brokers, enabling you to process and handle messages asynchronously. This is useful for event-driven architectures and allows for better scalability by decoupling processes and also helps with switching between multiple brokers seamlessly

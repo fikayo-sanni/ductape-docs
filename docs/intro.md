@@ -7,7 +7,7 @@ slug: /
 ## Reusable, Portable, and Environment Agnostic Backend Logic
 Ductape is a developer-first framework for defining backend behavior like database operations, API calls, message queues, notifications, and scheduled jobs as modular, configurable units that can run across any environment.
 
-Instead of hardcoding logic into each service, you write it once and extract environment-specific details like credentials, endpoints, and retries into as configuration. The result is portable backend behavior that works locally, in staging, or in production without needing to rewrite anything.
+Instead of hardcoding logic into each service, you write it once and append environment-specific details like credentials, endpoints, and retries as configuration. The result is portable backend behavior that works locally, in staging, or in production without needing to rewrite anything.
 
 You continue using your preferred tools and providers. Ductape simply provides a consistent way to organize and interact with them.
 

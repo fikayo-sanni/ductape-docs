@@ -15,7 +15,7 @@ Ductape allows you to set up different databases for your project, you can defin
 To create a database use the `createDatabase` function of the product instance. It takes the database object and a boolean field which determines whether an existing database is updated when the tag exists or an error is thrown.
 
 ```typescript
-import { DatabaseTypes } from 'ductape-sdk/types';
+import { DatabaseTypes } from '@ductape/sdk/types';
 
 const data = {
   type: DatabaseTypes.MONG0DB,

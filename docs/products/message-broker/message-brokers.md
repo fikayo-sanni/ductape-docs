@@ -26,11 +26,11 @@ const broker = await ductape.product.messageBrokers.create({
     tag: "message-bus",
     description: "Message Broker for Product",
     envs: [{
-        tag: "prd",
+        slug: "prd",
         type: MessageBrokerTypes.RABBITMQ,
         config: rabbitMQConfig,
     },{
-        tag: "snd",
+        slug: "snd",
         type: MessageBrokerTypes.REDIS,
         config: redisConfig,
     }]
@@ -45,7 +45,7 @@ To update a message broker, you use the `update` function of the `product.messag
 ``` typescript
 const update = await ductape.product.messageBrokers.update("message-bus", {
     envs: [{
-        tag: "prd",
+        slug: "prd",
         type: MessageBrokerTypes.KAFKA,
         config: kafkaConfig,
     }]
