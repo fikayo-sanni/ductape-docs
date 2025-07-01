@@ -4,73 +4,79 @@ sidebar_position: 1
 
 # Actions
 
-Actions in the Features context are specifically designed for communicating with the resources of APIs and services, both internal and external. They allow you to define how your feature interacts with other systems, facilitating data exchange and execution of operations such as creating, retrieving, updating, or deleting resources.
+Action events in Ductape are used to interact with APIs and services, both internal and external. They enable your feature to perform operations such as creating, retrieving, updating, or deleting resources by making API calls or invoking service actions.
 
-## Overview of Action Events
+## What is an Action Event?
 
-An **Action Event** specifies the necessary parameters for external API calls, manages authentication, and defines the input structure. It plays a crucial role in ensuring smooth data flow between your feature and external systems, leveraging the data piping methodology established earlier.
+An action event is defined using the `IFeatureEvent` type from the SDK, with `type` set to `FeatureEventTypes.ACTION`. It specifies the parameters for an API call, manages authentication, and defines the input structure for the event.
 
-### Action Event Interface
+## IFeatureEvent Structure (Action)
 
-``` typescript
+```typescript
 interface IFeatureEvent {
-  app: string;                   // Required: The app access tag    .
-  type: FeatureEventTypes;       // Required: Specifies the type of event (should be FeatureEventTypes.ACTION).
-  event: string;                 // Required: The action tag that uniquely identifies the specific action being performed.
-  input: {                       // Required: Input parameters for the event, sample can be fetched from CLI.
-    query?: Record<string, unknown>;   // Optional: Query parameters for the event.
-    params?: Record<string, unknown>;  // Optional: Route parameters for the event.
-    body?: Record<string, unknown>;    // Optional: Body of the request for the event.
-    headers?: Record<string, unknown>; // Optional: Headers for the event.
+  app: string;                   // Required: The app access tag
+  type: FeatureEventTypes;       // Required: Should be FeatureEventTypes.ACTION
+  event: string;                 // Required: The action tag for the operation
+  input: {
+    query?: Record<string, unknown>;
+    params?: Record<string, unknown>;
+    body?: Record<string, unknown>;
+    headers?: Record<string, unknown>;
   };
-  retries: number;               // Required: Number of retry attempts if the action fails.
-  allow_fail: boolean;           // Required: Indicates if the event can fail without affecting the overall sequence.
+  retries: number;               // Required: Number of retry attempts if the action fails
+  allow_fail: boolean;           // Required: Whether the event can fail without affecting the overall sequence
+  // ...other optional fields
 }
 ```
 
-### Properties Table
+## Properties
 
-| Property    | Type                                    | Required | Description                                                                                     |
-|-------------|-----------------------------------------|----------|-------------------------------------------------------------------------------------------------|
-| `app`       | `string`                               | Yes      | The app tag that identifies the application context for the event.                             |
-| `type`      | `FeatureEventTypes`                    | Yes      | Specifies the type of event, should be `FeatureEventTypes.ACTION`.                             |
-| `event`     | `string`                               | Yes      | The action tag that uniquely identifies the specific action being performed.                    |
-| `input`     | `{ query?, params?, body?, headers? }` | Yes      | Input parameters for the event, which can include:<br/>- `query`: Optional query parameters.<br/>- `params`: Optional route parameters.<br/>- `body`: Optional body of the request.<br/>- `headers`: Optional headers for the event. |
-| `retries`   | `number`                               | Yes      | The number of retry attempts allowed if the action fails.                                      |
-| `allow_fail`| `boolean`                              | Yes      | Indicates whether the event can fail without affecting the overall sequence.                   |
+| Property     | Type                                    | Required | Description                                                                                     |
+|--------------|-----------------------------------------|----------|-------------------------------------------------------------------------------------------------|
+| `app`        | `string`                                | Yes      | The app tag that identifies the application context for the event.                              |
+| `type`       | `FeatureEventTypes`                     | Yes      | Should be `FeatureEventTypes.ACTION`.                                                           |
+| `event`      | `string`                                | Yes      | The action tag that uniquely identifies the specific action being performed.                    |
+| `input`      | `{ query?, params?, body?, headers? }`  | Yes      | Input parameters for the event.                                                                 |
+| `retries`    | `number`                                | Yes      | Number of retry attempts allowed if the action fails.                                           |
+| `allow_fail` | `boolean`                               | Yes      | Whether the event can fail without affecting the overall sequence.                              |
 
-### Sample Action Event
-
-Here is an example of a sample action event for processing a payment:
+## Example: Action Event
 
 ```typescript
 const makePaymentEvent: IFeatureEvent = {
-    app: 'payment_service', // The app tag for the payment service.
-    type: FeatureEventTypes.ACTION, // The event type.
-    event: 'process_payment', // The action tag for processing payments.
-    input: {
-        query: {
-            userId: '12345', // Query parameter identifying the user.
-            amount: 100.00,  // Amount to be charged.
-            currency: 'USD', // Currency of the payment.
-        },
-        params: {
-            paymentMethodId: 'card_67890', // Route parameter for the payment method.
-        },
-        body: {
-            orderId: 'order_abc123', // Order ID for the transaction.
-            description: 'Payment for order abc123', // Description of the transaction.
-        },
-        headers: {
-            Authorization: `$Auth{bearer_access}{header}{token}`, // Authorization token for the payment service.
-            'Content-Type': 'application/json', // Content type for the request.
-        },
+  app: 'payment_service',
+  type: FeatureEventTypes.ACTION,
+  event: 'process_payment',
+  input: {
+    query: {
+      userId: '12345',
+      amount: 100.00,
+      currency: 'USD',
     },
-    retries: 3, // Number of retry attempts if the action fails.
-    allow_fail: false, // The action cannot fail without affecting the overall sequence.
+    params: {
+      paymentMethodId: 'card_67890',
+    },
+    body: {
+      orderId: 'order_abc123',
+      description: 'Payment for order abc123',
+    },
+    headers: {
+      Authorization: `$Auth{bearer_access}{header}{token}`,
+      'Content-Type': 'application/json',
+    },
+  },
+  retries: 3,
+  allow_fail: false,
 };
 ```
 
-### Conclusion
+## Best Practices
+- Use descriptive action tags and app tags for clarity.
+- Leverage data piping in input fields to dynamically reference data from previous events or feature inputs.
+- Set `retries` and `allow_fail` thoughtfully to control error handling and resilience.
+- Document the purpose and expected result of each action event for maintainability.
 
-By using Action Events, you can effectively manage how your features interact with external services, ensuring proper data exchange and error handling in the process. This structure facilitates the creation of robust, reliable features that seamlessly integrate with other systems.
+## See Also
+- [Features Overview](../../../getting-started.md)
+- [Event Types Overview](../)
+- [Data Piping](../data-piping.md)

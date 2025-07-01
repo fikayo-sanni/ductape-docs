@@ -2,92 +2,88 @@
 sidebar_position: 3
 ---
 
-# Database Action
+# Database Actions
 
-Database Action Events are crucial for executing operations on your database within the Ductape framework. This event type allows you to define actions that interact directly with your database, enabling you to create, read, update, or delete records as needed.
+Database Action events in Ductape are used to execute operations on your database, such as creating, reading, updating, or deleting records. They enable your feature to interact directly with your database, supporting robust data processing and error handling.
 
-## Overview of Database Action Events
+## What is a Database Action Event?
 
-A **Database Action Event** enables the specification of necessary parameters for database operations, handling data manipulation, and managing retries and error handling. This event type ensures a robust interaction with the database while allowing for configurable behavior in case of failures.
+A database action event is defined using the `IFeatureEvent` type from the SDK, with `type` set to `FeatureEventTypes.DB_ACTION`. It specifies the parameters for a database operation, including the data to process and optional filters.
 
-### IFeatureEvent Interface
+## IFeatureEvent Structure (Database Action)
 
 ```typescript
 interface IFeatureEvent {
-  type: FeatureEventTypes;     // Required: Specifies the type of event (should be FeatureEventTypes.DB_ACTION).
-  event: string;               // Required: a concatenation of `${db_tag}:${db_action_tag}`
+  type: FeatureEventTypes;     // Required: Should be FeatureEventTypes.DB_ACTION
+  event: string;              // Required: Concatenated as `${db_tag}:${db_action_tag}`
   input: {
-    data: Record<string, unknown>;   // Required: The data to be processed in the database action.
-    filter?: Record<string, unknown>; // Optional: Criteria for filtering records during read or delete operations.
+    data: Record<string, unknown>;   // Required: Data for the database action
+    filter?: Record<string, unknown>; // Optional: Criteria for filtering records
   };
-  retries: number;            // Required: Number of retry attempts if the notification fails.
-  allow_fail: boolean;        // Required: Indicates if the event can fail without affecting the overall sequence.
+  retries: number;            // Required: Number of retry attempts if the action fails
+  allow_fail: boolean;        // Required: Whether the event can fail without affecting the overall sequence
+  // ...other optional fields
 }
 ```
 
-### Properties Table
+## Properties
 
-| Property    | Type                          | Required | Description                                                                                  |
-|-------------|-------------------------------|----------|----------------------------------------------------------------------------------------------|
-| `type`      | `FeatureEventTypes`          | Yes      | Specifies the type of event, should be `FeatureEventTypes.DB_ACTION`.                      |
-| `event`     | `string`                     | Yes      | A unique identifier for the action, formatted as `${db_tag}:${db_action_tag}`.            |
-| `input`     | `{ data, filter? }`          | Yes      | Contains the following properties: <br/> - `data`: (Required) The data for the database action. <br/> - `filter`: (Optional) Criteria for filtering records. |
-| `retries`   | `number`                     | Yes      | The number of retry attempts allowed if the action fails.                                   |
-| `allow_fail`| `boolean`                    | Yes      | Indicates whether the event can fail without affecting the overall sequence.                |
+| Property     | Type                          | Required | Description                                                                                  |
+|--------------|-------------------------------|----------|----------------------------------------------------------------------------------------------|
+| `type`       | `FeatureEventTypes`           | Yes      | Should be `FeatureEventTypes.DB_ACTION`.                                                     |
+| `event`      | `string`                      | Yes      | Unique identifier for the action, formatted as `${db_tag}:${db_action_tag}`.                 |
+| `input`      | `{ data, filter? }`           | Yes      | Data for the action and optional filter criteria.                                            |
+| `retries`    | `number`                      | Yes      | Number of retry attempts allowed if the action fails.                                        |
+| `allow_fail` | `boolean`                     | Yes      | Whether the event can fail without affecting the overall sequence.                           |
 
-## Sample Database Action Event
-
-Here’s an example of how to structure a Database Action Event for inserting a new user record into the database:
+## Example: Insert Record
 
 ```typescript
 const insertUserEvent: IFeatureEvent = {
-    type: FeatureEventTypes.DB_ACTION, // The event type for database actions
-    event: 'user_db:insert',            // Concatenated event identifier
-    input: {
-        data: {
-            username: 'new_user',       // Required: Data to be inserted
-            email: 'new_user@example.com',
-            password: 'securepassword',
-        },
-        filter: {
-            email: 'new_user@example.com', // Optional: Filter criteria for checking existing users
-        },
+  type: FeatureEventTypes.DB_ACTION,
+  event: 'user_db:insert',
+  input: {
+    data: {
+      username: 'new_user',
+      email: 'new_user@example.com',
+      password: 'securepassword',
     },
-    retries: 3, // Number of retry attempts if the action fails
-    allow_fail: false, // The action cannot fail without affecting the overall sequence
+    filter: {
+      email: 'new_user@example.com',
+    },
+  },
+  retries: 3,
+  allow_fail: false,
 };
 ```
 
-## Use Cases for Database Action Events
-
-1. **Inserting Data**: Use database action events to insert new records into a database, as shown in the sample above.
-
-2. **Updating Records**: Define an event to update existing records based on specific criteria.
-
-3. **Retrieving Records**: Use filters to fetch specific records from the database.
-
-4. **Deleting Records**: Create an event to remove records from the database using filters.
-
-### Example for Updating a User Record
+## Example: Update Record
 
 ```typescript
 const updateUserEvent: IFeatureEvent = {
-    type: FeatureEventTypes.DB_ACTION,
-    event: 'user_db:update',
-    input: {
-        data: {
-            userId: 'user_12345', // Required: Unique identifier for the user to be updated
-            email: 'updated_email@example.com',
-        },
-        filter: {
-            userId: 'user_12345', // Optional: Filter to identify the record to be updated
-        },
+  type: FeatureEventTypes.DB_ACTION,
+  event: 'user_db:update',
+  input: {
+    data: {
+      userId: 'user_12345',
+      email: 'updated_email@example.com',
     },
-    retries: 2, // Number of retry attempts if the action fails
-    allow_fail: true, // The action can fail without affecting the overall sequence
+    filter: {
+      userId: 'user_12345',
+    },
+  },
+  retries: 2,
+  allow_fail: true,
 };
 ```
 
-## Conclusion
+## Best Practices
+- Use descriptive event tags (e.g., `user_db:insert`) for clarity.
+- Leverage data piping in input fields to dynamically reference data from previous events or feature inputs.
+- Set `retries` and `allow_fail` thoughtfully to control error handling and resilience.
+- Document the purpose and expected result of each database action event for maintainability.
 
-Database Action Events are essential for managing data within your application effectively. By leveraging the `IFeatureEvent` interface and adhering to the provided structure, you can ensure robust interaction with your database, streamline data processing, and handle errors gracefully. This documentation serves as a guide to implementing and utilizing Database Action Events within your Ductape applications.
+## See Also
+- [Features Overview](../../../getting-started.md)
+- [Event Types Overview](../)
+- [Data Piping](../data-piping.md)

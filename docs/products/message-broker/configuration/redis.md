@@ -19,3 +19,16 @@ const redisConfig = {
 - **port:** The redis port
 - **channel:** The channel name for Redis Pub/Sub messaging.
 - **password:** The password required to authenticate with the Redis server (if authentication is enabled).
+
+**Best Practices:**
+- Use strong passwords and enable AUTH in production.
+- Use separate channels for different environments.
+- Monitor Redis memory and connection health.
+
+## See Also
+- [Message Brokers Overview](../message-brokers.md)
+- [Managing Topics](../managing-topics.md)
+- [RabbitMQ Configuration](./rabbit-mq.md)
+- [Kafka Configuration](./kafka.md)
+- [AWS SQS Configuration](./aws-sqs.md)
+- [Google PubSub Configuration](./google-pubsub.md)

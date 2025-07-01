@@ -6,36 +6,36 @@ sidebar_position: 1
 
 Notifications are sent using `ductape.processor.notification.send(data)` within the Ductape system. This method triggers push notifications, emails, or callbacks based on the provided environment, product tag, and other parameters.
 
-## Function Signature
-
 ```ts
 await ductape.processor.notification.send(data: INotificationProcessorInput)
-````
+```
+
+This processes a notification event in the specified environment and application context, passing along request input, metadata, and optionally session tracking.
+
 
 ## Parameters
 
 ### `INotificationProcessorInput`
 
-Object containing details for executing the notification processor.
+| Field         | Type                        | Required | Description                                          |
+| ------------- | --------------------------- | -------- | ---------------------------------------------------- |
+| `env`         | `string`                    | Yes      | Slug of the environment (e.g., `"dev"`, `"prd"`).   |
+| `product_tag` | `string`                    | Yes      | Unique product identifier.                           |
+| `event`       | `string`                    | Yes      | Notification event tag to be triggered.              |
+| `input`       | [`INotificationRequest`](#inotificationrequest) | Yes | Details of the notification to be sent.              |
+| `retries`     | `number`                    | No       | Number of retry attempts on failure.                 |
+| `cache`       | `string`                    | No       | Cache tag to enable response caching.                |
+| `session`     | [`ISession`](#isession-schema) | No   | Enables session-based dynamic injection into inputs. |
 
-| Property      | Type                   | Required   | Description                                          |
-| ------------- | ---------------------- | ---------- | ---------------------------------------------------- |
-| `env`         | `string`               | ✅ Yes      | Slug of the environment (e.g., `"dev"`, `"prd"`).    |
-| `product_tag` | `string`               | ✅ Yes      | Unique product identifier.                           |
-| `event`       | `string`               | ✅ Yes      | Notification event tag to be triggered.              |
-| `input`       | `INotificationRequest` | ✅ Yes      | Details of the notification to be sent.              |
-| `retries`     | `number`               | ❌ Optional | Number of retry attempts on failure.                 |
-| `cache`       | `string`               | ❌ Optional | Cache tag to enable response caching.                |
-| `session`     | `ISession`      | ❌ Optional | Enables session-based dynamic injection into inputs. |
+> **Note:** Optional fields like `email`, `callback`, or internal objects can be omitted or passed as empty `{}`.
 
 
+## `INotificationRequest`
 
-### `INotificationRequest`
-
-Shape of the `input` object.
+Shape of the `input` object:
 
 ```ts
-export interface INotificationRequest {
+interface INotificationRequest {
   slug: string;
   push_notification: {
     title: Record<string, unknown>;
@@ -58,34 +58,29 @@ export interface INotificationRequest {
 }
 ```
 
-### `ISession`
 
-Used for securely injecting data into the `input` via encrypted session tokens.
+## `ISession` Schema
+
+The `session` field enables optional session tracking for any notification send.
 
 ```ts
-{
-  tag: string;
-  token: string;
+interface ISession {
+  tag: string;   // session tag
+  token: string; // session token (e.g. signed JWT)
 }
 ```
 
-| Field   | Type     | Required | Description                             |
-| ------- | -------- | -------- | --------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Session tag reference (e.g., `"user-sessions"`). |
-| `token` | `string` | ✅ Yes    | Encrypted token used to resolve values. |
+| Field   | Type     | Required | Description                                   |
+| ------- | -------- | -------- | --------------------------------------------- |
+| `tag`   | `string` | Yes      | Session tag reference (e.g., `"user-sessions"`). |
+| `token` | `string` | Yes      | Encrypted token used to resolve values.       |
 
 
-### Injecting Session Data into Input
+## Injecting Session Data into Input
 
-You can reference session values in the `input` object using:
+You can inject properties from the session payload into the `input` object using the `$Session{parent_key}{key}` annotation. This resolves the value dynamically from the decrypted session object.
 
-```ts
-$Session{parent_key}{key}
-```
-
-This syntax allows injecting data from the resolved session into the request.
-
-#### Example
+For example:
 
 ```ts
 push_notification: {
@@ -96,16 +91,17 @@ push_notification: {
 }
 ```
 
+> Ensure the session contains a matching `parent_key` and fields (e.g., `id`, `firstName`).
+
+
 ## Returns
 
-A `Promise<unknown>` resolving to the result of the notification action. Structure varies depending on the notification definition.
+A `Promise<unknown>` — resolves with the result of the notification action. The structure varies depending on the notification definition.
 
 
-## Example Usage
+## Example
 
 ```ts
-import { ductape } from '@ductape/sdk';
-
 const res = await ductape.processor.notification.send({
   env: "prd",
   product_tag: "my-product",
@@ -142,14 +138,9 @@ const res = await ductape.processor.notification.send({
 });
 ```
 
-## Notes
 
-* Optional fields like `email`, `callback`, or internal objects can be omitted or passed as empty `{}`.
-* Use session injection to personalize notifications.
-* Use cache for idempotent notification dispatches.
-
-## Related
+## See Also
 
 * [Processing Features](../feature/processing)
 * [Refreshing Sessions](../sessions/refreshing)
-* [Creating Sessions](../sessions/generating)
+* [Session Tracking](../sessions)

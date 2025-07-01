@@ -18,11 +18,10 @@ When you exceed the included quotas, additional usage is billed per action at a 
 - **Defining an “Action”:**
 An “action” is a discrete operation within one of our modules. Depending on the component, an action might be a single API request, one gigabyte of file transfer, or one operational call on a module (like a cache operation or a database query). This standardized metric allows you to compare usage across different features.
 
---- 
+
 ## How Each Component Is Measured
 Below, each key component that factors into the per‑action pricing is explained:
 
----
 
 ### **API Requests**
 **What It Is:**
@@ -45,7 +44,6 @@ Every time an API call is made through Ductape, it counts as one action.
 
 Each API request beyond the included quota is billed at the respective rate.
 
---- 
 
 ### **File Transfer**
 **What It Is:** File transfer measures the data (in GB) that is moved in or out of Ductape’s storage resources.
@@ -68,7 +66,6 @@ Each API request beyond the included quota is billed at the respective rate.
 
 Usage above the allotted GB is charged per gigabyte.
 
----
 
 ###  **Product Limits (Resources)**
 **What They Are:**
@@ -80,7 +77,6 @@ These limits define how many operational “actions” you can perform within va
 
 **How They’re Measured:** An “action” in these modules might refer to an operation such as a cache query, a database operation, or a job execution. The limits are set as a total number of actions per month for each module. If your usage exceeds these limits, you may need to upgrade your tier or consider additional capacity add-ons.
 
----
 
 ### **Users & Apps (API Definitions)**
 **What They Are:**
@@ -98,7 +94,6 @@ These are provided as flat limits per tier rather than per action. For instance:
 
 Exceeding these numbers would require an upgrade or an add-on.
 
----
 
 ### **Logs & Usage Data Retention**
 **What It Is:**
@@ -113,7 +108,6 @@ This is the duration for which Ductape stores your logs and usage metrics.
 
 Retention periods are fixed per tier, providing more historical data as you move to higher tiers.
 
----
 
 ### **Marketplace Access**
 **What It Is:**
@@ -128,8 +122,6 @@ Marketplace access determines if you can publish your apps or products to Ductap
 **Startup Plan:** Can publish, with 80% revenue retention.
 
 This component is a qualitative feature rather than a per-action metric, but it is crucial for monetizing your applications.
-
----
 
 ## **Summary**
 **Base Fee & Quotas:** Each tier provides a monthly base fee with set quotas for different action types (API requests, file transfers, module operations, etc.).

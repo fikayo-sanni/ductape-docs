@@ -6,6 +6,7 @@ sidebar_position: 3
 
 In Ductape, you can set up **credentials for each Environment**. This means your sandbox, staging, and production environments can have different credentials, channels, and optionally exclude certain behavior from specific environments.
 
+## Example: Creating a Notification Environment
 ```typescript
 await ductape.product.notifications.create({
   name: "Notify Users",
@@ -28,14 +29,11 @@ await ductape.product.notifications.create({
     }
   ]
 });
-````
-
----
+```
 
 ## Notification Credential Interfaces
 
 ### Push Notifications
-
 | Field         | Type                                     | Required                                 | Description                       |
 | :------------ | :--------------------------------------- | :--------------------------------------- | :-------------------------------- |
 | `type`        | `Notifiers.EXPO` or `Notifiers.FIREBASE` | Yes                                      | Type of push notifier.            |
@@ -43,7 +41,6 @@ await ductape.product.notifications.create({
 | `databaseUrl` | `string`                                 | Required for Firebase                    | Firebase realtime database URL.   |
 
 **Expo Example**
-
 ```typescript
 const push_notifications = {
   type: Notifiers.EXPO
@@ -51,7 +48,6 @@ const push_notifications = {
 ```
 
 **Firebase Example**
-
 ```typescript
 const push_notifications = {
   type: Notifiers.FIREBASE,
@@ -65,7 +61,6 @@ const push_notifications = {
 ```
 
 ### Email Notifications
-
 | Field          | Type      | Required | Description         |
 | :------------- | :-------- | :------- | :------------------ |
 | `host`         | `string`  | Yes      | SMTP server host.   |
@@ -76,7 +71,6 @@ const push_notifications = {
 | `secure`       | `boolean` | Yes      | Use SSL/TLS.        |
 
 **Example**
-
 ```typescript
 const emails = {
   host: 'smtp.elasticemail.com',
@@ -91,7 +85,6 @@ const emails = {
 ```
 
 ### Callback Notifications
-
 | Field          | Type          | Required | Description                                       |
 | :------------- | :------------ | :------- | :------------------------------------------------ |
 | `url`          | `string`      | Yes      | Callback URL (use `:param` for dynamic segments). |
@@ -102,7 +95,6 @@ const emails = {
 | `auth.params`  | `object`      | Optional | URL params.                                       |
 
 **Example**
-
 ```typescript
 const callbacks = {
   url: 'https://test.apicall.com/send-message',
@@ -116,8 +108,7 @@ const callbacks = {
 };
 ```
 
-## SMS Notifications
-
+### SMS Notifications
 Ductape supports **3 SMS providers: Twilio, Plivo, and Vonage (Nexmo)**. You configure them by setting the appropriate fields based on the provider.
 
 | Field        | Type          | Required        | Description                |
@@ -130,7 +121,6 @@ Ductape supports **3 SMS providers: Twilio, Plivo, and Vonage (Nexmo)**. You con
 | `sender`     | `string`      | Yes             | Sender phone number or ID. |
 
 **Example**
-
 ```typescript
 const sms = {
   provider: 'twilio',
@@ -140,8 +130,7 @@ const sms = {
 };
 ```
 
-### SmsProvider Enum Values
-
+#### SmsProvider Enum Values
 | Enum Value | Description                |
 | :--------- | :------------------------- |
 | `twilio`   | Twilio SMS service         |
@@ -149,7 +138,11 @@ const sms = {
 | `plivo`    | Plivo SMS service          |
 
 ## Notes
-
 * You can configure one or all notification channels in each environment.
 * Push Notifications support **only one type per environment** — either Expo or Firebase.
 * SMS providers require specific credential fields — ensure you supply what's needed based on your chosen provider.
+
+## Next Steps
+- [Notifications Overview](./notifications.md)
+- [Notification Message Templates](./notification-messages/)
+- [Managing Databases](../databases/database.md)

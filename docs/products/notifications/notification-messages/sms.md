@@ -1,33 +1,24 @@
----
-sidebar_position: 5
----
-
 # SMS Notifications
 
-An SMS notification in Ductape is a **parameterised string message** sent through a configured SMS provider in a notification environment.
+SMS notifications in Ductape let you send parameterized text messages to your users through your configured SMS provider. Use SMS notifications to deliver important alerts, confirmations, or updates directly to a user's phone.
 
-An SMS notification has:
+## What Is an SMS Notification?
+An SMS notification is a plain string message that can include dynamic placeholders for personalized content. These placeholders are enclosed in `{{ }}` and are replaced with actual values when the message is sent.
 
-- **message:** The content of the SMS message with optional template variables enclosed in `{{}}`.
-
+> **Note:** All template variables in your message must be provided in the data object when sending the SMS. If a variable is missing, the placeholder will remain unreplaced in the final message.
 
 ## SMS Message Structure
+- **message**: The content of your SMS, with optional template variables (e.g., `{{firstname}}`).
 
-The message is a plain string with placeholders for dynamic values.  
-Placeholders follow the syntax `{{variableName}}`, which will be replaced by values provided when sending the notification.
-
-**Example Template**
-
+**Example Template:**
 ```typescript
 const sms_message = "Welcome to our platform {{firstname}} {{lastname}}. Your username is {{username}}."
-````
+```
 
-## Templates in SMS Notifications
+## Sending an SMS Notification with a Template
+When sending an SMS notification, supply a data object with values for each template variable:
 
-When sending an SMS notification using a template, you must supply a **data object** containing the values for each template variable.
-
-**Example Input Data**
-
+**Example Input Data:**
 ```typescript
 const data = {
   firstname: "Thomas",
@@ -36,17 +27,23 @@ const data = {
 }
 ```
 
-The system will automatically replace the placeholders with the corresponding values in the data object to produce:
+The system will automatically replace the placeholders to produce:
 
-**Generated SMS**
-
+**Generated SMS:**
 ```
 Welcome to our platform Thomas Shelby. Your username is thomas_shelby.
 ```
 
-## Notes
+## Provider Setup
+SMS notifications are sent through the SMS provider configured for your environment (such as Twilio, Nexmo/Vonage, or Plivo). See [Notification Environment Setup](../setting-up#sms-notifications) for details on configuring your provider.
 
-* **All template variables are required at the time of sending** — ensure the data object contains values for every `{{variable}}` present in your message string.
-* If a variable is missing in the data object, the placeholder will remain unreplaced in the final SMS message.
-* SMS notifications are sent through the SMS provider configured for the environment (Twilio, Nexmo/Vonage, or Plivo — see [Notification Environment Setup](../setting-up#sms-notifications)).
+**Key Points:**
+- All template variables are required at send time.
+- Unmatched placeholders will remain in the message.
+- Choose and configure your SMS provider in your notification environment settings.
+
+**Next Steps:**
+- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like SMS, email, and push.
+- **[Message Template Guides](./):** Explore guides for other notification message types.
+- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
 

@@ -4,33 +4,51 @@ sidebar_position: 1
 
 # Getting Started with Apps
 
-Apps are services and products that can be integrated into your platform to provide additional functionality. Each app is expected to contain a **collection of actions** that offer specific units of functionality for your product.  
+An **App** in Ductape is an integration with a third-party or internal service that provides specific functionality to your product. Apps are the building blocks for adding features like payments, messaging, or custom business logic.
 
-Apps are broadly categorized into two types:  
+## Types of Apps
 
-- **Private Apps**  
-- **Public Apps**  
+- **Private Apps:** Internal services used only within your workspace. These can be microservices or standalone services your team develops.
+- **Public Apps:** Services published to the Ductape marketplace and made available to other workspaces. These allow external developers to build on top of your app's functionality.
 
-### **Private Apps**  
-Private apps are services used internally within your workspace. These apps are developed by your team to provide services within your platforms or products. They can range from microservices that communicate with each other using Ductape to standalone services that share data and provide functionality within your workspace.  
+## Creating an App
 
-### **Public Apps**  
-Public apps are services made available to third parties for their products, allowing them to build their own layers of logic on top of these services. Public apps are published by workspaces to share their functionalities with others and enable external developers to enhance their own products.  
+```ts
+const app = await ductape.app.create({
+  app_name: "Email Service",
+  description: "Send transactional emails",
+  tag: "email_service"
+});
+```
 
+This creates a new app instance in your workspace.
 
-## App Resources  
+## App Resources
 
-An application consists of the following main **resources**:  
+Apps can include many types of resources. Each resource is managed and configured as part of the app:
 
-- **Actions:** Specific tasks or operations the app performs, such as sending an email or creating a payment.  
-- **Authentication:** Mechanisms for securely accessing the app, such as API keys or OAuth.  
-- **Webhooks:** Triggers that notify your platform of changes or updates, such as "New User Signed Up" or "Order Completed."
+- **Actions:** Tasks the app can perform (e.g., send an email, create a payment).
+- **Authentication:** Secure access to the app (API keys, OAuth, etc.).
+- **Webhooks:** Triggers for real-time updates (e.g., "Order Completed").
+- **Environments:** Contexts like staging, production, or testing.
+- **Variables:** Dynamic inputs passed at runtime.
+- **Constants:** Static values used across environments.
+- **Retry Policy:** Rules for handling failed actions and retries.
 
-## App Values  
+Each resource can be added, configured, and managed through the app interface, allowing you to build flexible, reusable integrations.
 
-In addition to resources, apps require the following **values** for setup and configuration:  
+## Next Steps
 
-- **Environments:** Define the context in which the app operates, such as staging, production, or testing.  
-- **Variables:** Dynamic inputs that are passed during runtime to customize the app’s behavior.  
-- **Constants:** Static values that remain consistent across different environments or use cases.  
-- **Retry Policy:** Rules for handling failed actions, including retry attempts and delays between retries.  
+- [Actions](./actions/)
+- [Authentication](./authentication.md)
+- [Webhooks](./webhooks/)
+- [Environments](./environments.md)
+- [Constants & Variables](./constants-variables.md)
+
+## See Also
+
+* [Managing an App](./create-app.md)
+* [App Instance Management](./app-instance.md)
+* [Importing Actions](./import-actions.md)
+* [Managing Actions](./update-action.md)
+* [Data Validation](./update-validation.md)

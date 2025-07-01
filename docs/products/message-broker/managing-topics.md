@@ -1,18 +1,16 @@
 ---
-sidebar_position: 3 
+sidebar_position: 3
 ---
 
-# Managing Topics
+# Managing Message Broker Topics
 
-Ductape provides interfaces for managing **Message Broker Topics**, which define how your application communicates with other services through various message brokers. These topics allow you to publish and subscribe to structured messages, enabling seamless integration across different environments.
+Message Broker Topics in Ductape define the channels through which your application publishes and subscribes to messages. Topics are essential for structuring event-driven communication between services, microservices, or external systems.
 
-A **Message Broker Topic** consists of a unique combination of identifiers and payload definitions, ensuring consistent communication between your application and other services. When using AWS SQS as the message broker, you must specify the queue URLs for the relevant environments.
+A topic is always associated with a specific message broker and environment. Its tag should follow the format: `messageBrokerTag:topicTag` (e.g., `orders:new_order`).
 
-> **Note:** Message Broker Topic tags are expected to follow the format: `messageBrokerTag:topicTag`. This convention ensures clarity and prevents conflicts across different brokers and topics.
+## Creating a Topic
 
-## Create a Message Broker Topic
-
-To create a Message Broker Topic, use the example below:
+To create a topic, use the `create` function from the `messageBroker.topics` interface. You must specify the broker, topic tag, and payload schema. For AWS SQS, you must also provide queue URLs for each environment.
 
 ```typescript
 const details = {
@@ -21,84 +19,81 @@ const details = {
   tag: "user-service:user_created",
   description: "Topic for user creation events.",
   queueUrl: [
-    {
-      env_slug: "prd",
-      url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-prd",
-    },
-    {
-      env_slug: "dev",
-      url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-dev",
-    },
+    { env_slug: "prd", url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-prd" },
+    { env_slug: "dev", url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-dev" },
   ],
-  sample: { 
-    "userId": "12345", 
-    "createdAt": "2024-08-20T12:34:56Z" 
+  sample: {
+    userId: "12345",
+    createdAt: "2024-08-20T12:34:56Z"
   }
 };
 
 await ductape.app.messageBroker.topics.create(details);
 ```
 
-### Field Descriptions
-- **name** *(required)*: A human-readable name for the topic.
-- **messageBrokerTag** *(required)*: The tag representing the associated message broker.
-- **tag** *(required)*: The unique topic identifier in the format `messageBrokerTag:topicTag`.
-- **description** *(optional)*: A brief explanation of the topic’s purpose.
-- **queueUrl** *(optional; required for SQS)*: An array specifying environment slugs and their respective SQS URLs.
-- **data** *(required)*: An array defining the payload schema, specifying field names and data types.
-- **sample** *(required)*: A JSON-formatted example of the expected payload.
+| Field              | Type      | Required   | Description                                                                |
+|--------------------|-----------|------------|----------------------------------------------------------------------------|
+| `name`             | string    | Yes        | Human-readable name for the topic.                                         |
+| `messageBrokerTag` | string    | Yes        | Tag of the associated message broker.                                      |
+| `tag`              | string    | Yes        | Unique topic identifier (`brokerTag:topicTag`).                            |
+| `description`      | string    | No         | Description of the topic's purpose.                                        |
+| `queueUrl`         | array     | SQS only   | Array of `{ env_slug, url }` for each environment (SQS only).              |
+| `sample`           | object    | Yes        | Example payload for the topic.                                             |
 
-> **Important:** Include `queueUrl` entries only when using SQS as the message broker. Other message brokers do not require this field.
+> **Note:** For SQS, `queueUrl` is required. For other brokers, omit this field.
 
+## Updating a Topic
 
-## Update a Message Broker Topic
-
-To update an existing topic, use the following example:
+To update a topic, use the `update` function. You can change the description, queue URLs, or payload schema as needed.
 
 ```typescript
 const tag = "user-service:user_created";
 const update = {
   description: "Updated description for the user creation event.",
   queueUrl: [
-    {
-      env_slug: "prd",
-      url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-prd-updated",
-    },
+    { env_slug: "prd", url: "https://sqs.us-east-1.amazonaws.com/123456789012/user-created-prd-updated" },
   ],
 };
 
 await ductape.app.messageBroker.topics.update(tag, update);
 ```
 
-### Updatable Fields
-- **name**: Change the topic name.
-- **messageBrokerTag**: Update the associated message broker tag.
-- **tag**: Modify the topic’s unique identifier.
-- **description**: Provide a new or updated description.
-- **queueUrl**: Adjust or add environment-specific queue URLs (only required for SQS).
-- **data**: Revise the payload schema.
-- **sample**: Update the example payload.
+| Updatable Field     | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `name`              | Human-readable name for the topic.                             |
+| `messageBrokerTag`  | Tag of the associated message broker.                          |
+| `tag`               | Unique topic identifier (`brokerTag:topicTag`).                |
+| `description`       | Description of the topic's purpose.                            |
+| `queueUrl` (SQS)    | Array of `{ env_slug, url }` for each environment (SQS only).  |
+| `sample`            | Example payload for the topic.                                 |
 
-> **Tip:** When updating the topic tag, ensure it follows the `messageBrokerTag:topicTag` format to maintain consistency.
+> **Tip:** Always use the `brokerTag:topicTag` format for topic tags to avoid conflicts.
 
-## Fetch Message Broker Topics
+## Fetching Topics
 
-You can retrieve topics individually or by their associated message broker tag.
+- **Fetch a single topic by tag:**
+  ```typescript
+  const topic = ductape.app.messageBroker.topics.fetch("user-service:user_created");
+  ```
+- **Fetch all topics for a broker:**
+  ```typescript
+  const topics = ductape.app.messageBroker.topics.fetchAll("user-service");
+  ```
 
-### Fetch a Single Topic
-```typescript
-const tag = "user-service:user_created";
-const topic = ductape.app.messageBroker.topics.fetch(tag); // Fetch a specific topic by its tag
-```
+## Best Practices
+- Use descriptive names and tags for topics to clarify their purpose.
+- Keep payload schemas consistent and well-documented.
+- For SQS, ensure each environment has a unique queue URL.
+- Regularly review and update topic definitions as your integration needs evolve.
+- Use the same naming conventions for tags and slugs across your product.
 
-### Fetch All Topics for a Message Broker
-```typescript
-const messageBrokerTag = "user-service";
-const topics = ductape.app.messageBroker.topics.fetchAll(messageBrokerTag); // Fetch all topics under the specified message broker
-```
-
-These fetching methods help manage and review the topics used to communicate with other services, ensuring alignment with integration requirements.
-
-
-By defining and managing **Message Broker Topics** through Ductape, you can establish a structured and scalable communication pattern between your application and other services. Ensuring that topics are well-defined and follow the expected conventions will facilitate smoother integrations and maintain data consistency across environments.
+## See Also
+- [Message Brokers Overview](./message-brokers.md)
+- [RabbitMQ Configuration](./configuration/rabbit-mq.md)
+- [Kafka Configuration](./configuration/kafka.md)
+- [AWS SQS Configuration](./configuration/aws-sqs.md)
+- [Redis Configuration](./configuration/redis.md)
+- [Google PubSub Configuration](./configuration/google-pubsub.md)
+- [Jobs](../jobs.md)
+- [Features](../features/)
 

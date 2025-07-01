@@ -4,51 +4,43 @@ sidebar_position: 1
 
 # Getting Started with Products
 
-Products in Ductape combine app actions and reusable components to deliver advanced functionality within your applications. By leveraging products, you can create custom logic using reusable components, while incorporating actions from multiple sources. This allows you to build sophisticated features and workflows without developing everything from scratch.
+A **Product** in Ductape is a logical grouping of apps, resources, and workflows that together deliver a specific backend capability or workflow. Products let you combine, configure, and orchestrate all the components your application needs.
 
-With Ductape, products provide a seamless way to extend your platform’s capabilities, offering greater flexibility and control over your development process. Whether you’re combining data from different APIs, orchestrating complex business processes, or enhancing your microservices architecture, products help you efficiently build and maintain robust solutions.
+## Creating a Product
+
+**Example:**
+```typescript
+const product = await ductape.product.create({
+  name: "Payments Service",
+  tag: "payments_service",
+  description: "Handles all payment processing"
+});
+```
 
 ## Product Resources
+Products can include many types of resources. Each resource is managed and configured as part of the product:
 
-### Apps
-Products in Ductape provide an interface for adding apps to your processes. These apps can be either:
-- **Private Apps**: Internal services within your workspace.
-- **Public Apps**: External apps available on the Ductape marketplace.
+- **[Apps](../apps/getting-started.md):** Integrations with third-party or internal services.
+- **[Environments](./environments.md):** Contexts like development, staging, or production.
+- **[Databases](./databases/):** Connect and manage relational or NoSQL databases.
+- **[Notifications](./notifications/):** Send push, email, callback, or SMS notifications.
+- **[Jobs](./jobs/):** Define and schedule background or recurring tasks.
+- **[Cloud Functions](./features/):** Reusable logic written in code.
+- **[Caches](./../getting-started/enable-caching.md):** Store and reuse results of expensive operations.
+- **[Features](./features/):** Orchestrate complex workflows and business logic.
+- **[Quotas](./quotas/):** Share load between providers.
+- **[Fallbacks](./fallbacks/):** Automatically switch providers if one fails.
+- **[Message Brokers](./message-broker/):** Integrate with Kafka, RabbitMQ, SQS, etc.
+- **[Storage](./storage/):** Manage files and data storage.
+- **[Healthchecks](./../getting-started/healthchecks.md):** Monitor system health and responsiveness.
 
-To use these apps, you need to set up and configure them for your product.
+Each resource can be added, configured, and managed through the product interface, allowing you to build robust, scalable backend systems.
 
-### Databases
-Ductape allows you to create direct interfaces with databases, enabling you to perform atomic **database actions**. This feature facilitates the creation of reusable functionalities that streamline development.
-
-### Notifications
-Ductape makes it easy to handle notifications to your clients, supporting multiple formats:
-- **Push Notifications**
-- **Emails**
-- **Callbacks**
-- **Sms**
-
-This enables a flexible approach to keep your users informed with the right messages at the right time.
-
-### Jobs
-Ductape helps you define long-running jobs, automate their execution, and scale them as needed. Features like retry mechanisms and the ability to stop and start jobs provide control and reliability for your workflows.
-
-### Cloud Functions
-Ductape supports reusable functions written in Node.js, with plans to expand language support. Functions streamline processes by encapsulating logic that can be executed within the platform, promoting code reuse across workflows.
-
-### Caches
-Ductape offers tools to build and manage data caches, optimizing performance by reducing the need for repeated data retrieval. Caching ensures faster execution of tasks, minimizing redundant operations and conserving resources.
-
-### Features
-Features in Ductape are collections of sequences that can be executed either in a defined order or concurrently, depending on your configuration. By combining various components like functions, products, and jobs, you can create scalable workflows that enhance your platform’s functionality.
-
-### Quotas
-Quotas in Ductape allow you to share loads between different providers easily and conveniently. Define multiple providers for an action, and share the load amongst them seamlessly in ratios of your own choosing
-
-### Fallbacks
-Fallbacks in Ductape allow you to be more resilient in execution, in case one provider goes down, easily swap to another provider while getting the same customizable output from both
-
-### Message Brokers
-Ductape integrates with all the popular message brokers, enabling you to process and handle messages asynchronously. This is useful for event-driven architectures and allows for better scalability by decoupling processes and also helps with switching between multiple brokers seamlessly
-
-### Storage
-Ductape provides storage resources that enable you to upload, store, and manage files within your product. This makes it easy to handle files, such as images, documents, or any other type of data, as part of your workflows and also helps with switching between storage providers seamlessly
+## Next Steps
+- [Apps](../apps/getting-started.md)
+- [Environments](./environments.md)
+- [Databases](./databases/)
+- [Notifications](./notifications/)
+- [Jobs](./jobs/)
+- [Features](./features/)
+- [Enable Caching](../getting-started/enable-caching.md)

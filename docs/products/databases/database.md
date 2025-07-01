@@ -4,77 +4,72 @@ sidebar_position: 1
 
 # Managing Databases
 
-Ductape allows you to set up different databases for your project, you can define the database for each of the environments you are building on. We currently support the following database types:
+A **Database** in Ductape is a data store (such as MongoDB, PostgreSQL, or MySQL) that your product can connect to and use for queries, transactions, and workflows. Each database can be configured for different environments and supports reusable actions and migrations.
 
-- **MongoDB:** `DatabaseTypes.MONGODB`
-- **PostgreSQL:** `DatabaseTypes.POSTGRES`
-- **MySQL:** `DatabaseTypes.MYSQL`
+## Database Structure
+| Field         | Type     | Required | Description                                         | Example                        |
+|--------------|----------|----------|-----------------------------------------------------|---------------------------------|
+| name         | string   | Yes      | Name of the database                                | Mongo database                  |
+| tag          | string   | Yes      | Unique identifier for this database                 | mongo                          |
+| type         | string   | Yes      | Database type (mongodb, postgresql, mysql)          | mongodb                        |
+| envs         | array    | Yes      | List of environment configs (see below)             | `[{"slug": "dev", ...}]`      |
+| description  | string   | No       | Description of the database                         | Main DB for app                 |
+| actions      | array    | No       | Reusable database actions                           |                                 |
+| migrations   | array    | No       | Database migrations                                 |                                 |
 
-## Creating Databases
+**Environment Config Structure**
+| Field           | Type     | Required | Description                        | Example                        |
+|----------------|----------|----------|------------------------------------|---------------------------------|
+| slug           | string   | Yes      | Environment slug                   | dev                             |
+| connection_url | string   | Yes      | Database connection string         | mongodb://localhost:27017/dev   |
+| description    | string   | No       | Description of this environment    | Dev DB                          |
 
-To create a database use the `createDatabase` function of the product instance. It takes the database object and a boolean field which determines whether an existing database is updated when the tag exists or an error is thrown.
+## Creating a Database
+To create a database, use the `create` function of the product's databases interface.
 
+**Example:**
 ```typescript
-import { DatabaseTypes } from '@ductape/sdk/types';
-
-const data = {
-  type: DatabaseTypes.MONG0DB,
-  tag: 'mongo',
+const database = await ductape.product.databases.create({
+  type: "mongodb",
+  tag: "mongo",
   envs: [
-    {
-      env_slug: 'stg',
-      connection_url: 'mongodb://localhost:27017/staging-db'
-    },
-    {
-      env_slug: 'prd',
-      connection_url: 'mongodb://localhost:27017/prod-db'
-    }
+    { slug: "dev", connection_url: "mongodb://localhost:27017/dev" },
+    { slug: "prd", connection_url: "mongodb://localhost:27017/prod" }
   ],
-  name: 'Mongo database'
-};
-
-const database = await ductape.product.databases.create(data);
+  name: "Mongo database"
+});
 ```
 
-The fields required to create a database are as below
+## Updating a Database
+To update a database, use the `update` function with the database tag and update payload.
 
-- **name:** name of the database. ***required*** *
-- **tag:** the unique identifier for this database. ***required*** *
-- **type:** the database type. The currently supported types are mongo and posgresql. ***required*** *
-- **envs.env_slug:** environment slug of an existing environment. ***required*** *
-- **envs.connection_url:** the url which contains the connection string to access the database. ***required*** *
-
-## Update Database
-
-To update a database use the `updateDatabase` function of the product instance. It takes the database tag and the update payload.
-
+**Example:**
 ```typescript
-const data = {
+const updated = await ductape.product.databases.update("mongo", {
+  name: "Mongo database details",
   envs: [
-    {
-      env_slug: 'stg',
-      connection_url: 'mongodb://localhost:27017/staging'
-    }
-  ],
-  name: 'Mongo database details'
-};
-
-const database = await ductape.product.databases.update("postgres-db-tag",data);
+    { slug: "dev", connection_url: "mongodb://localhost:27017/dev-updated" }
+  ]
+});
 ```
 
-## Fetch Databases
-
-To fetch the databases for a product use the `fetchAll` function of the `product.databases` interface.
-
+## Fetching Databases
+Fetch all databases for a product:
 ```typescript
-const databases = ductape.product.databases.fetchAll()
+const databases = ductape.product.databases.fetchAll();
 ```
-
-## Fetch Database
-
-To fetch a single database use the `fetch` function of the `product.databases` interface. It takes in the database tag.
-
+Fetch a single database by tag:
 ```typescript
-
-const databases = ductape.product.databases.fetch('mongo-db-tag')
+const database = ductape.product.databases.fetch("mongo");
 ```
+
+## Why Use Databases?
+- Centralize and manage your product's data
+- Support multiple environments with different configs
+- Define reusable actions and migrations for automation
+
+## Next Steps
+- [Database Actions](../database-actions/)
+- [Migrations](../migrations/)
+- [Products](../../getting-started.md)
+- [Environments](../environments.md)

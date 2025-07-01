@@ -2,39 +2,86 @@
 sidebar_position: 1
 ---
 
-# Using Message Brokers
+# Processing Message Brokers
 
-Ductape provides a **Message Broker** interface to handle event-driven communication between your system components. It supports two main operations:  
+Ductape provides a **Message Broker** interface to handle event-driven communication between your system components. It supports two main operations:
 
-1. **Publishing Messages** – Send messages to a specific event/topic.  
-2. **Subscribing to Events** – Listen for messages on a specific event/topic and process them with a callback.
+- **Publishing Messages** – Send messages to a specific event/topic.
+- **Subscribing to Events** – Listen for messages on a specific event/topic and process them with a callback.
 
-## 1. Publishing Messages
 
-### Description  
+## Publishing Messages
+
 Publishing allows you to send structured data (messages) to a broker, which can then be consumed by other services or components subscribed to that event.
 
-### Required Fields  
+```ts
+await ductape.processor.messageBroker.publish(data: IMessageBrokerPublishInput)
+```
 
-| Field         | Type       | Description                                               |
-|---------------|------------|-----------------------------------------------------------|
-| `env`         | `string`   | Environment where the message should be published (e.g., `"prd"`, `"staging"`). |
-| `event`       | `string`   | Event identifier in the format `brokerTag:topicTag` (e.g., `"sqsbroker:new-orders"`). |
-| `product_tag` | `string`   | Unique identifier for the product sending the message.    |
-| `input`       | `object`   | Payload containing the message data to publish.           |
-| `cache`       | `string`   | *(Optional)* Cache tag to use if request caching is needed.|
-| **`session`** | `ISession` | *(Optional)* Session object with `token` and `tag`.       |
+### `IMessageBrokerPublishInput`
 
-### `ISession` Type  
-```typescript
+| Field         | Type                        | Required | Description                                               |
+| ------------- | --------------------------- | -------- | --------------------------------------------------------- |
+| `env`         | `string`                    | Yes      | Environment where the message should be published.        |
+| `event`       | `string`                    | Yes      | Event identifier in the format `brokerTag:topicTag`.      |
+| `product_tag` | `string`                    | Yes      | Unique identifier for the product sending the message.    |
+| `input`       | `object`                    | Yes      | Payload containing the message data to publish.           |
+| `cache`       | `string`                    | No       | Cache tag to use if request caching is needed.            |
+| `session`     | [`ISession`](#isession-schema) | No   | Session object with `token` and `tag`.                    |
+
+> **Note:** Optional fields can be omitted or passed as empty `{}`.
+
+
+## Subscribing to Events
+
+Subscribing allows you to listen for incoming messages on a specified event/topic and process them with a callback function.
+
+```ts
+await ductape.processor.messageBroker.subscribe(data: IMessageBrokerSubscribeInput)
+```
+
+### `IMessageBrokerSubscribeInput`
+
+| Field         | Type                        | Required | Description                                               |
+| ------------- | --------------------------- | -------- | --------------------------------------------------------- |
+| `env`         | `string`                    | Yes      | Environment where the subscription should be active.      |
+| `event`       | `string`                    | Yes      | Event identifier in the format `brokerTag:topicTag`.      |
+| `product_tag` | `string`                    | Yes      | Unique identifier for the product receiving the message.  |
+| `input`       | `object`                    | Yes      | Subscription details, including the callback function.    |
+| `session`     | [`ISession`](#isession-schema) | No   | Session object with `token` and `tag`.                    |
+
+The `input` object must include:
+
+| Field      | Type       | Required | Description                                 |
+| ---------- | ---------- | -------- | ------------------------------------------- |
+| `callback` | `Function` | Yes      | Async function to handle received messages. |
+
+
+## `ISession` Schema
+
+The `session` field enables optional session tracking for any message broker operation.
+
+```ts
 interface ISession {
-  token: string;
-  tag: string;
+  tag: string;   // session tag
+  token: string; // session token (e.g. signed JWT)
 }
-````
+```
 
-### Example Usage
+| Field   | Type     | Required | Description                                   |
+| ------- | -------- | -------- | --------------------------------------------- |
+| `tag`   | `string` | Yes      | Tag identifying the session type.             |
+| `token` | `string` | Yes      | Token generated when the session was created. |
 
+
+## Returns
+
+Both `publish` and `subscribe` return a `Promise<unknown>` resolving with the result of the operation. The structure depends on the broker and event implementation.
+
+
+## Example
+
+**Publishing a message:**
 ```ts
 await ductape.processor.messageBroker.publish({
   env: "prd",
@@ -57,30 +104,7 @@ await ductape.processor.messageBroker.publish({
 });
 ```
 
-## 2. Subscribing to Events
-
-### Description
-
-Subscribing allows you to listen for incoming messages on a specified event/topic and process them with a callback function.
-
-### Required Fields
-
-| Field         | Type       | Description                                                                           |
-| ------------- | ---------- | ------------------------------------------------------------------------------------- |
-| `env`         | `string`   | Environment where the subscription should be active (e.g., `"prd"`).                  |
-| `event`       | `string`   | Event identifier in the format `brokerTag:topicTag` (e.g., `"sqsbroker:new-orders"`). |
-| `product_tag` | `string`   | Unique identifier for the product receiving the message.                              |
-| `input`       | `object`   | Subscription details, including the callback function.                                |
-| **`session`** | `ISession` | *(Optional)* Session object with `token` and `tag`.                                   |
-
-The `input` object must include:
-
-| Field      | Type       | Description                                 |
-| ---------- | ---------- | ------------------------------------------- |
-| `callback` | `Function` | Async function to handle received messages. |
-
-### Example Usage
-
+**Subscribing to an event:**
 ```ts
 await ductape.processor.messageBroker.subscribe({
   env: "prd",
@@ -99,9 +123,8 @@ await ductape.processor.messageBroker.subscribe({
 });
 ```
 
-## Choosing the Right Method
 
-| Method                    | Use Case                                                 |
-| ------------------------- | -------------------------------------------------------- |
-| **Publishing Messages**   | When you need to send events/messages to other services. |
-| **Subscribing to Events** | When you need to listen for and process incoming events. |
+## See Also
+
+* [Session Tracking](../sessions)
+* [Processing Features](../features/processing)

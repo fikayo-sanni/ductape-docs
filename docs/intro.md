@@ -2,40 +2,55 @@
 sidebar_position: 1
 slug: /
 ---
-# Introducing Ductape
+# What is Ductape?
 
-## Reusable, Portable, and Environment Agnostic Backend Logic
-Ductape is a developer-first framework for defining backend behavior like database operations, API calls, message queues, notifications, and scheduled jobs as modular, configurable units that can run across any environment.
+Ductape is a framework for defining backend logic—such as database operations, API calls, message queues, notifications, and jobs—as reusable, environment-agnostic components. Write your logic once, configure it for any environment, and run it anywhere—without rewriting for each provider or deployment.
 
-Instead of hardcoding logic into each service, you write it once and append environment-specific details like credentials, endpoints, and retries as configuration. The result is portable backend behavior that works locally, in staging, or in production without needing to rewrite anything.
+## Why Ductape?
 
-You continue using your preferred tools and providers. Ductape simply provides a consistent way to organize and interact with them.
+Traditional backend development often means duplicating logic across services, environments, and providers. Ductape solves this by letting you:
+- **Write Once, Run Anywhere:** Define your backend logic once and reuse it across development, staging, and production.
+- **Swap Providers Easily:** Change databases, APIs, or message brokers without rewriting your business logic.
+- **Centralize Configuration:** Manage credentials, endpoints, and environment-specific details in one place.
+- **Debug and Monitor Consistently:** Use unified logs and monitoring for all your backend workflows.
 
-## Why Ductape
-Write Once, Run Anywhere
+## How Does Ductape Work?
 
-Move faster by eliminating duplicated logic across services. Whether it is consuming a message queue, calling an API, or running reconciliation jobs, you define the logic once and run it anywhere.
+Ductape organizes your backend into modular building blocks:
+- **Products:** Logical groupings of apps, resources, and workflows.
+- **Apps:** Integrations with third-party or internal services.
+- **Environments:** Contexts like development, staging, or production.
+- **Actions:** Tasks performed by apps (e.g., send an email, run a query).
+- **Resources:** Databases, message brokers, storage, notifications, and more.
 
-**Supports All Backend Components**
+You define these building blocks in code, configure them for your environments, and Ductape handles the rest.
 
-### Use Ductape to manage:
--	Database queries and transactions
--	Message broker consumers (Kafka, RabbitMQ, etc.)
--	Long-running or scheduled jobs
--	External APIs like Stripe or Twilio
--	Internal shared logic used across services
+## Who is Ductape For?
 
-### Developer Focused and Code First
-Ductape is a framework you write in code. It is flexible, transparent, and built to scale with you.
-Think of it like what Docker does for packaging apps or what Terraform does for infrastructure. Ductape brings that same approach to backend logic.
+- Teams building complex backend systems that need to scale and adapt quickly.
+- Developers who want to avoid duplicating logic for each environment or provider.
+- Anyone who wants a consistent, testable, and portable way to manage backend workflows.
 
+## What Problems Does Ductape Solve?
 
-### Key Benefits
--	Modular and reusable components across environments, projects, and teams
--	Consistent testing workflows in dedicated environments
--	Built-in monitoring and logs to debug and trace behavior
--	Faster iteration without duplicating logic or wiring
+| Problem                          | Without Ductape                        | With Ductape                          |
+|-----------------------------------|----------------------------------------|---------------------------------------|
+| Add new environment               | Manual config changes, redeploys        | Add config, reuse logic, no rewrites  |
+| Integrate new provider            | Write new glue code, test, debug        | Add provider config, logic stays same |
+| Debug production issue            | Sift through logs in multiple services  | Unified logs and monitoring           |
+| Share logic across apps           | Copy-paste or rewrite code              | Define once, reuse everywhere         |
 
-### In Summary
-Ductape helps you write backend logic once, make it environment agnostic, and reuse it anywhere.
-It gives your team a cleaner, faster, and more consistent way to build and scale backend systems.
+## What Can You Build With Ductape?
+
+- Multi-environment deployments (dev, staging, prod)
+- Workflows that combine APIs, databases, and message queues
+- Systems that can swap providers (e.g., Twilio to SendGrid) with zero code changes
+- Unified monitoring and debugging for all backend logic
+
+## Next Steps
+
+- [Quickstart](./getting-started/quickstart.md)
+- [Products](./products/getting-started.md)
+- [Apps](./apps/getting-started.md)
+- [Environments](./products/environments.md)
+- [Advanced Features](./products/)

@@ -4,45 +4,58 @@ sidebar_position: 3
 
 # Email Notifications
 
-An notification has two parts
+Email notifications in Ductape let you send parameterized emails to your users through your configured email provider. Use email notifications for alerts, confirmations, or updates that require rich formatting and longer content.
 
-- **subject:** the email subject of the email notifications **required
-- **template:** the html template that of the  email notifications **required
+## What Is an Email Notification?
+An email notification consists of two required parts:
+- **subject**: The subject line of the email. Can include template variables (e.g., `{{username}}`).
+- **template**: The HTML body of the email. Can include template variables for dynamic content.
 
+## Email Message Structure
+- **subject**: The subject of your email, with optional template variables.
+- **template**: The HTML body of your email, with optional template variables.
 
-``` typescript
-const email: {
-    subject: "Credit Alert From {{username}}",
-    template: "<html><body><p>{{username}} sent you {{amount}} {{currency}}</p></body></html>",
+**Example Template:**
+```typescript
+const email = {
+  subject: "Credit Alert From {{username}}",
+  template: "<html><body><p>{{username}} sent you {{amount}} {{currency}}</p></body></html>"
 }
 ```
 
-## Templates in Emails Notifications
+## Using Template Variables
+Template variables in the subject or template are enclosed in `{{ }}` and replaced with actual values when the email is sent.
 
-The above sample code shows you how to create templates in push notifications, the template above defines the data input required to send a push notification. A sample data expected when sending the above push notifications would look like this
+> **Note:** All template variables in your subject and template must be provided in the data object when sending the email. If a variable is missing, the placeholder will remain unreplaced in the final email.
 
+## Example Input Data
 ```typescript
 const data = {
-    subject: {
-        username: "Thomas"
-    },
-    template: {
-        username: "Thomas",
-        amount: "50",
-        currency: "GBP"
-    }
+  username: "Thomas",
+  amount: "50",
+  currency: "GBP"
 }
 ```
 
-## Generated Request
-
-This expected data would automatically replace the template variables marked with `{{}}` and generate a notification body as follows
+## Generated Email
+The system will automatically replace the placeholders to produce:
 
 ```typescript
 {
-    subject: "Credit Alert From Thomas",
-    body: "<html><body><p>Thomas sent you 50 GBP</p></body></html>",
+  subject: "Credit Alert From Thomas",
+  body: "<html><body><p>Thomas sent you 50 GBP</p></body></html>"
 }
 ```
 
-This is important to note when processing email notifications in subsequent sections
+## Provider Setup
+Email notifications are sent through the email provider configured for your environment (such as SendGrid, Mailgun, or SES). See [Notification Environment Setup](../setting-up#email-notifications) for details on configuring your provider.
+
+**Key Points:**
+- All template variables are required at send time.
+- Unmatched placeholders will remain in the message.
+- Choose and configure your email provider in your notification environment settings.
+
+**Next Steps:**
+- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like email, SMS, and push.
+- **[Message Template Guides](./):** Explore guides for other notification message types.
+- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.

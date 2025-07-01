@@ -4,56 +4,55 @@ sidebar_position: 1
 
 # Processing Features
 
-Features are executed using `ductape.processor.feature.run(data)`, which triggers a defined feature processor within the Ductape system.
+Processing features is done using `ductape.processor.feature.run(data)` of the ductape.processor interface.
 
-This method handles a feature request based on the provided environment, product tag, and optionally user session and cache configurations.
-
-
-## Usage
+It executes a feature processor within the Ductape system, handling a feature request based on the provided environment, product tag, and other parameters.
 
 ```ts
-await ductape.processor.feature.run(data: IProcessorInput)
-````
+await ductape.processor.feature.run(data: IFeatureProcessorInput)
+```
 
-## Input
-
-### `IProcessorInput`
-
-Object containing parameters needed to execute a feature.
-
-| Property      | Type                      | Required   | Description                                                             |
-| ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------- |
-| `product_tag` | `string`                  | ✅ Yes      | Unique identifier for the product executing the feature.                |
-| `env`         | `string`                  | ✅ Yes      | Environment slug (`"dev"`, `"prd"`, etc.).                              |
-| `feature_tag` | `string`                  | ✅ Yes      | Tag of the feature to execute.                                          |
-| `input`       | `Record<string, unknown>` | ✅ Yes      | Input parameters for the feature. Use `{}` if no parameters are needed. |
-| `session`     | `ISession`         | ❌ Optional | Attach user session context to the request.                             |
-| `cache`       | `string`                  | ❌ Optional | Cache tag to cache this request (e.g., `"get-user-details"`).           |
+This processes a defined feature in the specified environment and application context, passing along request input, metadata, and optionally session tracking.
 
 
-### `ISession`
+## Parameters
 
-Optional object to enable session tracking and access session-based user data.
+### `IFeatureProcessorInput`
+
+| Field         | Type                      | Required | Description                                                             |
+| ------------- | ------------------------- | -------- | ----------------------------------------------------------------------- |
+| `product_tag` | `string`                  | Yes      | Unique identifier for the product executing the feature.                |
+| `env`         | `string`                  | Yes      | Environment slug (e.g. `"dev"`, `"prd"`).                             |
+| `feature_tag` | `string`                  | Yes      | Tag of the feature to execute.                                          |
+| `input`       | `Record<string, unknown>` | Yes      | Input parameters for the feature. If not required, use `{}`.            |
+| `session`     | [`ISession`](#isession-schema) | No   | Optional session tracking object.                                       |
+| `cache`       | `string`                  | No       | Cache tag to cache this request (e.g., `"get-user-details"`).          |
+
+> **Note:** If `input` is empty or not required, use `input: {}`.
+
+
+## `ISession` Schema
+
+The `session` field enables optional session tracking for any feature run.
 
 ```ts
-{
-  tag: string;
-  token: string;
+interface ISession {
+  tag: string;   // session tag
+  token: string; // session token (e.g. signed JWT)
 }
 ```
 
-| Field   | Type     | Required | Description                                   |
-| ------- | -------- | -------- | --------------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Tag identifying the session type.             |
-| `token` | `string` | ✅ Yes    | Token generated when the session was created. |
+| Field   | Type     | Required | Description                                           |
+| ------- | -------- | -------- | ----------------------------------------------------- |
+| `tag`   | `string` | Yes      | Session tag identifying the session.                  |
+| `token` | `string` | Yes      | Encoded token used to validate and track the session. |
 
 
-### Injecting Session Data into Input
+## Injecting Session Data into Input
 
-You can inject properties from the session payload into the `input` object using the `$Session{tag}{key}` annotation.
+You can inject properties from the session payload into the `input` object using the `$Session{tag}{key}` annotation. This resolves the value dynamically from the decrypted session object.
 
-* This resolves the value dynamically from the decrypted session object.
-* For example:
+For example:
 
 ```ts
 input: {
@@ -65,17 +64,15 @@ input: {
 > Ensure the session contains a matching `tag` and fields (e.g., `id`, `email`).
 
 
-## Output
+## Returns
 
-A `Promise<unknown>` resolving with the result of the feature execution. The structure depends on the feature implementation.
+A `Promise<unknown>` — resolves with the result of the feature execution. The structure depends on the feature implementation.
 
 
-## Example Usage
+## Example
 
 ```ts
-import { ductape } from '@ductape/sdk';
-
-const data = {
+const data: IFeatureProcessorInput = {
   product_tag: "my-product",
   env: "prd",
   feature_tag: "deploy_auction_and_bid",
@@ -93,14 +90,9 @@ const data = {
 const res = await ductape.processor.feature.run(data);
 ```
 
-## Notes
 
-* If `input` is empty or not required, use `input: {}`.
-* Caching is useful for idempotent or read-only feature calls.
-* Session injection is resolved server-side after the token is decrypted.
+## See Also
 
-## Related
-
-* [Starting a Session](../sessions/generating)
 * [Decrypting Session Tokens](../sessions/decrypting)
 * [Refreshing Session Tokens](../sessions/refreshing)
+* [Session Tracking](../sessions)

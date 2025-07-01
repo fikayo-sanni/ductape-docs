@@ -26,3 +26,16 @@ const kafkaConfig = {
 - **topic:** The Kafka topic to read from or publish to.
 - **ssl:** (Optional) Enable SSL if secure communication is required.
 - **sasl:** (Optional) Authentication details for Kafka.
+
+**Best Practices:**
+- Use unique client IDs and group IDs per environment.
+- Enable SSL and SASL for production deployments.
+- Monitor topic lag and broker health for scaling.
+
+## See Also
+- [Message Brokers Overview](../message-brokers.md)
+- [Managing Topics](../managing-topics.md)
+- [RabbitMQ Configuration](./rabbit-mq.md)
+- [AWS SQS Configuration](./aws-sqs.md)
+- [Redis Configuration](./redis.md)
+- [Google PubSub Configuration](./google-pubsub.md)

@@ -4,33 +4,17 @@ sidebar_position: 4
 
 # Defining Output
 
-In Ductape, defining the output structure of a feature is essential for specifying the expected result or data format produced by a feature's execution. Outputs in Ductape can dynamically reference values generated during the feature's event sequence, using a specific notation to retrieve values from inputs and previous events in the sequence.
-
-## Sample Output Definition
-
-The following example demonstrates a typical output structure:
+Defining the output structure of a feature in Ductape specifies the expected result or data format produced by a feature's execution. The output is described using the `output` field of `IProductFeature`:
 
 ```typescript
-{
-    name: `$Input{name}`,   // Retrieves the "name" field from the initial input
-    details:  {
-        transaction_id: `$Sequence{process_payments}{debit_payment}{trx_id}`,   // From event within sequence
-        timestamp: `$Sequence{process_payments}{settle_payment}{timestamp}`,   // From another sequence event
-        user_role: `$Variable{user_sercice}{role}`,    // Dynamic value from 'user_service' app variable
-        currency: `$Constant{payments}{currency_code}`    // Constant value from 'payments' app
-    }
-}
+output: Record<string, string | Record<string, string | object>>
 ```
 
-In this example:
+Outputs can dynamically reference values generated during the feature's event sequence, allowing you to map results from inputs, events, variables, and constants into a structured output object.
 
-- **`$Input{name}`**: References a value from the initial feature input (`name` field).
-- **`$Sequence{process_payments}{debit_payment}{trx_id}`**: Retrieves `trx_id` from a specific event (`debit_payment`) within a sequence (`process_payments`).
-- **`$Sequence{process_payments}{settle_payment}{timestamp}`**: Accesses `timestamp` from the `settle_payment` event within the `process_payments` sequence.
-- **`$Variable{user_service}{role}`**: Pulls the `role` value from a variable defined within the `user_service` app, which can dynamically change depending on the app’s state or configuration.
-- **`$Constant{payments}{currency_code}`**: Retrieves the `currency_code` value, which is a constant defined in the `payments` app, remaining static across uses.
+## Output Mapping Syntax
 
-## Output Notation and Structure
+You can use special notations to reference values from different sources:
 
 | Notation                           | Description                                                              |
 |------------------------------------|--------------------------------------------------------------------------|
@@ -39,4 +23,35 @@ In this example:
 | `$Variable{app_tag}{key}`          | References a variable associated with the app identified by `app_tag`    |
 | `$Constant{app_tag}{key}`          | Accesses a constant defined for the app identified by `app_tag`          |
 
-By using `$Variable` and `$Constant` along with `$Input` and `$Sequence`, you can configure feature outputs to include dynamically set values and fixed constants, making output definitions both adaptable and predictable. This enables robust, complex outputs that adapt to varying conditions and setups within Ductape’s environment.
+## Example: Output Definition
+
+```typescript
+{
+  name: `$Input{name}`,   // Retrieves the "name" field from the initial input
+  details:  {
+    transaction_id: `$Sequence{process_payments}{debit_payment}{trx_id}`,
+    timestamp: `$Sequence{process_payments}{settle_payment}{timestamp}`,
+    user_role: `$Variable{user_service}{role}`,
+    currency: `$Constant{payments}{currency_code}`
+  }
+}
+```
+
+In this example:
+- **`$Input{name}`**: References a value from the initial feature input (`name` field).
+- **`$Sequence{process_payments}{debit_payment}{trx_id}`**: Retrieves `trx_id` from a specific event within a sequence.
+- **`$Variable{user_service}{role}`**: Pulls the `role` value from a variable defined within the `user_service` app.
+- **`$Constant{payments}{currency_code}`**: Retrieves a constant value from the `payments` app.
+
+> **Tip:** You can nest objects in the output to create structured results, but the values should be mapped using the supported notations above.
+
+## Best Practices
+- Use clear and descriptive output field names that match your API or business requirements.
+- Map only the necessary values to the output to keep responses concise.
+- Use the output mapping notations to dynamically reference data from inputs, events, variables, and constants.
+- Document the purpose of each output field for maintainability.
+
+## See Also
+- [Defining Inputs](./inputs.md)
+- [Features Overview](./getting-started.md)
+- [Event Types Overview](./events/event-types/)

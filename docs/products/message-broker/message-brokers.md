@@ -4,66 +4,104 @@ sidebar_position: 1
 
 # Managing Message Brokers
 
-Ductape allows you to set up different message brokers for your project, you can define the message brokers for each of the environments you are building on. We currently support the following message brokers:
+Ductape supports seamless integration with multiple message brokers, allowing you to build scalable, event-driven applications. Message brokers enable your product to publish and consume messages across distributed systems, decoupling services and improving reliability.
 
-- **Kafka:** `MessageBrokerTypes.KAFKA`
-- **Redis:** `MessageBrokerTypes.REDIS`
-- **RabbitMQ:** `MessageBrokerTypes.RABBITMQ`
-- **Google PubSub:** `MessageBrokerTypes.GOOGLE_PUBSUB`
-- **AWS SQS:** `MessageBrokerTypes.AWS_SQS`
+## Supported Message Brokers
 
-Ductape provides you with a uniform interface across the multiple brokers making them easily interoperable and taking out the complexities of building with them or swapping one for the other
+Ductape provides a unified interface for the following brokers:
 
-## Setting Up Message Brokers
+- **Kafka** (`MessageBrokerTypes.KAFKA`)
+- **Redis** (`MessageBrokerTypes.REDIS`)
+- **RabbitMQ** (`MessageBrokerTypes.RABBITMQ`)
+- **Google PubSub** (`MessageBrokerTypes.GOOGLE_PUBSUB`)
+- **AWS SQS** (`MessageBrokerTypes.AWS_SQS`)
 
-In creating a message broker instance for Ductape, you use the `create` function of the `product.messageBrokers` interface. You are expected to setup each product environment with their expected configurations depending on the type of Broker to be used on it. See a sample below
+You can configure different brokers for each environment (e.g., dev, staging, prod) and swap providers without changing your application logic.
 
-``` typescript
-import { MessageBrokerTypes } from "ductape-sdk/types"
+## Creating a Message Broker
+
+To create a message broker, use the `create` function from the `product.messageBrokers` interface. Each environment requires its own configuration, depending on the broker type.
+
+```typescript
+import { MessageBrokerTypes } from "ductape-sdk/types";
 
 const broker = await ductape.product.messageBrokers.create({
-    name: "Message Bus",
-    tag: "message-bus",
-    description: "Message Broker for Product",
-    envs: [{
-        slug: "prd",
-        type: MessageBrokerTypes.RABBITMQ,
-        config: rabbitMQConfig,
-    },{
-        slug: "snd",
-        type: MessageBrokerTypes.REDIS,
-        config: redisConfig,
-    }]
-})
-
+  name: "Message Bus",
+  tag: "message-bus",
+  description: "Message Broker for Product",
+  envs: [
+    {
+      slug: "prd",
+      type: MessageBrokerTypes.RABBITMQ,
+      config: rabbitMQConfig,
+    },
+    {
+      slug: "dev",
+      type: MessageBrokerTypes.REDIS,
+      config: redisConfig,
+    },
+  ],
+});
 ```
+
+### Field Definitions
+
+| Field         | Type                      | Required | Description                                                      |
+|--------------|---------------------------|----------|------------------------------------------------------------------|
+| `name`       | `string`                  | Yes      | Display name for the broker.                                     |
+| `tag`        | `string`                  | Yes      | Unique identifier for the broker.                                |
+| `description`| `string`                  | No       | Short description of the broker.                                 |
+| `envs`       | `array`                   | Yes      | List of environment configs. See below for per-broker config.    |
+| `envs.slug`  | `string`                  | Yes      | Environment slug (e.g., `prd`, `dev`).                           |
+| `envs.type`  | `MessageBrokerTypes` enum | Yes      | Type of broker for this environment.                             |
+| `envs.config`| `object`                  | Yes      | Broker-specific configuration object.                            |
+
+See [Configuration](./configuration/) for details on each broker's config fields.
 
 ## Updating Message Brokers
 
-To update a message broker, you use the `update` function of the `product.messageBrokers` interface. You are allowed to switch between different message providers in different environments in this step, without affecting the working order in which your application functions.
-
-``` typescript
-const update = await ductape.product.messageBrokers.update("message-bus", {
-    envs: [{
-        slug: "prd",
-        type: MessageBrokerTypes.KAFKA,
-        config: kafkaConfig,
-    }]
-})
-```
-
-## Fetch Message Broker
-
-To fetch the databases for a product use the `fetchAll` function of the `product.messageBrokers` interface.
+To update a message broker, use the `update` function. You can change providers per environment without affecting your application logic.
 
 ```typescript
-const databases = ductape.product.messageBrokers.fetchAll()
+await ductape.product.messageBrokers.update("message-bus", {
+  envs: [
+    {
+      slug: "prd",
+      type: MessageBrokerTypes.KAFKA,
+      config: kafkaConfig,
+    },
+  ],
+});
 ```
 
-## Fetch Message Broker
+## Fetching Message Brokers
 
-To fetch a single database use the `fetch` function of the `product.messageBrokers` interface. It takes in the database tag.
+- **Fetch all brokers:**
+  ```typescript
+  const brokers = await ductape.product.messageBrokers.fetchAll();
+  ```
+- **Fetch a single broker by tag:**
+  ```typescript
+  const broker = await ductape.product.messageBrokers.fetch('message-bus');
+  ```
 
-```typescript
-const databases = ductape.product.messageBrokers.fetch('message-bus')
-```
+## Configuration Examples
+
+See the [Configuration](./configuration/) section for detailed config examples for each supported broker:
+- [RabbitMQ](./configuration/rabbit-mq.md)
+- [Kafka](./configuration/kafka.md)
+- [AWS SQS](./configuration/aws-sqs.md)
+- [Redis](./configuration/redis.md)
+- [Google PubSub](./configuration/google-pubsub.md)
+
+## Best Practices
+- Use environment-specific configs to isolate dev, staging, and prod traffic.
+- Use unique tags for each broker and topic to avoid conflicts.
+- Secure credentials and connection details using environment variables or secret management.
+- Monitor broker health and message throughput for scaling.
+- Use the same naming conventions for tags and slugs across your product.
+
+## See Also
+- [Managing Topics](./managing-topics.md)
+- [Jobs](../jobs.md)
+- [Features](../features/)

@@ -2,16 +2,14 @@
 sidebar_position: 6
 ---
 
-# Executing Migrations
+# Processing Database Migrations
 
-Database migrations can be triggered using the `ductape.processor.db.migration` interface.
+Processing database migrations is done using the `ductape.processor.db.migration` interface.
 
-This interface provides two methods:
+This interface provides two methods for managing migrations:
 
-- `run` – Executes the specified database migration.
-- `rollback` – Rolls back (reverts) the specified migration.
-
-## Function Signatures
+- `run` — Executes the specified database migration.
+- `rollback` — Rolls back (reverts) the specified migration.
 
 ```ts
 await ductape.processor.db.migration.run({
@@ -27,23 +25,28 @@ await ductape.processor.db.migration.rollback({
 })
 ```
 
+
 ## Parameters
 
 Both `run` and `rollback` methods accept the same input object:
 
-| Name       | Type     | Required | Description                                                        |
-|------------|----------|----------|--------------------------------------------------------------------|
-| `migration`| `string` | Yes      | The full migration tag in the format `"database_tag:action_tag"`. |
-| `env`      | `string` | Yes      | The slug of the environment (e.g., `"dev"`, `"prd"`).              |
-| `product`  | `string` | Yes      | The product tag the migration belongs to.                          |
+| Field        | Type     | Required | Description                                                        |
+| ------------ | -------- | -------- | ------------------------------------------------------------------ |
+| `migration`  | `string` | Yes      | The full migration tag in the format `"database_tag:action_tag"`.   |
+| `env`        | `string` | Yes      | Environment slug (e.g. `"dev"`, `"prd"`).                         |
+| `product`    | `string` | Yes      | Product tag the migration belongs to.                              |
+
+> **Note:** The `migration` tag should follow the format `database_tag:action_tag`, where:
+> - `database_tag` identifies the database the migration belongs to
+> - `action_tag` is the specific migration action to run
 
 
 ## Returns
 
-A `Promise<unknown>` that resolves with the result of the migration execution.  
-The structure of the result depends on the logic defined within the migration itself.
+A `Promise<unknown>` — resolves with the result of the migration execution. The structure of the result depends on the logic defined within the migration itself.
 
-## Example Usage
+
+## Example
 
 ### Run a Migration
 ```ts
@@ -64,6 +67,7 @@ await ductape.processor.db.migration.rollback({
 ```
 
 
-> Note: The `migration` tag should follow the format `database_tag:action_tag`, where:
-> - `database_tag` identifies the database the migration belongs to
-> - `action_tag` is the specific migration action to run
+## See Also
+
+* [Defining Database Actions](../../category/database-actions/)
+* [Session Tracking](../sessions)

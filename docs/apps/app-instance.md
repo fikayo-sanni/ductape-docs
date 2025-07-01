@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Initialize App Builder
+# App Instance Management
 
 To work with apps and services, start by using the App Builder interface to initialize the app you created in the previous step.
 
@@ -88,3 +88,9 @@ Manage application environments:
 ## Summary
 
 This interface allows applications to manage variables, constants, actions, authentication, webhooks, environments, and validation updates efficiently.
+
+## See Also
+
+* [Getting Started with Apps](./getting-started.md)
+* [Constants & Variables](./constants-variables.md)
+* [Environments Setup](./environments.md)

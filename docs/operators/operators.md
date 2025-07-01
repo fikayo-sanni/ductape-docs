@@ -26,8 +26,6 @@ $Add(10, 20, 30)  # Result: 60
 $Add(5, $valueFromVariable, 15)  # Result: Computed sum
 ```
 
----
-
 ## 2. $Subtract
 
 ### **Description:**  
@@ -48,8 +46,6 @@ $Subtract(value1, value2, ..., valueN)
 ```typescript
 $Subtract(100, 20, 30)  # Result: 50 (100 - 20 - 30)
 ```
-
----
 
 ## 3. $Concat
 
@@ -72,8 +68,6 @@ $Concat([string1, string2, ..., stringN], 'delimiter')
 $Concat(["Hello", "World"], " ")  # Result: "Hello World"
 $Concat(["2024", "07", "15"], "-")  # Result: "2024-07-15"
 ```
-
----
 
 ## 4. $Substring
 
@@ -98,8 +92,6 @@ $Substring("Ductape", 0, 4)  # Result: "Duct"
 $Substring("Operator", 2, 6)  # Result: "erat"
 ```
 
----
-
 ## 5. $Trim
 
 ### **Description:**  
@@ -120,8 +112,6 @@ $Trim(string)
 $Trim("  Ductape  ")  # Result: "Ductape"
 $Trim("\nNewLine\t")  # Result: "NewLine"
 ```
-
----
 
 ## 6. $Split
 
@@ -145,8 +135,6 @@ $Split("apple,banana,cherry", ",")  # Result: ["apple", "banana", "cherry"]
 $Split("one-two-three", "-")  # Result: ["one", "two", "three"]
 ```
 
----
-
 ## 7. $Pick
 
 ### **Description:**  
@@ -169,8 +157,6 @@ $Pick("Hello", 1)  # Result: "e"
 $Pick(["apple", "banana", "cherry"], 2)  # Result: "cherry"
 ```
 
----
-
 ## 8. $Join
 
 ### **Description:**  
@@ -190,8 +176,6 @@ $Join([[objectArray1], [objectArray2], ..., [objectArrayN]])
 ```typescript
 $Join([[{id: 1}, {id: 2}], [{id: 3}]])  # Result: [{id: 1}, {id: 2}, {id: 3}]
 ```
-
----
 
 ## 9. $Uppercase
 
@@ -213,8 +197,6 @@ $Uppercase(string)
 $Uppercase("ductape")  # Result: "DUCTAPE"
 ```
 
----
-
 ## 10. $Lowercase
 
 ### **Description:**  
@@ -234,8 +216,6 @@ $Lowercase(string)
 ```typescript
 $Lowercase("Ductape")  # Result: "ductape"
 ```
-
----
 
 ## 11. $Dateformat
 
@@ -307,8 +287,6 @@ $Replace(string, search, replace)
 $Replace("Hello World", "World", "Ductape")  # Result: "Hello Ductape"
 $Replace("2024-02-09", "-", "/")  # Result: "2024/02/09"
 ```
-
----
 
 ## 13. **$Filter**
 

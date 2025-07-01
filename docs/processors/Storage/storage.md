@@ -8,29 +8,31 @@ Storage operations are performed using `ductape.processor.storage.run(data)`.
 
 This method processes storage-related requests such as uploading files within the Ductape system, using environment, product tag, and other parameters.
 
-## Usage
-
 ```ts
 await ductape.processor.storage.run(data: IStorageProcessorInput)
-````
+```
 
-## Input
+This processes a storage event in the specified environment and application context, passing along file data, metadata, and optionally session tracking.
+
+
+## Parameters
 
 ### `IStorageProcessorInput`
 
-An object containing parameters needed to execute the storage processor.
+| Field         | Type                        | Required | Description                                     |
+| ------------- | --------------------------- | -------- | ----------------------------------------------- |
+| `env`         | `string`                    | Yes      | Environment slug (e.g., `"dev"`, `"prd"`).      |
+| `product_tag` | `string`                    | Yes      | Unique identifier for the product.              |
+| `event`       | `string`                    | Yes      | Tag of the storage event to be triggered.       |
+| `input`       | [`IStorageRequest`](#istoragerequest) | Yes | File data and metadata for storage.             |
+| `session`     | [`ISession`](#isession-schema) | No   | Attach user session context to the request.     |
+| `cache`       | `string`                    | No       | Cache tag to cache this request, if applicable. |
+| `retries`     | `number`                    | No       | Number of retry attempts on failure.            |
 
-| Property      | Type              | Required   | Description                                     |
-| ------------- | ----------------- | ---------- | ----------------------------------------------- |
-| `env`         | `string`          | ✅ Yes      | Environment slug (e.g., `"dev"`, `"prd"`).      |
-| `product_tag` | `string`          | ✅ Yes      | Unique identifier for the product.              |
-| `event`       | `string`          | ✅ Yes      | Tag of the storage event to be triggered.       |
-| `input`       | `IStorageRequest` | ✅ Yes      | File data and metadata for storage.             |
-| `session`     | `ISession` | ❌ Optional | Attach user session context to the request.     |
-| `cache`       | `string`          | ❌ Optional | Cache tag to cache this request, if applicable. |
-| `retries`     | `number`          | ❌ Optional | Number of retry attempts on failure.            |
+> **Note:** Optional fields can be omitted or passed as empty `{}`.
 
-### `IStorageRequest`
+
+## `IStorageRequest`
 
 The shape of the `input` object:
 
@@ -42,35 +44,38 @@ interface IStorageRequest {
 }
 ```
 
-* **`buffer`** (`string`) – Base64-encoded content of the file to be stored.
-* **`fileName`** (`string`) – Name of the file.
-* **`mimeType`** (`string`, optional) – MIME type of the file. If omitted, the system will attempt to infer it.
+| Field      | Type     | Required | Description                                 |
+| ---------- | -------- | -------- | ------------------------------------------- |
+| `buffer`   | `string` | Yes      | Base64-encoded content of the file.         |
+| `fileName` | `string` | Yes      | Name of the file.                          |
+| `mimeType` | `string` | No       | MIME type of the file. Inferred if omitted. |
 
-### `ISession`
 
-Optional object to enable session tracking and access session-based user data.
+## `ISession` Schema
+
+The `session` field enables optional session tracking for any storage operation.
 
 ```ts
-{
-  tag: string;
-  token: string;
+interface ISession {
+  tag: string;   // session tag
+  token: string; // session token (e.g. signed JWT)
 }
 ```
 
 | Field   | Type     | Required | Description                                   |
 | ------- | -------- | -------- | --------------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Tag identifying the session type.             |
-| `token` | `string` | ✅ Yes    | Token generated when the session was created. |
+| `tag`   | `string` | Yes      | Tag identifying the session type.             |
+| `token` | `string` | Yes      | Token generated when the session was created. |
+
 
 ## Returns
 
 Returns a `Promise<unknown>` resolving with the result of the storage operation. The exact structure depends on the specific storage action.
 
-## Example Usage
+
+## Example
 
 ```ts
-import { ductape } from '@ductape/sdk';
-
 const { buffer, fileName, mimeType } = await ductape.processor.storage.readFile('path/to/file.txt');
 
 const data = {
@@ -92,3 +97,9 @@ const data = {
 
 const res = await ductape.processor.storage.run(data);
 ```
+
+
+## See Also
+
+* [Reading Files](./read-files)
+* [Session Tracking](../sessions)

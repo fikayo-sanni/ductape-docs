@@ -1,127 +1,119 @@
 ---
-sidebar_position: 6 
+sidebar_position: 6
 ---
 
-# Constants And Variables
+# Constants and Variables
 
-Ductape provides interfaces for managing the constants and variables being used in your service.
+Ductape provides interfaces for managing the constants and variables used in your service.
 
 ## Constants
-**Constants** are values that do not change, and can be reused across multiple actions with your application. 
 
+Constants are values that do not change and can be reused across multiple actions within your application.
 
-### Create Constants
-To create a constant, refer to the example below
+### Creating Constants
 
-``` typescript
+```ts
 import { DataTypes } from "ductape-sdk/types";
 
 const details = {
-    key: "USER_TYPE",
-    value: "user",
-    type: DataTypes.STRING,
-    description: "The User Type field, to be used during user registration"
-}
+  key: "USER_TYPE",
+  value: "user",
+  type: DataTypes.STRING,
+  description: "The User Type field, to be used during user registration"
+};
 
 const constants = await ductape.app.constant.create(details);
 ```
 
-The following fields are allowed
+#### Fields
+- **key**: The unique identifier field
+- **value**: The value to be stored
+- **type**: The data type (see table below)
+- **description**: A description of the field and what it entails (optional)
 
-- **key**: the unique identifier field 
-- **value**: the value to be stored
-- **type**: the Data Type, further description provided below 
-- **description**: a description of the field and what it entails *optional*
+#### DataTypes Enum
 
-The DataTypes are below
-
-Here is the `DataTypes` enum converted into a markdown table:
-
-| Key          | Value      |
-|--------------|------------|
-| **STRING**   | string     |
+| Key            | Value      |
+|----------------|------------|
+| **STRING**     | string     |
 | **NUMBER_STRING** | numberstring |
-| **INTEGER**  | number     |
-| **FLOAT**    | float      |
-| **DOUBLE**   | double     |
-| **UUID**     | uuid       |
-| **ARRAY**    | array      |
-| **OBJECT**   | object     |
-| **BOOLEAN**  | boolean    |
+| **INTEGER**    | number     |
+| **FLOAT**      | float      |
+| **DOUBLE**     | double     |
+| **UUID**       | uuid       |
+| **ARRAY**      | array      |
+| **OBJECT**     | object     |
+| **BOOLEAN**    | boolean    |
 
-### Update Constants
-To update an existing constant, refer to the example below
+### Updating Constants
 
-``` typescript
+```ts
 import { DataTypes } from "ductape-sdk/types";
 
-// ... app builder instance
-
 const details = {
-    value: "user",
-    type: DataTypes.STRING,
-    description: "The User Type field, to be used during user registration"
-}
+  value: "user",
+  type: DataTypes.STRING,
+  description: "The User Type field, to be used during user registration"
+};
 
 const constant = await ductape.app.constant.update(details);
 ```
 
+### Fetching Constants
 
-### Fetch Constants
-
-``` typescript
-const constants = ductape.app.constant.fetchAll(); // fetch all app constants
+```ts
+const constants = await ductape.app.constant.fetchAll();
 ```
 
-``` typescript
-const key = "USER_TYPE"
-const constant = ductape.app.constant.fetch(key) // fetch single variable
+```ts
+const key = "USER_TYPE";
+const constant = await ductape.app.constant.fetch(key);
 ```
 
 ## Variables
 
-**Variables** are values that are meant to be supplied by third parties, and can be reused across multiple actions with your application. 
-Defining variables is similar to defining constants, but the values are not going to be set by you, but instead by your customers
+Variables are values that are meant to be supplied by third parties and can be reused across multiple actions within your application. Defining variables is similar to defining constants, but the values are not set by you, but instead by your customers.
 
-### Create Variables
+### Creating Variables
 
-To create a variable, refer to the example below
-
-``` typescript
+```ts
 import { DataTypes } from "ductape-sdk/types";
 
 const details = {
-    key: "PUBLIC_KEY"
-    type: DataTypes.UUID,
-    description: "The User's Public Key"
-}
+  key: "PUBLIC_KEY",
+  type: DataTypes.UUID,
+  description: "The User's Public Key"
+};
 
 const variable = await ductape.app.variable.create(details);
 ```
 
-### Update Variables
+### Updating Variables
 
-To update an existing variables, refer to the example below
-
-``` typescript
+```ts
 import { DataTypes } from "ductape-sdk/types";
 
-const key = "PUBLIC_KEY"
+const key = "PUBLIC_KEY";
 const update = {
-    type: DataTypes.STRING,
-    description: "The User's Public Key"
-}
+  type: DataTypes.STRING,
+  description: "The User's Public Key"
+};
 
 const variable = await ductape.app.variable.update(key, update);
 ```
 
-### Fetch Variables
+### Fetching Variables
 
-``` typescript
-const variables = await ductape.app.variable.fetchAll(); // fetch all app variables
+```ts
+const variables = await ductape.app.variable.fetchAll();
 ```
 
-``` typescript
-const key = "USER_TYPE"
-const variable = await ductape.app.variable.fetch(key) // fetch single app variable
+```ts
+const key = "USER_TYPE";
+const variable = await ductape.app.variable.fetch(key);
 ```
+
+## See Also
+
+* [App Instance Management](./app-instance.md)
+* [Environments Setup](./environments.md)

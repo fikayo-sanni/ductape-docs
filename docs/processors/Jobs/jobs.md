@@ -4,41 +4,41 @@ sidebar_position: 1
 
 # Scheduling Jobs
 
-Jobs are scheduled using `ductape.processor.job.schedule(data)`, which queues background tasks within the Ductape system.
-
-This method supports executing a variety of job types such as app actions, notifications, cloud functions, storage tasks, database operations, or internal features. You can control execution timing, group jobs into sessions, optionally enable input caching, and schedule recurring executions.
-
-## Usage
+Jobs are scheduled using `ductape.processor.job.schedule(data)`, which queues background tasks within the Ductape system. This method supports executing a variety of job types such as app actions, notifications, cloud functions, storage tasks, database operations, or internal features. You can control execution timing, group jobs into sessions, optionally enable input caching, and schedule recurring executions.
 
 ```ts
 await ductape.processor.job.schedule(data: IJobProcessorInput)
 ```
 
-## Input
+This processes a job event in the specified environment and application context, passing along request input, metadata, and optionally session tracking.
+
+
+## Parameters
 
 ### `IJobProcessorInput`
 
-Object containing parameters to schedule a job.
+| Field         | Type                        | Required | Description                                                                 |
+| ------------- | --------------------------- | -------- | --------------------------------------------------------------------------- |
+| `product_tag` | `string`                    | Yes      | Unique identifier for the product executing the job.                        |
+| `env`         | `string`                    | Yes      | Environment slug (e.g., `"dev"`, `"prd"`).                               |
+| `event`       | `string`                    | Yes      | Event tag representing the job to schedule.                                 |
+| `input`       | `object`                    | Yes      | Payload for the job (see accepted input types below).                       |
+| `retries`     | `number`                    | Yes      | Number of times to retry the job.                                           |
+| `start_at`    | `number`                    | Yes      | Unix timestamp for when the job should start. Use `0` to start immediately. |
+| `app`         | `string`                    | No       | Name of the application related to the job.                                 |
+| `cache`       | `string`                    | No       | Cache tag to deduplicate or memoize identical job inputs.                   |
+| `session`     | [`ISession`](#isession-schema) | No   | Attach user session context to the job execution.                           |
+| `repeat`      | [`IJobRepeatOptions`](#ijobrepeatoptions) | No | Configuration for scheduling recurring jobs.                                |
 
-| Property      | Type               | Required   | Description                                                                 |
-| ------------- | ------------------ | ---------- | --------------------------------------------------------------------------- |
-| `product_tag` | `string`           | ✅ Yes      | Unique identifier for the product executing the job.                        |
-| `env`         | `string`           | ✅ Yes      | Environment slug (`"dev"`, `"prd"`, etc.).                                  |
-| `event`       | `string`           | ✅ Yes      | Event tag representing the job to schedule.                                 |
-| `input`       | `object`           | ✅ Yes      | Payload for the job (see accepted input types below).                       |
-| `retries`     | `number`           | ✅ Yes      | Number of times to retry the job.                                           |
-| `start_at`    | `number`           | ✅ Yes      | Unix timestamp for when the job should start. Use `0` to start immediately. |
-| `app`         | `string`           | ❌ Optional | Name of the application related to the job.                                 |
-| `cache`       | `string`           | ❌ Optional | Cache tag to deduplicate or memoize identical job inputs.                   |
-| `session`     | `ISession`         | ❌ Optional | Attach user session context to the job execution.                           |
-| `repeat`      | `IJobRepeatOptions`| ❌ Optional | Configuration for scheduling recurring jobs.                                |
+> **Note:** Use `{}` as input when no parameters are required. Optional fields can be omitted or passed as empty `{}`.
 
-### Supported Job Types
+
+## Supported Job Types
 
 The `event` tag and `input` payload should correspond to one of the following job types:
 
 ```ts
-export enum JobEventTypes {
+enum JobEventTypes {
   ACTION = 'action',                  // App actions
   FEATURE = 'feature',                // Internal features
   NOTIFICATION = 'notification',      // Notifications (push, email, etc.)
@@ -52,7 +52,8 @@ export enum JobEventTypes {
 }
 ```
 
-### Accepted `input` Types
+
+## Accepted `input` Types
 
 The `input` field should match one of the following interfaces:
 
@@ -63,27 +64,29 @@ The `input` field should match one of the following interfaces:
 - `IStorageRequest` – To interact with file storage.
 - `Record<string, unknown>` – To trigger a product feature directly.
 
-> Use `{}` as input when no parameters are required.
 
-### `ISession`
+## `ISession` Schema
 
-Optional object to attach user session context to the job.
+The `session` field enables optional session tracking for any job schedule.
 
 ```ts
-{
-  tag: string;
-  token: string;
+interface ISession {
+  tag: string;   // session tag
+  token: string; // session token (e.g. signed JWT)
 }
 ```
 
 | Field   | Type     | Required | Description                                   |
 | ------- | -------- | -------- | --------------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Tag identifying the session type.             |
-| `token` | `string` | ✅ Yes    | Token generated when the session was created. |
+| `tag`   | `string` | Yes      | Tag identifying the session type.             |
+| `token` | `string` | Yes      | Token generated when the session was created. |
 
-#### Injecting Session Data into Input
 
-You can dynamically inject values from the session into the job `input` using the `$Session{tag}{key}` notation:
+## Injecting Session Data into Input
+
+You can inject properties from the session payload into the `input` object using the `$Session{tag}{key}` annotation. This resolves the value dynamically from the decrypted session object.
+
+For example:
 
 ```ts
 input: {
@@ -93,6 +96,7 @@ input: {
 ```
 
 > The system will resolve these values server-side after decrypting the session token.
+
 
 ## Recurring Jobs
 
@@ -110,17 +114,17 @@ interface IJobRepeatOptions {
 }
 ```
 
-| Property   | Type                | Required | Description                                                                 |
-|------------|---------------------|----------|-----------------------------------------------------------------------------|
-| `cron`     | `string`            | ❌ No     | Cron expression (e.g., `'0 0 1 * *'` for monthly).                          |
-| `every`    | `number` (ms)       | ❌ No     | Millisecond-based repeat interval (e.g., `86400000` for daily).            |
-| `limit`    | `number`            | ❌ No     | Maximum number of repetitions. Defaults to unlimited if not provided.      |
-| `endDate`  | `number \| string`  | ❌ No     | End timestamp or ISO string. Stops job repetition after this date.         |
-| `tz`       | `string`            | ❌ No     | Timezone used when evaluating `cron` expressions.                          |
+| Field     | Type                | Required | Description                                                                 |
+|-----------|---------------------|----------|-----------------------------------------------------------------------------|
+| `cron`    | `string`            | No       | Cron expression (e.g., `'0 0 1 * *'` for monthly).                          |
+| `every`   | `number` (ms)       | No       | Millisecond-based repeat interval (e.g., `86400000` for daily).            |
+| `limit`   | `number`            | No       | Maximum number of repetitions. Defaults to unlimited if not provided.      |
+| `endDate` | `number \| string`  | No       | End timestamp or ISO string. Stops job repetition after this date.         |
+| `tz`      | `string`            | No       | Timezone used when evaluating `cron` expressions.                          |
 
 > Either `cron` or `every` must be defined. Do not set both unless you intend fallback logic (e.g., `every` if `cron` fails).
 
-### Examples
+#### Examples
 
 **Every 24 hours:**
 ```ts
@@ -162,15 +166,15 @@ repeat: {
 
 > Repeating jobs are re-queued automatically after each successful execution and follow the constraints set by `limit` and `endDate`.
 
-## Output
 
-A `Promise<unknown>` resolving with the result of the job execution. The structure depends on the job implementation and type.
+## Returns
 
-## Example Usage
+A `Promise<unknown>` — resolves with the result of the job execution. The structure depends on the job implementation and type.
+
+
+## Example
 
 ```ts
-import { ductape } from '@ductape/sdk';
-
 const data = {
   product_tag: "my-product",
   env: "prd",
@@ -200,17 +204,11 @@ const data = {
 const res = await ductape.processor.job.schedule(data);
 ```
 
-## Notes
 
-- Use `start_at: 0` for immediate job execution.
-- Sessions are useful for associating the job with authenticated user data.
-- Use `cache` for idempotent, repeatable jobs that can be deduplicated.
-- Feature-style input values (like `$Session{...}`) are supported for all input types.
-- Repeated jobs will automatically be rescheduled after completion, respecting any `limit` and `endDate`.
+## See Also
 
-## Related
-
-- [Processing Features](../features/processing)
-- [Starting a Session](../sessions/generating)
-- [Decrypting Session Tokens](../sessions/decrypting)
-- [Refreshing Session Tokens](../sessions/refreshing)
+* [Processing Features](../features/processing)
+* [Starting a Session](../sessions/generating)
+* [Decrypting Session Tokens](../sessions/decrypting)
+* [Refreshing Session Tokens](../sessions/refreshing)
+* [Session Tracking](../sessions)

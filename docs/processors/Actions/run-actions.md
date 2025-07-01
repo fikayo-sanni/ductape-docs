@@ -4,14 +4,13 @@ sidebar_position: 2
 
 # Processing Actions
 
-Processing actions is done using action.run(data) of the ductape.processor interface.  
+Processing actions is done using `action.run(data)` of the ductape.processor interface.
 
-It executes an action processor within the Ductape system, handling an action request based on the provided environment, product tag, and other parameters.  
-
+It executes an action processor within the Ductape system, handling an action request based on the provided environment, product tag, and other parameters.
 
 ```ts
 await ductape.processor.action.run(data: IActionProcessorInput)
-````
+```
 
 This processes a defined action in the specified environment and application context, passing along request input, metadata, and optionally session tracking.
 
@@ -22,15 +21,14 @@ This processes a defined action in the specified environment and application con
 
 | Field         | Type                                       | Required | Description                                               |
 | ------------- | ------------------------------------------ | -------- | --------------------------------------------------------- |
-| `env`         | `string`                                   | ✅ Yes    | Environment slug (e.g. `"dev"`, `"prd"`).                 |
-| `product_tag` | `string`                                   | ✅ Yes    | Product tag associated with this action.                  |
-| `app`         | `string`                                   | ✅ Yes    | Access tag of the application triggering the action.      |
-| `event`       | `string`                                   | ✅ Yes    | Event tag identifying the action to be processed.         |
-| `cache`       | `string`                                   | ❌ No     | Cache tag (if using request caching).                     |
-| `input`       | [`IActionRequest`](#iactionrequest-schema) | ✅ Yes    | Request input including query, body, headers, and params. |
-| `session`     | [`ISession`](#ISession-schema) | ❌ No     | Optional session tracking object.                         |
-| `retries`     | `number`                                   | ❌ No     | Number of retry attempts if execution fails.              |
-
+| `env`         | `string`                                   | Yes      | Environment slug (e.g. `"dev"`, `"prd"`).                 |
+| `product_tag` | `string`                                   | Yes      | Product tag associated with this action.                  |
+| `app`         | `string`                                   | Yes      | Access tag of the application triggering the action.      |
+| `event`       | `string`                                   | Yes      | Event tag identifying the action to be processed.         |
+| `cache`       | `string`                                   | No       | Cache tag (if using request caching).                     |
+| `input`       | [`IActionRequest`](#iactionrequest-schema) | Yes      | Request input including query, body, headers, and params. |
+| `session`     | [`ISession`](#isession-schema)             | No       | Optional session tracking object.                         |
+| `retries`     | `number`                                   | No       | Number of retry attempts if execution fails.              |
 
 
 ## `IActionRequest` Schema
@@ -46,12 +44,12 @@ interface IActionRequest {
 
 | Field     | Type                      | Required | Description           |
 | --------- | ------------------------- | -------- | --------------------- |
-| `query`   | `Record<string, unknown>` | ❌ No     | URL query parameters. |
-| `params`  | `Record<string, unknown>` | ❌ No     | Route parameters.     |
-| `body`    | `Record<string, unknown>` | ❌ No     | Request body data.    |
-| `headers` | `Record<string, unknown>` | ❌ No     | HTTP request headers. |
+| `query`   | `Record<string, unknown>` | No       | URL query parameters. |
+| `params`  | `Record<string, unknown>` | No       | Route parameters.     |
+| `body`    | `Record<string, unknown>` | No       | Request body data.    |
+| `headers` | `Record<string, unknown>` | No       | HTTP request headers. |
 
-> 📝 **Note:** If any of the above fields are undefined or empty, pass them as `{}`.
+> **Note:** If any of the above fields are undefined or empty, pass them as `{}`.
 
 
 ## `ISession` Schema
@@ -67,14 +65,13 @@ interface ISession {
 
 | Field   | Type     | Required | Description                                           |
 | ------- | -------- | -------- | ----------------------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Session tag identifying the session.                  |
-| `token` | `string` | ✅ Yes    | Encoded token used to validate and track the session. |
-
+| `tag`   | `string` | Yes      | Session tag identifying the session.                  |
+| `token` | `string` | Yes      | Encoded token used to validate and track the session. |
 
 
 ## Returns
 
-A `Promise<unknown>` — resolves with the action’s output. The shape of the response depends on the implementation of the triggered action.
+A `Promise<unknown>` — resolves with the action's output. The shape of the response depends on the implementation of the triggered action.
 
 
 ## Example
@@ -105,3 +102,4 @@ const result = await ductape.processor.action.run(data);
 ## See Also
 
 * [Session Tracking](../sessions)
+* [Caching Support](../../products/caches/managing-caches)

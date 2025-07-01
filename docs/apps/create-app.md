@@ -6,9 +6,9 @@ sidebar_position: 2
 
 ## Creating an App
 
-To create an app you need use the app builder interface's `create` function
+To create an app, use the app builder interface's `create` function:
 
-``` typescript
+```ts
 const details = {
     name: "App Name",
     description: "You can add a product description here",
@@ -20,9 +20,9 @@ const product = await ductape.app.create(details)
 
 ## Updating an App
 
-To update an app you need use the app builder interface's `update` function
+To update an app, use the app builder interface's `update` function:
 
-``` typescript
+```ts
 const tag = "app_tag";
 
 const details = {
@@ -35,10 +35,15 @@ const product = await ductape.app.update(tag, details)
 
 ## Fetching an App
 
-To fetch an app by tag you need use the app builder interface's `fetch` function
+To fetch an app by tag, use the app builder interface's `fetch` function:
 
-``` typescript
+```ts
 const tag = "app_tag";
 
 const product = await ductape.app.fetch(tag)
 ```
+
+## See Also
+
+* [Getting Started with Apps](./getting-started.md)
+* [App Instance Management](./app-instance.md)

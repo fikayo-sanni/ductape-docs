@@ -6,7 +6,9 @@ sidebar_position: 6
 
 Ductape allows you to set up various authentication rules for users or systems that need to access your application. Authentication setup in Ductape is flexible, supporting both credential-based and token-based authentication methods.
 
-```typescript
+## Creating Authentication
+
+```ts
 import { AuthTypes, TokenPeriods } from "ductape-sdk/types";
 
 const setup = {
@@ -21,18 +23,18 @@ const setup = {
 const auth = await ductape.app.auth.create(setup);
 ```
 
-There are two main types of authentication setups covered in the `AuthTypes` enum:
+## Authentication Types
 
-| Key             | Value            |
-|-----------------|------------------|
-| **CREDENTIALS** | credential_access |
-| **TOKEN**       | token_access      |
+| Key             | Value              |
+|-----------------|--------------------|
+| **CREDENTIALS** | credential_access  |
+| **TOKEN**       | token_access       |
 
-### **Credentials-Based Authentication**
+### Credentials-Based Authentication
 
-**Credentials-based access** uses a combination of user credentials (such as a username and password) to generate an expiring token. This token must be refreshed periodically to maintain access. In the example above, the tokens generated will expire in 7 hours (`expiry: 7`, `period: TokenPeriods.HOURS`).
+Credentials-based access uses a combination of user credentials (such as a username and password) to generate an expiring token. This token must be refreshed periodically to maintain access. In the example above, the tokens generated will expire in 7 hours (`expiry: 7`, `period: TokenPeriods.HOURS`).
 
-The `TokenPeriods` enum provides options for specifying the token's lifespan, allowing you to define how long a token should be valid before it requires renewal:
+The `TokenPeriods` enum provides options for specifying the token's lifespan:
 
 | Key        | Value   |
 |------------|---------|
@@ -44,14 +46,13 @@ The `TokenPeriods` enum provides options for specifying the token's lifespan, al
 | **MONTHS** | months  |
 | **YEARS**  | years   |
 
-The `ACTION_TAG` defines the tag of the action that can refresh the token, such as a login action or a token refresh action defined in your product steps. Ductape will automatically handle credential-based token refreshes when third parties interact with your application, ensuring secure and continuous access.
+The `action_tag` defines the tag of the action that can refresh the token, such as a login action or a token refresh action defined in your product steps. Ductape will automatically handle credential-based token refreshes when third parties interact with your application, ensuring secure and continuous access.
 
+### Token-Based Authentication
 
-### **Token-Based Authentication**
+Token-based access is designed for scenarios where long-term access is required without token expiration or the overhead of managing token refreshes. You don't need to specify an expiry, but you must provide a sample token and specify where it should be used in your requests. Here's an example:
 
-**Token-based access** is designed for scenarios where long-term access is required without token expiration or the overhead of managing token refreshes. You don't need to specify an expiry, but you must provide a sample token and specify where it should be used in your requests. Here's an example:
-
-```typescript
+```ts
 import { AuthTypes, InputTypes } from "ductape-sdk/types";
 
 const setup = {
@@ -77,7 +78,7 @@ const setup = {
 const auth = await ductape.app.auth.create(setup);
 ```
 
-### Explanation:
+#### Explanation
 - **params:** The token is passed as a URL parameter. Example: `https://example.com/resource/:token`, where `:token` is replaced by the provided token.
 - **body:** The token is included in the body of the request. Example: `{ access_token: "your_token" }` in the body of a `POST` or `PUT` request.
 - **query:** The token is passed as a query parameter. Example: `https://example.com/resource?api_key=your_token`.
@@ -85,28 +86,34 @@ const auth = await ductape.app.auth.create(setup);
 
 ## Fetching Authentication
 
-``` typescript
-const auths  = ductape.app.auth.fetchAll() // fetch all app auths
+```ts
+const auths = await ductape.app.auth.fetchAll(); // fetch all app auths
 ```
 
-``` typescript
+```ts
 const auth_tag = "login_access"
-const auth = ductape.app.auth.fetch(auth_tag) // fetch single app auth
+const auth = await ductape.app.auth.fetch(auth_tag); // fetch single app auth
 ```
 
 ## Updating Authentication
 
-You can update any of the fields earmarked in the create auth function using the updateAuth function, asides the tag field
+You can update any of the fields earmarked in the create auth function using the updateAuth function, except the tag field.
 
-For example, to update the auth description and expiry info, you simply 
+For example, to update the auth description and expiry info:
 
-``` typescript
-const auth_tag = "login_acceess"
+```ts
+const auth_tag = "login_access"
 const update = {
     description: "provides access with username and password",
     expiry: 1,
     period: TokenPeriods.DAYS,
 }
 
-const auth = ductape.app.auth.update(auth_tag, update) // fetch single app auth
+const auth = await ductape.app.auth.update(auth_tag, update);
 ```
+
+## See Also
+
+* [Getting Started with Apps](./getting-started.md)
+* [App Instance Management](./app-instance.md)
+* [Managing Actions](./update-action.md)

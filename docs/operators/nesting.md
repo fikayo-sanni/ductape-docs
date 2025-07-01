@@ -54,7 +54,5 @@ $Concat([
 - `$Trim(' xyz ')` → `'xyz'`
 - `$Concat(['6', 'cde', 'xyz'], '_')` → `'6_cde_xyz'`
 
----
-
 ✅ **Tip:** Nesting operators enables powerful data transformations in a concise format. Make sure to validate data types to avoid runtime errors.
 

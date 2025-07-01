@@ -35,7 +35,7 @@ const details: IProductSession = {
 };
 
 await ductape.products.sessions.create(details);
-````
+```
 
 ### Field Definitions
 
@@ -43,11 +43,11 @@ await ductape.products.sessions.create(details);
 | ------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | `string`        | Yes      | The display name of the session.                                                                                                                |
 | `tag`         | `string`        | Yes      | A unique identifier for the session. Used to reference the session type within your application.                                                |
-| `description` | `string`        | Yes      | A short description of the session’s purpose.                                                                                                   |
+| `description` | `string`        | Yes      | A short description of the session's purpose.                                                                                                   |
 | `schema`      | `object`        | Yes      | The structure of the data you want to associate with the session. This is encrypted within the token.                                           |
 | `selector`    | `string`        | Yes      | A reference path within the schema to identify a user (e.g., `$Session{userId}` or `$Session{details}{username}`).                              |
 | `expiry`      | `number`        | Yes      | How long the session is valid for, in units specified by `period`.                                                                              |
-| `period`      | `string` (enum) | Yes      | The time unit for session expiry (e.g., `minutes`, `hours`, `days`). Supported values are defined in the system’s `TokenPeriods` configuration. |
+| `period`      | `string` (enum) | Yes      | The time unit for session expiry (e.g., `minutes`, `hours`, `days`). Supported values are defined in the system's `TokenPeriods` configuration. |
 
 ## Updating Sessions
 
@@ -89,7 +89,11 @@ await ductape.products.sessions.fetch("session_name");
 
 This retrieves the session configuration matching the provided `tag`.
 
-## Summary
+## See also
+
+- [Fetching Session Users](./fetching-users.md)
+
+## Key Points
 
 Sessions in Ductape offer a flexible and secure way to track user behaviors, manage access, and control session lifecycle through customized, encrypted tokens. You can:
 
@@ -99,3 +103,9 @@ Sessions in Ductape offer a flexible and secure way to track user behaviors, man
 * Easily query all or specific sessions within your product
 
 This capability makes it straightforward to manage user sessions for authentication, analytics, or any custom workflow in your applications.
+
+## Next Steps
+
+* [Apps Overview](../apps/getting-started.md)
+* [Managing App Storage](../storage/)
+* [Managing App Webhooks](../apps/webhooks.md)

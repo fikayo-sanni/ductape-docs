@@ -2,15 +2,17 @@
 sidebar_position: 5
 ---
 
-# Executing Database Actions
+# Processing Database Actions
 
-Database actions are executed using:
+Processing database actions is done using `db.execute(data)` of the ductape.processor interface.
+
+It executes a database action processor within the Ductape system, handling a database action request based on the provided environment, product tag, and other parameters.
 
 ```ts
 await ductape.processor.db.execute(data: IDBActionProcessorInput)
-````
+```
 
-This method runs a database action within the Ductape system, using provided environment settings, product context, and action-specific input. It also supports optional caching, retries, and session tracking.
+This processes a defined database action in the specified environment and application context, passing along request input, metadata, and optionally session tracking.
 
 
 ## Parameters
@@ -19,13 +21,13 @@ This method runs a database action within the Ductape system, using provided env
 
 | Field         | Type                                           | Required | Description                                                    |
 | ------------- | ---------------------------------------------- | -------- | -------------------------------------------------------------- |
-| `env`         | `string`                                       | ✅ Yes    | Environment slug (e.g., `"dev"`, `"prd"`).                     |
-| `product_tag` | `string`                                       | ✅ Yes    | Unique product identifier associated with the database action. |
-| `event`       | `string`                                       | ✅ Yes    | Tag identifying the database action to execute.                |
-| `cache`       | `string`                                       | ❌ No     | Optional cache tag for request caching.                        |
-| `input`       | [`IDbActionRequest`](#idbactionrequest-schema) | ✅ Yes    | Input data and optional filter for the action.                 |
-| `session`     | [`ISession`](#ISession-schema)     | ❌ No     | Optional session tracking object.                              |
-| `retries`     | `number`                                       | ❌ No     | Number of retry attempts in case of execution failure.         |
+| `env`         | `string`                                       | Yes      | Environment slug (e.g., `"dev"`, `"prd"`).                     |
+| `product_tag` | `string`                                       | Yes      | Product tag associated with this database action.              |
+| `event`       | `string`                                       | Yes      | Event tag identifying the database action to be processed.     |
+| `cache`       | `string`                                       | No       | Cache tag (if using request caching).                          |
+| `input`       | [`IDbActionRequest`](#idbactionrequest-schema) | Yes      | Request input including data and optional filter.              |
+| `session`     | [`ISession`](#isession-schema)                 | No       | Optional session tracking object.                              |
+| `retries`     | `number`                                       | No       | Number of retry attempts if execution fails.                   |
 
 
 ## `IDbActionRequest` Schema
@@ -39,32 +41,35 @@ interface IDbActionRequest {
 
 | Field    | Type                      | Required | Description                                                                 |
 | -------- | ------------------------- | -------- | --------------------------------------------------------------------------- |
-| `data`   | `Record<string, unknown>` | ✅ Yes    | Payload used in the action (e.g. create/update).                            |
-| `filter` | `Record<string, unknown>` | ❌ No     | Criteria for selecting records (for update/delete). If not used, pass `{}`. |
+| `data`   | `Record<string, unknown>` | Yes      | Payload used in the action (e.g. create/update).                            |
+| `filter` | `Record<string, unknown>` | No       | Criteria for selecting records (for update/delete). If not used, pass `{}`. |
+
+> **Note:** If any of the above fields are undefined or empty, pass them as `{}`.
+
 
 ## `ISession` Schema
 
-The optional `session` field enables session tracking on database actions.
+The `session` field enables optional session tracking for any database action run.
 
 ```ts
 interface ISession {
   tag: string;   // session tag
-  token: string; // encoded session token (e.g., signed string or JWT)
+  token: string; // session token (e.g. signed JWT)
 }
 ```
 
-| Field   | Type     | Required | Description                                   |
-| ------- | -------- | -------- | --------------------------------------------- |
-| `tag`   | `string` | ✅ Yes    | Identifier for the session.                   |
-| `token` | `string` | ✅ Yes    | Token for validating or tracking the session. |
+| Field   | Type     | Required | Description                                           |
+| ------- | -------- | -------- | ----------------------------------------------------- |
+| `tag`   | `string` | Yes      | Session tag identifying the session.                  |
+| `token` | `string` | Yes      | Encoded token used to validate and track the session. |
+
 
 ## Returns
 
-A `Promise<unknown>` resolving with the result of the database action.
-The structure of the result depends on the specific database action executed.
+A `Promise<unknown>` — resolves with the database action's output. The shape of the response depends on the implementation of the triggered database action.
 
 
-## Example Usage
+## Example
 
 ```ts
 const data: IDBActionProcessorInput = {
@@ -84,6 +89,7 @@ const data: IDBActionProcessorInput = {
 
 const res = await ductape.processor.db.execute(data);
 ```
+
 
 ## See Also
 

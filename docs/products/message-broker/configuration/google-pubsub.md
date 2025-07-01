@@ -2,19 +2,35 @@
 sidebar_position: 5
 ---
 
-# Google Pubsub Configuration
-To setup Google PubSub configuration, you need to provide the Google PubSub configuration details as below
+# Google PubSub Configuration
+
+To use Google PubSub as a message broker in Ductape, provide the following configuration for each environment:
 
 ```typescript
 const googlePubSubConfig = {
-  projectId: 'your-gcp-project-id', // Replace with your Google Cloud Project ID
-  topicName: 'my-topic', // The name of the Pub/Sub topic
-  subscriptionName: 'my-subscription', // Optional: Name of the subscription
-  keyFilename: '/path/to/keyfile.json', // Path to the service account key file
+  projectId: 'your-gcp-project-id', // Google Cloud Project ID
+  topicName: 'my-topic', // Pub/Sub topic name
+  subscriptionName: 'my-subscription', // (Optional) Subscription name
+  keyFilename: '/path/to/keyfile.json', // Path to service account key file
 };
 ```
 
-- **projectId:** The Google Cloud Project ID where Pub/Sub is enabled.
-- **topicName:** The name of the Pub/Sub topic to publish or subscribe to.
-- **subscriptionName:** (Optional) The name of the Pub/Sub subscription.
-- **keyFilename:** The file path to the Google Cloud service account key.
+| Field             | Type   | Required | Description                                 |
+|-------------------|--------|----------|---------------------------------------------|
+| `projectId`       | string | Yes      | Google Cloud Project ID                     |
+| `topicName`       | string | Yes      | Name of the Pub/Sub topic                   |
+| `subscriptionName`| string | No       | Name of the Pub/Sub subscription            |
+| `keyFilename`     | string | Yes      | Path to the service account key file        |
+
+**Best Practices:**
+- Use separate topics/subscriptions for each environment.
+- Secure your service account key and restrict permissions.
+- Monitor Pub/Sub message throughput and error rates.
+
+## See Also
+- [Message Brokers Overview](../message-brokers.md)
+- [Managing Topics](../managing-topics.md)
+- [RabbitMQ Configuration](./rabbit-mq.md)
+- [Kafka Configuration](./kafka.md)
+- [AWS SQS Configuration](./aws-sqs.md)
+- [Redis Configuration](./redis.md)

@@ -2,76 +2,70 @@
 sidebar_position: 1
 ---
 
-# Understanding Processors
+# Processors: Running Product Resources
 
-So far in the documentation, we have covered how to build both apps and products and how to use app actions within our products, but we have not yet explored how to run product resources. This is where processors come in.
+Processors in Ductape are the bridge between your product resources and the environments where they run. They allow you to execute actions, manage storage, send notifications, handle jobs, and more—all in a context-aware way that respects your environment, version, and configuration settings.
 
-The processor interface in Ductape allows you to run your product resources seamlessly on your servers while being fully context-aware of environments, versions, and preferred configurations as set up in the builders.
+## What is a Processor?
+A processor is an interface provided by the Ductape SDK that lets you run your product's resources (actions, features, jobs, etc.) on your own infrastructure. This enables seamless integration with Ductape's environment management and configuration, while giving you full control over execution.
 
-## Initializing a Processor
+## Accessing the Processor Interface
 
-The processor interface can be accessed using the `ductape.processor` module of the Ductape SDK:
+You can access the processor interface using the `ductape.processor` module:
 
 ```typescript
-// Access the processor interface
+import { ductape } from 'ductape-sdk';
+
+// Initialize the processor
 const processor = ductape.processor;
 ```
 
-Once initialized, the `processor` instance exposes multiple functionalities for managing product resources.
+## Processor Capabilities
 
-## Processor Management Interface
+Each processor interface exposes methods for managing a specific type of product resource:
 
-### Actions
+- **Actions**: Run product actions (`processor.action.run`)
+- **Databases**: Execute database actions (`processor.db.run`)
+- **Features**: Run product features (`processor.feature.run`)
+- **Notifications**: Send notifications (`processor.notification.send`)
+- **Storage**: Manage storage (`processor.storage.save`)
+- **Message Brokers**: Publish/subscribe to message queues (`processor.messageBroker.publish`, `processor.messageBroker.subscribe`)
+- **Webhooks**: Emit or receive webhook events (`processor.webhook.emit`, `processor.webhook.receive`)
+- **Jobs**: Schedule background jobs (`processor.job.schedule`)
 
-The `action` interface allows you to run product actions:
+## Example: Running an Action
 
-- `run(data: IProductActionProcessorInput)`: Executes a product action using the processor service.
+```typescript
+import { ductape } from 'ductape-sdk';
 
-### Databases
+const processor = ductape.processor;
 
-The `db` interface allows you to run database-related actions:
+// Example: Run a product action
+const result = await processor.action.run({
+  action: 'sendWelcomeEmail',
+  input: {
+    userId: '12345',
+    email: 'user@example.com',
+  },
+  environment: 'production',
+});
 
-- `run(data: IProductDBActionProcessorInput)`: Executes a database action using the processor service.
+console.log('Action result:', result);
+```
 
-### Features
+## Best Practices
+- Always specify the correct environment and version when running processor tasks.
+- Use the appropriate processor interface for the resource you want to manage.
+- Handle errors and results according to your product's requirements.
 
-The `feature` interface allows you to execute product features:
-
-- `run(data: IProcessorInput)`: Runs a feature using the processor service.
-
-### Notifications
-
-The `notification` interface allows you to send product notifications:
-
-- `send(data: IProductNotificationProcessorInput)`: Sends a notification using the processor service.
-
-### Storage
-
-The `storage` interface allows you to manage product storage:
-
-- `save(data: IProductStorageProcessorInput)`: Saves data to storage using the processor service.
-
-### Message Brokers
-
-The `messageBroker` interface allows you to handle message queues:
-
-- `publish()`: Publishes a message to the broker.
-- `subscribe()`: Subscribes to a message broker channel.
-
-### Webhooks
-
-The `webhook` interface allows you to handle webhook events:
-
-- `emit()`: Emits a webhook event.
-- `receive()`: Receives and processes a webhook event.
-
-### Jobs
-
-The `job` interface allows you to schedule background jobs:
-
-- `schedule()`: Schedules a job for execution.
-
-## Summary
-
-The processor interface provides a powerful way to execute product resources such as webhooks, jobs, actions, databases, features, notifications, storage, cloud functions, and message brokers within the Ductape ecosystem. By leveraging this interface, developers can efficiently manage and execute various product functionalities on their own infrastructure while maintaining seamless integration with Ductape’s environment management and configuration settings.
+## See Also
+- [Actions](./actions/run-actions.md)
+- [Database Actions](./database-actions/db-actions.md)
+- [Features](./features/features.md)
+- [Jobs](./jobs/jobs.md)
+- [Message Brokers](./message-brokers/message-brokers.md)
+- [Notifications](./notifications/notifications.md)
+- [Sessions](./sessions/sessions.md)
+- [Storage](./storage/storage.md)
+- [Database Migrations](./database-migrations/db-migrations.md)
 

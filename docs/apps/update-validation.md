@@ -8,7 +8,7 @@ In Ductape, you can update the validation rules for different input data points 
 
 ## **Validation Properties**
 
-| **Property**        | **Type**                           | **Description**                                                |
+| **Field**           | **Type**                           | **Description**                                                |
 |---------------------|------------------------------------|----------------------------------------------------------------|
 | `description`       | `string`                           | Explanation of the data point's purpose.                       |
 | `required`          | `boolean`                          | Determines if the field is mandatory.                          |
@@ -145,4 +145,10 @@ await ductape.apps.validation("$Param{getUser}{id}", {
 - Apply decorators (like `$` or `%`) to enhance field clarity.  
 - Set `defaultValue` for optional fields to ensure predictable data handling.  
 - Always use the correct `type` to prevent data inconsistencies.  
+
+## **See Also**
+
+* [Managing Actions](./update-action.md)
+* [App Instance Management](./app-instance.md)
+* [Constants & Variables](./constants-variables.md)
 

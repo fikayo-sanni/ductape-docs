@@ -2,28 +2,46 @@
 sidebar_position: 1
 ---
 
-# Managing Notifications
+# Notifications Overview
 
-In your Ductape product, you can send out notifications to your customers using our notifications functionality. We broadly cater to three types of notifications:
+Ductape makes it easy to send notifications to your users across multiple channels, including push, email, SMS, and webhooks. Notifications help you keep users informed, engaged, and up-to-date with important events in your product. You can configure, customize, and automate notifications for a variety of use cases—all from a single platform.
 
-- **Push Notifications**
-- **Email Notifications**
-- **Webhooks/Callback Notifications**
-- **Smses**
+## Types of Notifications
 
-### Push Notifications
-Push Notifications are simple, clickable messages sent directly to users' devices from your products. They appear in real-time and can be used to notify users about important updates, alerts, or promotional offers. Users must opt-in to receive these notifications, and they can be sent even when the user isn't actively using the app.
+| Type         | Description                                                                 | Common Use Cases                        |
+|--------------|-----------------------------------------------------------------------------|-----------------------------------------|
+| **Push**     | Clickable messages sent to users' devices in real time.                     | Alerts, updates, promotions             |
+| **Email**    | Customizable emails sent to users' inboxes.                                 | Account info, marketing, transactions   |
+| **SMS**      | Text messages sent to users' mobile phones via supported providers.          | OTPs, alerts, status updates            |
+| **Webhook**  | Real-time HTTP callbacks to external systems when events occur.              | Integrations, automation, syncing data  |
 
-### Email Notifications
-Email Notifications allow you to communicate with your users via email. These can be used for account-related information, marketing campaigns, or transactional emails like purchase confirmations. You can customize the content and layout of the email to suit your product’s needs.
+## Setting Up Notifications
 
-### Webhooks/Callback Notifications
-Webhooks or Callback Notifications are used to send real-time data to third-party systems or other apps. When a specific event occurs in your product, the system can trigger a callback to a specified URL, allowing seamless integration with external services. This is ideal for syncing data or triggering automated workflows in other systems.
+Ductape supports easy setup and management for each notification type. See the [Setting Up Notifications](./setting-up.md) guide for detailed steps.
 
-### SMS Notifications
+- **Push Notifications:**
+  - Configure push providers and target devices.
+  - Personalize messages with dynamic content.
+- **Email Notifications:**
+  - Set up email providers and templates.
+  - Customize subject, body, and layout.
+- **SMS Notifications:**
+  - Integrate with Twilio, Vonage, or Plivo.
+  - Use parameterized templates for personalization.
+- **Webhooks:**
+  - Register callback URLs for specific events.
+  - Secure and test webhook delivery.
 
-SMS Notifications allow you to send text messages directly to your users' mobile phones through one of the supported SMS providers (Twilio, Vonage, or Plivo).  
+## Best Practices & Tips
+- Use clear, actionable language in your notifications.
+- Personalize messages with user-specific data where possible.
+- Test notifications in a development environment before sending to users.
+- Respect user preferences and opt-in/opt-out settings.
+- Monitor delivery and engagement metrics to optimize your strategy.
 
-These notifications are useful for instant alerts, OTP delivery, status updates, and promotional content. SMS notifications use **parameterised string templates**, allowing you to personalize the message with dynamic values.
+## Next Steps
+- [Setting Up Notifications](./setting-up.md)
+- [Notification Message Templates](./notification-messages/)
+- [Managing Databases](../databases/database.md)
 
 
