@@ -311,8 +311,6 @@ $Filter([1, 2, 3, 4, 5], ">", 3)      # Result: [4, 5]
 $Filter(["apple", "banana"], "==", "apple")  # Result: ["apple"]
 ```
 
----
-
 ## 14. **$Find**
 
 ### **Description:**  

@@ -54,4 +54,4 @@ const featureEvent: IFeatureEvent = {
 ## See Also
 - [Features Overview](../../getting-started.md)
 - [Sequencing Events](./event-sequences.md)
-- [Event Types Overview](./event-types/)
+- [Event Types Overview](/category/event-types/)

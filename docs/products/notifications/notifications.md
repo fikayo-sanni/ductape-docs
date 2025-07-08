@@ -41,7 +41,7 @@ Ductape supports easy setup and management for each notification type. See the [
 
 ## Next Steps
 - [Setting Up Notifications](./setting-up.md)
-- [Notification Message Templates](./notification-messages/)
+- [Notification Message Templates](/category/notification-messages)
 - [Managing Databases](../databases/database.md)
 
 

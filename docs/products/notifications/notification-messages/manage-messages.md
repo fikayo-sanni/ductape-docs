@@ -1,3 +1,7 @@
+---
+sidebar_position: 1
+---
+
 # Managing Notification Messages
 
 Ductape lets you manage notification messages across all your channels—push, email, callbacks, and more. Notification messages help you keep users informed about important events in your product, and you can easily create, update, and fetch them using the SDK.
@@ -73,6 +77,6 @@ const message = await ductape.product.notifications.messages.fetch("notify-users
 - Data samples help you test and preview your templates.
 
 **Next Steps:**
-- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like push, email, SMS, and callbacks.
-- **[Message Template Guides](./):** Explore guides for each notification message type.
-- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
+- [Set Up Notification Channels](../setting-up.md)
+- [Message Template Guides](/category/notification-messages)
+- [Notification Types](../notifications.md)

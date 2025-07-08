@@ -106,6 +106,6 @@ This capability makes it straightforward to manage user sessions for authenticat
 
 ## Next Steps
 
-* [Apps Overview](../apps/getting-started.md)
+* [Products Overview](../getting-started.md)
 * [Managing App Storage](../storage/)
 * [Managing App Webhooks](../apps/webhooks.md)

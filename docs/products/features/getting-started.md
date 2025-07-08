@@ -75,5 +75,5 @@ await ductape.product.features.create(details);
 ## See Also
 - [Defining Inputs](./inputs.md)
 - [Defining Output](./output.md)
-- [Event Types Overview](./events/event-types/)
+- [Event Types Overview](/category/event-types)
 - [Jobs](../jobs.md)

@@ -54,4 +54,4 @@ In this example:
 ## See Also
 - [Defining Inputs](./inputs.md)
 - [Features Overview](./getting-started.md)
-- [Event Types Overview](./events/event-types/)
+- [Event Types Overview](/category/event-types)

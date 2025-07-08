@@ -144,5 +144,5 @@ const sms = {
 
 ## Next Steps
 - [Notifications Overview](./notifications.md)
-- [Notification Message Templates](./notification-messages/)
+- [Notification Message Templates](/category/notification-messages/)
 - [Managing Databases](../databases/database.md)

@@ -56,7 +56,7 @@ const broker = await ductape.product.messageBrokers.create({
 | `envs.type`  | `MessageBrokerTypes` enum | Yes      | Type of broker for this environment.                             |
 | `envs.config`| `object`                  | Yes      | Broker-specific configuration object.                            |
 
-See [Configuration](./configuration/) for details on each broker's config fields.
+See [Configuration](/category/configuring-message-brokers/) for details on each broker's config fields.
 
 ## Updating Message Brokers
 
@@ -87,7 +87,7 @@ await ductape.product.messageBrokers.update("message-bus", {
 
 ## Configuration Examples
 
-See the [Configuration](./configuration/) section for detailed config examples for each supported broker:
+See the [Configuration](/category/configuring-message-brokers) section for detailed config examples for each supported broker:
 - [RabbitMQ](./configuration/rabbit-mq.md)
 - [Kafka](./configuration/kafka.md)
 - [AWS SQS](./configuration/aws-sqs.md)
@@ -104,4 +104,4 @@ See the [Configuration](./configuration/) section for detailed config examples f
 ## See Also
 - [Managing Topics](./managing-topics.md)
 - [Jobs](../jobs.md)
-- [Features](../features/)
+- [Features](../features/getting-started.md)

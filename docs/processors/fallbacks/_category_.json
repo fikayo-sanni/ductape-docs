@@ -1,8 +1,8 @@
 {
-  "label": "Features",
+  "label": "Fallbacks",
   "position": 4,
   "link": {
     "type": "generated-index",
-    "description": "Processing Features with Ductape"
+    "description": "Processing Fallbacks with Ductape"
   }
 }

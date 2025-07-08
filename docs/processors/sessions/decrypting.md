@@ -8,7 +8,7 @@ You can decrypt a session token using the `ductape.processor.sessions.decrypt({.
 
 ## Overview
 
-After a session is created with [`sessions.start({...})`](../sessions.md), you can decrypt the session token by providing a session payload. The method returns the original object that was stored during session creation — this structure is dynamic and may include any user-defined fields.
+After a session is created with [`sessions.start({...})`](../sessions/#how-to-generate-a-session-token), you can decrypt the session token by providing a session payload. The method returns the original object that was stored during session creation — this structure is dynamic and may include any user-defined fields.
 
 ## Input
 
@@ -84,7 +84,7 @@ const sessionData = await ductape.processor.sessions.decrypt(sessionPayload);
 - Trace and inspect user journeys across integrated services
 
 ## See Also
-- [Generating Session Tokens](../sessions.md)
+- [Generating Session Tokens](./sessions.md)
 - [Refreshing Session Tokens](./refreshing.md)
 - [Tracking Sessions in Actions](../actions/run-actions.md#isession-schema)
 - [Tracking Sessions in DB Actions](../database-actions/db-actions.md#isession-schema)

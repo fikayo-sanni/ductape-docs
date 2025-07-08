@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 # Email Notifications
@@ -56,6 +56,6 @@ Email notifications are sent through the email provider configured for your envi
 - Choose and configure your email provider in your notification environment settings.
 
 **Next Steps:**
-- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like email, SMS, and push.
-- **[Message Template Guides](./):** Explore guides for other notification message types.
-- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
+- [Set Up Notification Channels](../setting-up.md)
+- [Message Template Guides](/category/notification-messages)
+- [Notification Types](../notifications.md)

@@ -22,25 +22,24 @@ Products can include many types of resources. Each resource is managed and confi
 
 - **[Apps](../apps/getting-started.md):** Integrations with third-party or internal services.
 - **[Environments](./environments.md):** Contexts like development, staging, or production.
-- **[Databases](./databases/):** Connect and manage relational or NoSQL databases.
-- **[Notifications](./notifications/):** Send push, email, callback, or SMS notifications.
+- **[Databases](./databases/database.md):** Connect and manage relational or NoSQL databases.
+- **[Notifications](./notifications/notifications.md):** Send push, email, callback, or SMS notifications.
 - **[Jobs](./jobs/):** Define and schedule background or recurring tasks.
-- **[Cloud Functions](./features/):** Reusable logic written in code.
 - **[Caches](./../getting-started/enable-caching.md):** Store and reuse results of expensive operations.
-- **[Features](./features/):** Orchestrate complex workflows and business logic.
-- **[Quotas](./quotas/):** Share load between providers.
-- **[Fallbacks](./fallbacks/):** Automatically switch providers if one fails.
-- **[Message Brokers](./message-broker/):** Integrate with Kafka, RabbitMQ, SQS, etc.
+- **[Features](./features/getting-started.md):** Orchestrate complex workflows and business logic.
+- **[Quotas](./quotas/getting-started.md):** Share load between providers.
+- **[Fallbacks](./fallbacks/getting-started.md):** Automatically switch providers if one fails.
+- **[Message Brokers](./message-broker/message-brokers.md):** Integrate with Kafka, RabbitMQ, SQS, etc.
 - **[Storage](./storage/):** Manage files and data storage.
-- **[Healthchecks](./../getting-started/healthchecks.md):** Monitor system health and responsiveness.
+- **[Healthchecks](./healthchecks.md):** Monitor system health and responsiveness.
 
 Each resource can be added, configured, and managed through the product interface, allowing you to build robust, scalable backend systems.
 
 ## Next Steps
 - [Apps](../apps/getting-started.md)
 - [Environments](./environments.md)
-- [Databases](./databases/)
+- [Databases](./databases/database.md)
 - [Notifications](./notifications/)
 - [Jobs](./jobs/)
-- [Features](./features/)
+- [Features](./features/getting-started.md)
 - [Enable Caching](../getting-started/enable-caching.md)

@@ -53,4 +53,3 @@ You define these building blocks in code, configure them for your environments, 
 - [Products](./products/getting-started.md)
 - [Apps](./apps/getting-started.md)
 - [Environments](./products/environments.md)
-- [Advanced Features](./products/)

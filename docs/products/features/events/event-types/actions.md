@@ -78,5 +78,5 @@ const makePaymentEvent: IFeatureEvent = {
 
 ## See Also
 - [Features Overview](../../../getting-started.md)
-- [Event Types Overview](../)
+- [Event Types Overview](/category/event-types)
 - [Data Piping](../data-piping.md)

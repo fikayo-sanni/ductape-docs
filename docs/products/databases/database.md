@@ -69,7 +69,7 @@ const database = ductape.product.databases.fetch("mongo");
 - Define reusable actions and migrations for automation
 
 ## Next Steps
-- [Database Actions](../database-actions/)
-- [Migrations](../migrations/)
-- [Products](../../getting-started.md)
+- [Database Actions](/category/database-actions/)
+- [Migrations](/category/database-migrations/)
+- [Products](../getting-started.md)
 - [Environments](../environments.md)

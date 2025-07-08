@@ -141,6 +141,6 @@ const res = await ductape.processor.notification.send({
 
 ## See Also
 
-* [Processing Features](../feature/processing)
+* [Processing Features](../features)
 * [Refreshing Sessions](../sessions/refreshing)
 * [Session Tracking](../sessions)

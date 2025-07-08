@@ -39,7 +39,7 @@ Each resource can be added, configured, and managed through the app interface, a
 
 ## Next Steps
 
-- [Actions](./actions/)
+- [Actions](./update-action)
 - [Authentication](./authentication.md)
 - [Webhooks](./webhooks/)
 - [Environments](./environments.md)

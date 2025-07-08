@@ -90,4 +90,4 @@ The following `DataTypes` are available for defining feature inputs:
 ## See Also
 - [Defining Output](./output.md)
 - [Features Overview](./getting-started.md)
-- [Event Types Overview](./events/event-types/)
+- [Event Types Overview](/category/event-types)

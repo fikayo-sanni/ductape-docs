@@ -169,4 +169,3 @@ This will execute the `send_email` action for the specified app in the given env
 - [Products](../products/getting-started.md)
 - [Apps](../apps/getting-started.md)
 - [Environments](../products/environments.md)
-- [Advanced Features](../products/) 

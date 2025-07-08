@@ -95,5 +95,5 @@ await ductape.app.messageBroker.topics.update(tag, update);
 - [Redis Configuration](./configuration/redis.md)
 - [Google PubSub Configuration](./configuration/google-pubsub.md)
 - [Jobs](../jobs.md)
-- [Features](../features/)
+- [Features](../features/getting-started.md)
 

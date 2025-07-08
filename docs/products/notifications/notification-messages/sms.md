@@ -1,3 +1,8 @@
+---
+sidebar_position: 4
+---
+
+
 # SMS Notifications
 
 SMS notifications in Ductape let you send parameterized text messages to your users through your configured SMS provider. Use SMS notifications to deliver important alerts, confirmations, or updates directly to a user's phone.
@@ -43,7 +48,7 @@ SMS notifications are sent through the SMS provider configured for your environm
 - Choose and configure your SMS provider in your notification environment settings.
 
 **Next Steps:**
-- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like SMS, email, and push.
-- **[Message Template Guides](./):** Explore guides for other notification message types.
-- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
+- [Set Up Notification Channels](../setting-up.md)
+- [Message Template Guides](/category/notification-messages)
+- [Notification Types](../notifications.md)
 

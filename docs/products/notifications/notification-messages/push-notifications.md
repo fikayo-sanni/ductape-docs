@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 1
 ---
 
 # Push Notifications
@@ -72,54 +72,6 @@ The system will automatically replace the placeholders to produce:
 - Choose and configure your push provider in your notification environment settings.
 
 **Next Steps:**
-- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like push, email, and SMS.
-- **[Message Template Guides](./):** Explore guides for other notification message types.
-- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
-
-
-``` typescript
-const push_notification: {
-    title: "Credit Alert From {{username}}",
-    body: "{{username}} sent you {{amount}} {{currency}}",
-    data: {
-        transaction_id: "{{transactionId}}",
-        bank_code: "{{bankCode}}"
-    }
-}
-```
-
-## Templates in Push Notifications
-
-The above sample code shows you how to create templates in push notifications, the template above defines the data input required to send a push notification. A sample data expected when sending the above push notifications would look like this
-
-```typescript
-const data = {
-    title: {
-        username: "Thomas"
-    },
-    body: {
-        username: "Thomas",
-        amount: "50",
-        currency: "GBP"
-    },
-    data: {
-        transactionId: "111292929-1-18288282",
-        bankCode: "039"
-    }
-}
-```
-
-This expected data would automatically replace the template variables marked with `{{}}` and generate a notification body as follows
-
-```typescript
-{
-    title: "Credit Alert From Thomas",
-    body: "Thomas sent you 50 GBP",
-    data: {
-        transaction_id: "111292929-1-18288282",
-        bank_code: "039"
-    }
-}
-```
-
-This is important to note when processing push notifications in subsequent sections
+- [Set Up Notification Channels](../setting-up.md)
+- [Message Template Guides](/category/notification-messages)
+- [Notification Types](../notifications.md)

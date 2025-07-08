@@ -11,7 +11,7 @@ A session token is a short-lived credential that identifies a user's session. Al
 
 ## How to Generate a Session Token
 
-After [setting up sessions](../../apps/products/sessions), use the `ductape.processor.sessions.start({...})` method to initialize a session and generate both a session token and a refresh token.
+After [setting up sessions](../../products/sessions), use the `ductape.processor.sessions.start({...})` method to initialize a session and generate both a session token and a refresh token.
 
 ### Example Usage
 

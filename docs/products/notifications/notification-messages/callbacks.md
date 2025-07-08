@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 # Callback Notifications
@@ -92,7 +92,7 @@ The system will automatically replace the placeholders to produce:
 - You do not need to provide authentication data as part of the callback template. Authentication is handled in the notification environment setup, unless your use case requires otherwise.
 
 **Next Steps:**
-- **[Set Up Notification Channels](../setting-up.md):** Learn how to configure channels like callbacks, email, SMS, and push.
-- **[Message Template Guides](./):** Explore guides for other notification message types.
-- **[Notification Types](../notifications.md):** See all supported notification types and their use cases.
+- [Set Up Notification Channels](../setting-up.md)
+- [Message Template Guides](/category/notification-messages)
+- [Notification Types](../notifications.md)
 

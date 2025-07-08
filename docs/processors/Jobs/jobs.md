@@ -207,8 +207,8 @@ const res = await ductape.processor.job.schedule(data);
 
 ## See Also
 
-* [Processing Features](../features/processing)
-* [Starting a Session](../sessions/generating)
+* [Processing Features](../features)
+* [Starting a Session](../sessions/)
 * [Decrypting Session Tokens](../sessions/decrypting)
 * [Refreshing Session Tokens](../sessions/refreshing)
 * [Session Tracking](../sessions)

@@ -110,8 +110,3 @@ An array of webhook configurations associated with the given access tag.
 |-------------------------------|-------------------------------------------------------------------------------|
 | **Full Registration**         | You can register webhooks programmatically across all environments at once.   |
 | **Generate Registration Link** | You need a single environment-specific link to paste into a provider UI.      |
-
-## Next Steps
-- [Apps Overview](./getting-started.md)
-- [Managing App Sessions](./sessions/)
-- [Managing App Storage](./storage/)

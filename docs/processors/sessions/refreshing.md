@@ -74,6 +74,6 @@ const result = await ductape.processor.sessions.refresh(refreshPayload);
 - Extend user journeys across multiple backend requests securely
 
 ## See Also
-- [Generating Session Tokens](../sessions.md)
+- [Generating Session Tokens](../sessions/#how-to-generate-a-session-token)
 - [Tracking Sessions in Actions](../actions/run-actions.md#isession-schema)
 - [Tracking Sessions in DB Actions](../database-actions/db-actions.md#isession-schema)
