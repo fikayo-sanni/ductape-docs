@@ -59,13 +59,13 @@ console.log('Action result:', result);
 - Handle errors and results according to your product's requirements.
 
 ## See Also
-- [Actions](actions/run-actions.md)
-- [Database Actions](database-actions/db-actions.md)
-- [Features](features/features.md)
-- [Jobs](jobs/jobs.md)
-- [Message Brokers](message-brokers/message-brokers.md)
-- [Notifications](notifications/notifications.md)
-- [Sessions](sessions/sessions.md)
-- [Storage](storage/storage.md)
-- [Database Migrations](database-migrations/db-migrations.md)
+- [Actions](actions/run-actions)
+- [Database Actions](database-actions/db-actions)
+- [Features](features)
+- [Jobs](jobs)
+- [Message Brokers](message-brokers)
+- [Notifications](notifications)
+- [Sessions](sessions)
+- [Storage](storage)
+- [Database Migrations](database-migrations/db-migrations)
 
