@@ -54,8 +54,6 @@ interface IActionRequest {
 
 ## `ISession` Schema
 
-## ISession Schema
-
 The `session` field enables optional session tracking for any action run.
 
 ```ts

@@ -76,4 +76,4 @@ const result = await ductape.processor.sessions.refresh(refreshPayload);
 ## See Also
 - [Generating Session Tokens](../sessions/#how-to-generate-a-session-token)
 - [Tracking Sessions in Actions](../actions/run-actions#isession-schema)
-- [Tracking Sessions in DB Actions](../database-actions/db-actions.md#isession-schema)
+- [Tracking Sessions in DB Actions](../database-actions/db-actions#isession-schema)
