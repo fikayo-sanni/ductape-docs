@@ -24,8 +24,13 @@ import ductape from './ductapeClient';
 import { IActionRequest } from 'ductape-sdk/dist/types';
 
 const healthcheck = {
-  app_tag: 'my-app', // App access tag
-  action: 'ping',    // Action tag to run
+  name: 'Healthcheck',
+  description: 'healthcheck for myapp',
+  tag: 'app health check',
+  app: 'my-app', // App access tag
+  event: 'ping',    // Action tag to run
+  interval: 60000, // Run every 60 seconds
+  retries: 3, // number of retries per failure
   envs: [
     {
       slug: 'prd',
@@ -42,8 +47,6 @@ const healthcheck = {
       },
     }
   ],
-  intervals: 60000, // Run every 60 seconds
-  retries: 3,
 };
 
 await ductape.product.apps.health.create(healthcheck);
@@ -51,10 +54,13 @@ await ductape.product.apps.health.create(healthcheck);
 
 | Field        | Type                        | Description                                                                 |
 |--------------|-----------------------------|-----------------------------------------------------------------------------|
-| `app_tag`    | `string`                    | The access tag of the app to check.                                         |
-| `action`     | `string`                    | The tag of the app action to execute.                                       |
+| `name`    | `string`                    | The access name of the check.                                         |
+| `description`    | `string`                    | The description for the check.                                         |
+| `tag`    | `string`                    | The unique identifier for the health check.                                         |
+| `app`    | `string`                    | The access tag of the app to check.                                         |
+| `event`     | `string`                    | The tag of the app action to execute.                                       |
 | `envs`       | `Array<EnvHealthConfig>`    | List of environments and their healthcheck config (see below).              |
-| `intervals`  | `number` (milliseconds)     | Interval between healthcheck executions.                                    |
+| `interval`  | `number` (milliseconds)     | Interval between healthcheck executions.                                    |
 | `retries`    | `number`                    | Number of retries on failure.                                               |
 
 **EnvHealthConfig**:

@@ -86,5 +86,5 @@ const sessionData = await ductape.processor.sessions.decrypt(sessionPayload);
 ## See Also
 - [Generating Session Tokens](./sessions.md)
 - [Refreshing Session Tokens](./refreshing.md)
-- [Tracking Sessions in Actions](../actions/run-actions.md#isession-schema)
+- [Tracking Sessions in Actions](../actions/run-actions#isession-schema)
 - [Tracking Sessions in DB Actions](../database-actions/db-actions.md#isession-schema)
