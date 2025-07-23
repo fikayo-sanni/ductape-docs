@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Quickstart: Integrate with Paystack
+# Quickstart: A Paystack Integration with Ductape
 
 Ductape makes it easy to connect, manage, and automate third-party services like Paystack. This quickstart will guide you through setting up a Paystack integration using Ductape, from dashboard setup to writing code in your IDE.
 

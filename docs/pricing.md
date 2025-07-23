@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 15
 slug: /pricing
 title: Pricing in Ductape
 ---
