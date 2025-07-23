@@ -12,7 +12,7 @@ Ductape makes it easy to connect, manage, and automate third-party services like
    - Go to [cloud.ductape.app](https://cloud.ductape.app/auth/login) and sign up or log in (Google sign-in supported).
 
 ### 2. **Access Your Dashboard**
-   - Once logged in, you’ll land on your dashboard. Click on **Apps** in the sidebar.
+   - Once logged in, you’ll land on your dashboard. Click on **Apps** in the top menu.
    ![Apps View](/img/dashboard-paystack.png)
 
 ### 3. **Find Paystack APIs**
@@ -82,6 +82,26 @@ export default ductape;
 ```
 
 > **What this does:** Initializes the Ductape SDK with your credentials and (optionally) a Redis URL for caching.
+
+
+### 4.5 Create a Product
+
+A Product in Ductape is where you manage an integration.
+
+You connect one or more Apps to a Product, and Ductape lets you call their endpoints like functions in your code.
+
+
+- Click on **Products** in the top menu.
+
+![Products View](/img/products.png)
+
+- Click on the **+New Product** Button and fill out the product information
+
+![Products Dialog View](/img/product-dialog.png)
+
+- Open the product by clicking on it, then copy the product tag on the side menu to copy it
+
+![Copy Payment Tag](/img/product-tag.png)
 
 ### 5. **Create the Paystack Integration**
 
