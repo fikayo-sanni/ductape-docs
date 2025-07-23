@@ -84,7 +84,7 @@ export default ductape;
 > **What this does:** Initializes the Ductape SDK with your credentials and (optionally) a Redis URL for caching.
 
 
-### 4.5 Create a Product
+### 5 Create a Product
 
 A Product in Ductape is where you manage an integration.
 
@@ -103,7 +103,7 @@ You connect one or more Apps to a Product, and Ductape lets you call their endpo
 
 ![Copy Payment Tag](/img/product-tag.png)
 
-### 5. **Create the Paystack Integration**
+### 6. **Create the Paystack Integration**
 
 Create a file called `paystack.ts` in the `src/apps` folder and add:
 
@@ -158,7 +158,7 @@ export const paystack = async () => {
 > - Connects your product to the Paystack app in Ductape.
 > - Adds authentication for both production (`prd`) and sandbox (`snd`) environments using your Paystack private keys.
 
-### 6. **Create an Entry Point**
+### 7. **Create an Entry Point**
 
 Create an `index.ts` file in the `src` folder and add:
 
@@ -174,6 +174,46 @@ import { paystack } from "./apps/paystack";
         console.error("Error initializing payment integrations:", error);
     }
 })();
+```
+
+
+### 8. Calling an Action
+
+You can now call any endpoint as actions in your code and see how easy it is to use 
+
+``` typescript
+import ductape from "./ductape"
+
+export const fetchBanksPaystack = async () => {
+
+    const Banks = await ductape.processor.action.run({
+        env: "snd",
+        product: process.env.PRODUCT_TAG,
+        app: process.env.PAYSTACK_APP_TAG,
+        input: {
+
+            "params": {},
+            "body": {},
+            "query": {
+                "country": "nigeria",
+                "pay_with_bank_transfer": "true",
+                "use_cursor": "true",
+                "perPage": "500",
+            },
+            "headers": {
+                "Accept": "application/json",
+                "Authorization": "$Auth{bearer_token}{headers}{Authorization}"
+
+            }
+        },
+        event: "fetch_banks"
+    })
+
+    console.log(JSON.stringify(Banks));
+
+}
+
+fetchBanksPaystack();
 ```
 
 ## **Next Steps**
