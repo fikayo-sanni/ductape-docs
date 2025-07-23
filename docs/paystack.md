@@ -33,7 +33,7 @@ Ductape makes it easy to connect, manage, and automate third-party services like
 
 ## Set Up in Your IDE
 
-Let’s create a new Node.js project and connect it to Ductape and Paystack. You can find the code here **[Github](https://github.com/Ductape-LLC/integrations-demo)**
+Let’s create a new Node.js project and connect it to Ductape and Paystack. You can find the code here **[Github](https://github.com/Ductape-LLC/integrations-demo)
 
 ### 1. **Create a New Project**
 
@@ -85,7 +85,7 @@ export default ductape;
 
 ### 5. **Create the Paystack Integration**
 
-Create a file called `payments.ts` in the `src/apps` folder and add:
+Create a file called `paystack.ts` in the `src/apps` folder and add:
 
 ```typescript
 import ductape from "./ductape";
@@ -143,7 +143,7 @@ export const paystack = async () => {
 Create an `index.ts` file in the `src` folder and add:
 
 ```typescript
-import { paystack } from "./payments.Integration";
+import { paystack } from "./apps/paystack";
 
 (async () => {
     try {
