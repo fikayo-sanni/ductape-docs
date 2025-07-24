@@ -1,9 +1,9 @@
 ---
 sidebar_position: 1
 ---
-# Quickstart
+# Start
 
-This guide will walk you through your first Ductape project, step by step. By the end, you'll have created a product, added an app, set up environments, and run your first action—all using Ductape's consistent, reusable approach.
+This guide will walk you through your first Ductape project, step by step. By the end, you'll have created a product, added an app, set up environments, and run your first action.
 
 ## Step 1: Install the SDK
 
@@ -12,7 +12,7 @@ npm install @ductape/sdk
 ```
 
 ## Step 2: Create a Product
-A Product is a logical grouping of apps, resources, and workflows.
+A Product is where you group and manage your integrations in Ductape.
 
 | Field         | Type           | Required | Default | Description                                 | Example           |
 |---------------|----------------|----------|---------|---------------------------------------------|-------------------|
@@ -28,7 +28,7 @@ const product = await ductape.product.create({
 ```
 
 ## Step 3: Add an App
-Apps are integrations with third-party or internal services.
+Apps are collections of endpoints from a 3rd party provider or internal service.
 
 | Field         | Type           | Required | Default | Description                                 | Example           |
 |---------------|----------------|----------|---------|---------------------------------------------|-------------------|

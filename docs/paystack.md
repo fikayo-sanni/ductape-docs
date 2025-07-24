@@ -48,6 +48,8 @@ npm init -y # optional, initializes package.json
 ```bash
 npm install @ductape/sdk
 npm install dotenv # optional, for environment variables
+npm install typescript
+npm install ts-node
 ```
 
 ### 3. **Project Structure**

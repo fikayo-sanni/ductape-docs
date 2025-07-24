@@ -3,11 +3,9 @@ sidebar_position: 1
 ---
 
 # Processors: Running Product Resources
+A Processor is the execution engine for your Ductape product. It runs actions, features, jobs, and other resources on your own infrastructure, while staying fully integrated with your product’s environments, configuration, and version control.
 
-Processors in Ductape are the bridge between your product resources and the environments where they run. They allow you to execute actions, manage storage, send notifications, handle jobs, and more—all in a context-aware way that respects your environment, version, and configuration settings.
-
-## What is a Processor?
-A processor is an interface provided by the Ductape SDK that lets you run your product's resources (actions, features, jobs, etc.) on your own infrastructure. This enables seamless integration with Ductape's environment management and configuration, while giving you full control over execution.
+Think of it as the bridge between your code and where it actually runs. It ensures every workflow executes with the right settings, in the right environment, and with full context.
 
 ## Accessing the Processor Interface
 

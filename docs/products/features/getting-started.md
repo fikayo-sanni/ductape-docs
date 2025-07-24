@@ -4,9 +4,14 @@ sidebar_position: 1
 
 # Features in Ductape
 
-A **Feature** in Ductape represents a distinct, reusable unit of business logic or workflow within a product. Features are designed as sequences of actions and events, allowing you to orchestrate complex processes, automate tasks, and integrate with external systems.
+A **Feature** in Ductape is a reusable unit of business logic or workflow. 
+It let's you define a process, like verifying a user, processing a payment, or sending a notification, by chaining backend components together in a sequence. You can think of it as a programmable flow that can be triggered, reused and composed like a function. 
 
-Each feature is defined by its input schema, a sequence of events, and an output schema. Features are highly flexible and can be composed of various event types, including actions, notifications, database actions, jobs, and more.
+Features are created inside a Product and use the Product's resources to perform their logic. 
+
+You can also connect multiple features together to build even more complex. workflows, making your backend modular and easier to maintain. 
+
+Features can call APIs, write to databases, send notifications, schedule jobs, and more. They help you manage complex backend logic in one place. 
 
 ## Primary Components of a Feature
 

@@ -4,21 +4,13 @@ sidebar_position: 1
 
 # Getting Started with Products
 
-A **Product** in Ductape is a logical grouping of apps, resources, and workflows that together deliver a specific backend capability or workflow. Products let you combine, configure, and orchestrate all the components your application needs.
+A **Product** in Ductape is a container for everything your backend needs.
 
-## Creating a Product
+It starts with an integration. You create a Product and connect one or more Apps to it. You can then call the endpoints from those Apps like functions in your code. 
 
-**Example:**
-```typescript
-const product = await ductape.product.create({
-  name: "Payments Service",
-  tag: "payments_service",
-  description: "Handles all payment processing"
-});
-```
+But it doesn't stop there. You can also add other backend components, like databases, notifications, jobs, and more, and use them the same way, as callable functions within your logic. 
 
-## Product Resources
-Products can include many types of resources. Each resource is managed and configured as part of the product:
+Each Product can include:
 
 - **[Apps](../apps/getting-started.md):** Integrations with third-party or internal services.
 - **[Environments](./environments.md):** Contexts like development, staging, or production.
@@ -33,7 +25,18 @@ Products can include many types of resources. Each resource is managed and confi
 - **[Storage](./storage/):** Manage files and data storage.
 - **[Healthchecks](./healthchecks.md):** Monitor system health and responsiveness.
 
-Each resource can be added, configured, and managed through the product interface, allowing you to build robust, scalable backend systems.
+A Product lets you bring all these elements together and orchestrate them to build reliable, reusable backend systems
+
+## Creating a Product 
+
+**Example:**
+```typescript
+const product = await ductape.product.create({
+  name: "Payments Service",
+  tag: "payments_service",
+  description: "Handles all payments processing"
+});
+```
 
 ## Next Steps
 - [Apps](../apps/getting-started.md)

@@ -17,8 +17,9 @@ Traditional backend development often means duplicating logic across services, e
 ## How Does Ductape Work?
 
 Ductape organizes your backend into modular building blocks:
-- **Products:** Logical groupings of apps, resources, and workflows.
-- **Apps:** Integrations with third-party or internal services.
+
+- **Apps:** These are collections of APIs from a provider. They can be third-party services or your internal APIs. Ductape turns these endpoints into callable functions. 
+- **Products:** These are containers for your integrations. Each Product connects to one or more Apps and includes all the backend components needed to run workflows. 
 - **Environments:** Contexts like development, staging, or production.
 - **Actions:** Tasks performed by apps (e.g., send an email, run a query).
 - **Resources:** Databases, message brokers, storage, notifications, and more.

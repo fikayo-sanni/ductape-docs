@@ -4,12 +4,14 @@ sidebar_position: 1
 
 # Getting Started with Apps
 
-An **App** in Ductape is an integration with a third-party or internal service that provides specific functionality to your product. Apps are the building blocks for adding features like payments, messaging, or custom business logic.
+In Ductape, An **App** is a collection of endpoints, usually from a single provider like Stripe, Twilio or even your own backend. 
+
+You can import these collections into Ductape using Postman or OpenAPI, and then connect them to a **Product**. Once connected, every endpoint in the collection is callable natively, just like a function in your code. 
 
 ## Types of Apps
 
-- **Private Apps:** Internal services used only within your workspace. These can be microservices or standalone services your team develops.
-- **Public Apps:** Services published to the Ductape marketplace and made available to other workspaces. These allow external developers to build on top of your app's functionality.
+- **Private Apps:** Apps created fron internal services or APIs that are only accessible within your workspace. These typically represent microservices or tools that your team builds and maintains. 
+- **Public Apps:** Apps that are made available to other workspaces. These expose a collection of endpoints from your service, allowing developers to integrate with, and buld on top of your functionality. 
 
 ## Creating an App
 

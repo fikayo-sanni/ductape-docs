@@ -4,7 +4,8 @@ sidebar_position: 1
 
 # Fallbacks in Ductape
 
-Fallbacks in Ductape are composite resources that enable resilient workflows by orchestrating multiple providers or actions. If the primary provider fails, Ductape automatically attempts the next option in the sequence, ensuring high availability and graceful error handling.
+Fallbacks in Ductape help your workflows stay reliable even when something goes wrong. 
+You can define a list of providers or actions in the order that you want them tried. If one fails, for example if a payments API goes down, Ductape will automatically try the next one and keep going until one succeeds or all options are exhausted. 
 
 ## What is a Fallback?
 A fallback is defined at the product level and includes:

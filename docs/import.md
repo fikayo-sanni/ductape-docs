@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# ⁠ ⁠How to Add Apps
+# ⁠⁠How to Add Apps
 
 Follow these steps to add and configure a new app (e.g., Paystack) in Ductape:
 
