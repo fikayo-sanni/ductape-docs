@@ -11,18 +11,15 @@ Ductape makes it easy to connect, manage, and automate third-party services like
 ### 1. **Sign Up or Log In**
    - Go to [cloud.ductape.app](https://cloud.ductape.app/auth/login) and sign up or log in (Google sign-in supported).
 
-### 2. **Access Your Dashboard**
-   - Once logged in, you’ll land on your dashboard. Click on **Apps** in the top menu.
-   ![Apps View](/img/dashboard-paystack.png)
+### 2. **Look for Paystack APIs in the Marketplace**
+   - Once logged in, you’ll land on your dashboard. Click on **Marketplace** in the top menu.
+   ![Apps View](/img/paystack.png)
 
-### 3. **Find Paystack APIs**
-   - Click on **Paystack** from the list of available apps.
+### 3. **Copy Your App Tag**
+   - On the Paystack app page, locate your **App Tag**. Copy it and store it somewhere safe—you’ll need it in your code.
+   ![Apps View](/img/paystack-2.png)
 
-### 4. **Copy Your App Tag**
-   - On the Paystack app page, locate your **App Tag**. Click on it to Copy it and store it somewhere safe—you’ll need it in your code.
-   ![Apps View](/img/app-tag.png)
-
-### 5. **Get Your Ductape Credentials**
+### 4. **Get Your Ductape Credentials**
    - Click the **Tokens** button at the top of the page.
    ![Apps View](/img/tokens.png)
    - Click the **eye** icon to reveal your credentials. An OTP will be sent to your email—enter it in the prompt to view your Ductape credentials.
