@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 20
 ---
 
 # Quickstart: A Paystack Integration with Ductape
@@ -16,13 +16,13 @@ Ductape makes it easy to connect, manage, and automate third-party services like
    ![Apps View](/img/paystack.png)
 
 ### 3. **Copy Your App Tag**
-   - On the Paystack app page, locate your **App Tag**. Copy it and store it somewhere safe—you’ll need it in your code.
+   - On the Paystack app page, locate your **App Tag**. Copy it and store it somewhere safe you’ll need it in your code.
    ![Apps View](/img/paystack-2.png)
 
 ### 4. **Get Your Ductape Credentials**
    - Click the **Tokens** button at the top of the page.
    ![Apps View](/img/tokens.png)
-   - Click the **eye** icon to reveal your credentials. An OTP will be sent to your email—enter it in the prompt to view your Ductape credentials.
+   - Click the **eye** icon to reveal your credentials. An OTP will be sent to your email enter it in the prompt to view your Ductape credentials.
    ![Apps View](/img/tokens-otp.png)
    - Copy and store your credentials securely. You’ll need your `user_id`, `workspace_id`, and `private_key`.
 
@@ -232,7 +232,7 @@ import ductape from "./ductape"
 
 export const fetchBanksPaystack = async () => {
 
-    const Banks = await ductape.processor.action.run({
+    const Banks = await ductape.action.run({
         env: "snd",
         product: process.env.PRODUCT_TAG,
         app: process.env.PAYSTACK_APP_TAG,

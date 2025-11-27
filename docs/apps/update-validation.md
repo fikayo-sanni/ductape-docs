@@ -70,7 +70,7 @@ await ductape.apps.validation(selector: string, update: Partial<IParsedSample>);
 - **`selector`**: A string that identifies the data point you want to update. The available selector formats are:
   - `$Body{action_tag}{...}{key}`  
   - `$Query{action_tag}{...}{key}`  
-  - `$Param{action_tag}{...}{key}`  
+  - `$Params{action_tag}{...}{key}`  
   - `$Header{action_tag}{...}{key}`  
 - **`update`**: A partial object of `IParsedSample` containing the validation properties you wish to modify. All fields are optional.  
 

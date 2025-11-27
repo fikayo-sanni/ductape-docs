@@ -101,7 +101,7 @@ const cache = await ductape.product.caches.create({
 To use the cache when running an action, include the `cache` field in your `IActionProcessorInput`:
 
 ```typescript
-const result = await ductape.processor.action.run({
+const result = await ductape.action.run({
   env: "dev",
   product: "payments_service",
   app: "email_app_tag",
@@ -123,7 +123,7 @@ const result = await ductape.processor.action.run({
 
 ## Step 5: Run an Action
 
-To run an action, use the `processor.action.run` method. This method requires an `IActionProcessorInput` object, which specifies the environment, product, app, event (action tag), and input data.
+To run an action, use the `ductape.action.run` method. This method requires an `IActionProcessorInput` object, which specifies the environment, product, app, event (action tag), and input data.
 
 ### IActionProcessorInput
 | Field   | Type   | Required | Default | Description | Example |
@@ -148,7 +148,7 @@ To run an action, use the `processor.action.run` method. This method requires an
 
 **Example:**
 ```typescript
-const result = await ductape.processor.action.run({
+const result = await ductape.action.run({
   env: "dev",
   product: "payments_service",
   app: "email_app_tag",
@@ -166,6 +166,6 @@ const result = await ductape.processor.action.run({
 This will execute the `send_email` action for the specified app in the given environment and product, passing the provided input to the action.
 
 ## Next Steps
-- [Products](../products/getting-started.md)
+- [Products](../features/overview.md)
 - [Apps](../apps/getting-started.md)
-- [Environments](../products/environments.md)
+- [Environments](../apps/product-environments.md)

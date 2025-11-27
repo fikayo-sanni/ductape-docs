@@ -3,9 +3,9 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'DUCTAPE',
-  tagline: 'Dinosaurs are cool',
-  favicon: 'img/ductape.ico',
+  title: 'Ductape Documentation',
+  tagline: 'Build backend systems faster',
+  favicon: 'img/favicon.svg',
 
   // Set the production url of your site here
   url: 'https://docs.ductape.app',
@@ -14,16 +14,14 @@ const config: Config = {
   baseUrl: '/',
 
   // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'ductape',
+  projectName: 'ductape-docs',
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
+  // useful metadata like html lang.
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -36,26 +34,8 @@ const config: Config = {
         docs: {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          //editUrl:
-            //'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
         },
-        blog: false,/*{
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },*/
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -67,8 +47,10 @@ const config: Config = {
     [
       '@easyops-cn/docusaurus-search-local',
       {
-        hashed: true, // Enables better caching
-        docsRouteBasePath: '/', // Include docs
+        hashed: true,
+        docsRouteBasePath: '/',
+        highlightSearchTermsOnTargetPage: true,
+        searchResultLimits: 8,
       },
     ],
   ],
@@ -76,24 +58,43 @@ const config: Config = {
   themeConfig: {
     // Replace with your project's social card
     image: 'img/ductape.png',
+
+    // Color mode settings
+    colorMode: {
+      defaultMode: 'light',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
+
     navbar: {
       title: '',
       logo: {
         alt: 'Ductape Logo',
         src: 'img/ductape-logo.svg',
+        href: '/',
       },
       items: [
-        { type: 'search', position: 'right' }, // 🔍 Adds the search bar to the navbar
+        { type: 'search', position: 'left' },
       ],
     },
+
     footer: {
-      /*links: [
+      style: 'light',
+      links: [
         {
-          title: 'Docs',
+          title: 'Documentation',
           items: [
             {
-              label: 'Tutorial',
-              to: '/',
+              label: 'Getting Started',
+              to: '/getting-started/quickstart',
+            },
+            {
+              label: 'Apps',
+              to: '/apps/getting-started',
+            },
+            {
+              label: 'Features',
+              to: '/features/overview',
             },
           ],
         },
@@ -101,16 +102,16 @@ const config: Config = {
           title: 'Community',
           items: [
             {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-            },
-            {
               label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              href: 'https://discord.gg/JHXxQ6MAwb',
             },
             {
               label: 'Twitter',
-              href: 'https://twitter.com/docusaurus',
+              href: 'https://twitter.com/ductapetech',
+            },
+            {
+              label: 'LinkedIn',
+              href: 'https://www.linkedin.com/company/ductape-technologies',
             },
           ],
         },
@@ -118,21 +119,32 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'Blog',
-              to: '/blog',
+              label: 'Website',
+              href: 'https://ductape.app',
+            },
+            {
+              label: 'Workbench',
+              href: 'https://workbench.ductape.app',
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              href: 'https://github.com/ductape',
             },
           ],
         },
-      ],*/
-      copyright: `Copyright © ${new Date().getFullYear()} Ductape, LLC.`,
+      ],
+      copyright: `Copyright © ${new Date().getFullYear()} Ductape Technologies. All rights reserved.`,
     },
+
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+    },
+
+    // Table of contents settings
+    tableOfContents: {
+      minHeadingLevel: 2,
+      maxHeadingLevel: 4,
     },
   } satisfies Preset.ThemeConfig,
 };

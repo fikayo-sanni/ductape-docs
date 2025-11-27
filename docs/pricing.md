@@ -10,7 +10,7 @@ Ductape’s pricing is built around a modular, per‑action model. Every operati
 
 ## Key Concepts
 - **Base Fee & Quotas:**
-Each tier (Free, Beginner, Startup, and Enterprise) comes with a fixed monthly fee that includes specific quotas for key actions—such as API requests, file transfer, and operations for various modules.
+Each tier (Free, Beginner, Startup, and Enterprise) comes with a fixed monthly fee that includes specific quotas for key actions such as API requests, file transfer, and operations for various modules.
 
 - **Overage Charges:**
 When you exceed the included quotas, additional usage is billed per action at a fixed rate. For example, API requests beyond the monthly quota or file transfers beyond the allowance incur a small per‑action fee.
@@ -126,9 +126,9 @@ This component is a qualitative feature rather than a per-action metric, but it 
 ## **Summary**
 **Base Fee & Quotas:** Each tier provides a monthly base fee with set quotas for different action types (API requests, file transfers, module operations, etc.).
 
-**Overage Pricing:** If you exceed the included quotas, you pay a fixed fee per additional action—ensuring a pay‑as‑you‑go model that scales with your usage.
+**Overage Pricing:** If you exceed the included quotas, you pay a fixed fee per additional action ensuring a pay‑as‑you‑go model that scales with your usage.
 
-**Action Definition:** An “action” is defined by the operation in question—whether it’s an API call, a gigabyte of file transfer, or a module-specific operation.
+**Action Definition:** An “action” is defined by the operation in question whether it’s an API call, a gigabyte of file transfer, or a module-specific operation.
 
 **Component Measurements:** Each key component is measured with a specific quota and overage rate, giving you a predictable cost structure and the flexibility to scale.
 

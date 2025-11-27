@@ -1,0 +1,479 @@
+---
+sidebar_position: 1
+---
+
+# Graph Databases
+
+Ductape provides a unified interface for working with graph databases including Neo4j, AWS Neptune, ArangoDB, and Memgraph. Define connections once, and work with nodes, relationships, and traversals across any provider.
+
+## Install the SDK
+
+```bash
+npm install @ductape/sdk
+```
+
+The SDK includes all graph database drivers out of the box.
+
+## Initialize the SDK
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  workspace_id: 'your-workspace-id',
+  user_id: 'your-user-id',
+  public_key: 'your-public-key',
+  token: 'your-token',
+  env_type: 'development',
+});
+```
+
+## Register a Graph Database
+
+```ts
+await ductape.product.graphs.create({
+  name: 'Social Graph',
+  tag: 'social-graph',
+  type: 'neo4j',
+  description: 'Stores user relationships',
+  envs: [
+    { slug: 'dev', connection_url: 'bolt://localhost:7687' },
+    { slug: 'prd', connection_url: 'bolt://neo4j-prod:7687' },
+  ],
+});
+```
+
+### Configuration Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name |
+| `tag` | string | Yes | Unique identifier |
+| `type` | string | Yes | `neo4j`, `neptune`, `arangodb`, or `memgraph` |
+| `description` | string | No | Description |
+| `envs` | array | Yes | Environment configurations |
+
+### Environment Config
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slug` | string | Environment (dev, staging, prd) |
+| `connection_url` | string | Connection string |
+| `database` | string | Database name (ArangoDB) |
+| `graphName` | string | Graph name (ArangoDB) |
+| `region` | string | AWS region (Neptune) |
+
+## Connect to Graph Database
+
+```ts
+await ductape.graph.connect({
+  env: 'dev',
+  product: 'my-app',
+  graph: 'social-graph',
+});
+```
+
+Once connected, all subsequent operations use this connection automatically.
+
+## Node Operations
+
+### Create Node
+
+```ts
+const result = await ductape.graph.createNode({
+  labels: ['Person'],
+  properties: {
+    name: 'Alice',
+    email: 'alice@example.com',
+    age: 30,
+  },
+});
+
+console.log('Created node:', result.node.id);
+```
+
+### Find Nodes
+
+```ts
+const result = await ductape.graph.findNodes({
+  labels: ['Person'],
+  where: { age: { $GT: 25 } },
+  limit: 10,
+});
+```
+
+### Find Node by ID
+
+```ts
+const node = await ductape.graph.findNodeById('node-id');
+```
+
+### Update Node
+
+```ts
+const result = await ductape.graph.updateNode({
+  id: 'node-id',
+  properties: { age: 31 },
+});
+```
+
+### Delete Node
+
+```ts
+await ductape.graph.deleteNode({
+  id: 'node-id',
+  detach: true, // Also delete connected relationships
+});
+```
+
+### Merge Node
+
+Insert or update based on match criteria:
+
+```ts
+const result = await ductape.graph.mergeNode({
+  labels: ['Person'],
+  matchProperties: { email: 'alice@example.com' },
+  onCreate: { name: 'Alice', createdAt: new Date() },
+  onMatch: { lastSeen: new Date() },
+});
+```
+
+## Relationship Operations
+
+### Create Relationship
+
+```ts
+const result = await ductape.graph.createRelationship({
+  type: 'FRIENDS_WITH',
+  startNodeId: aliceId,
+  endNodeId: bobId,
+  properties: { since: 2020 },
+});
+```
+
+### Find Relationships
+
+```ts
+const result = await ductape.graph.findRelationships({
+  type: 'FRIENDS_WITH',
+  startNodeId: aliceId,
+});
+```
+
+### Update Relationship
+
+```ts
+await ductape.graph.updateRelationship({
+  id: 'relationship-id',
+  properties: { closeness: 'high' },
+});
+```
+
+### Delete Relationship
+
+```ts
+await ductape.graph.deleteRelationship({
+  id: 'relationship-id',
+});
+```
+
+## Traversals & Paths
+
+### Traverse Graph
+
+```ts
+const result = await ductape.graph.traverse({
+  startNodeId: aliceId,
+  direction: 'OUTGOING', // OUTGOING, INCOMING, or BOTH
+  relationshipTypes: ['FRIENDS_WITH'],
+  maxDepth: 3,
+});
+
+result.paths.forEach(path => {
+  console.log('Path:', path.nodes.map(n => n.properties.name));
+});
+```
+
+### Shortest Path
+
+```ts
+const result = await ductape.graph.shortestPath({
+  startNodeId: aliceId,
+  endNodeId: charlieId,
+  relationshipTypes: ['FRIENDS_WITH'],
+});
+
+if (result.path) {
+  console.log('Distance:', result.path.length);
+}
+```
+
+### All Paths
+
+```ts
+const result = await ductape.graph.allPaths({
+  startNodeId: aliceId,
+  endNodeId: charlieId,
+  maxDepth: 5,
+  limit: 10,
+});
+```
+
+### Get Neighborhood
+
+```ts
+const result = await ductape.graph.getNeighborhood({
+  nodeId: aliceId,
+  depth: 2,
+  direction: 'BOTH',
+});
+```
+
+## Aggregations
+
+### Count Nodes
+
+```ts
+const result = await ductape.graph.countNodes(['Person'], { status: 'active' });
+console.log('Active persons:', result.count);
+```
+
+### Count Relationships
+
+```ts
+const result = await ductape.graph.countRelationships(['FRIENDS_WITH']);
+console.log('Friendships:', result.count);
+```
+
+### Graph Statistics
+
+```ts
+const stats = await ductape.graph.getStatistics();
+console.log('Total nodes:', stats.nodeCount);
+console.log('Total relationships:', stats.relationshipCount);
+```
+
+## Search
+
+### Full-Text Search
+
+```ts
+const result = await ductape.graph.fullTextSearch({
+  indexName: 'person_names',
+  query: 'alice',
+  limit: 10,
+});
+```
+
+### Vector Search
+
+```ts
+const result = await ductape.graph.vectorSearch({
+  indexName: 'embeddings',
+  vector: [0.1, 0.2, ...],
+  topK: 10,
+});
+```
+
+## Raw Queries
+
+Execute native queries for your database:
+
+```ts
+// Cypher (Neo4j, Memgraph)
+const result = await ductape.graph.query(
+  'MATCH (p:Person)-[:FRIENDS_WITH]->(f) WHERE p.name = $name RETURN f',
+  { name: 'Alice' }
+);
+```
+
+## Schema Management
+
+### Create Index
+
+```ts
+await ductape.graph.createNodeIndex({
+  name: 'idx_person_email',
+  label: 'Person',
+  properties: ['email'],
+  unique: true,
+});
+```
+
+### Create Constraint
+
+```ts
+await ductape.graph.createNodeConstraint({
+  name: 'unique_person_email',
+  label: 'Person',
+  property: 'email',
+  type: 'UNIQUE',
+});
+```
+
+### List Indexes
+
+```ts
+const indexes = await ductape.graph.listIndexes();
+```
+
+## Transactions
+
+### Callback API (Recommended)
+
+```ts
+const result = await ductape.graph.executeTransaction(async (transaction) => {
+  const alice = await ductape.graph.createNode({
+    labels: ['Person'],
+    properties: { name: 'Alice' },
+  }, transaction);
+
+  const bob = await ductape.graph.createNode({
+    labels: ['Person'],
+    properties: { name: 'Bob' },
+  }, transaction);
+
+  await ductape.graph.createRelationship({
+    type: 'FRIENDS_WITH',
+    startNodeId: alice.node.id,
+    endNodeId: bob.node.id,
+  }, transaction);
+
+  return { alice, bob };
+});
+```
+
+### Manual Transaction
+
+```ts
+const transaction = await ductape.graph.beginTransaction();
+
+try {
+  await ductape.graph.createNode({ ... }, transaction);
+  await ductape.graph.createRelationship({ ... }, transaction);
+  await transaction.commit();
+} catch (error) {
+  await transaction.rollback();
+  throw error;
+}
+```
+
+## Disconnect
+
+```ts
+await ductape.graph.disconnect();
+
+// Or disconnect all
+await ductape.graph.disconnectAll();
+```
+
+---
+
+## Provider Reference
+
+### Neo4j
+
+**Connection URL:**
+```
+bolt://hostname:7687
+bolt+s://hostname:7687          # with TLS
+bolt://user:pass@hostname:7687  # with credentials
+```
+
+**Query Language:** Cypher
+
+```cypher
+CREATE (p:Person {name: 'Alice', age: 30})
+MATCH (p:Person) WHERE p.age > 25 RETURN p
+MATCH (a:Person), (b:Person) WHERE a.name = 'Alice' AND b.name = 'Bob'
+CREATE (a)-[:FRIENDS_WITH {since: 2020}]->(b)
+```
+
+### AWS Neptune
+
+**Connection URL:**
+```
+wss://cluster.region.neptune.amazonaws.com:8182/gremlin
+https://cluster.region.neptune.amazonaws.com:8182/openCypher
+```
+
+**Query Languages:** Gremlin or openCypher
+
+```ts
+await ductape.product.graphs.create({
+  name: 'Neptune Graph',
+  tag: 'neptune-graph',
+  type: 'neptune',
+  envs: [{
+    slug: 'prd',
+    connection_url: 'wss://cluster.us-east-1.neptune.amazonaws.com:8182/gremlin',
+    region: 'us-east-1',
+  }],
+});
+```
+
+### ArangoDB
+
+**Connection URL:**
+```
+http://hostname:8529
+https://hostname:8529
+http://user:pass@hostname:8529
+```
+
+**Query Language:** AQL
+
+```ts
+await ductape.product.graphs.create({
+  name: 'ArangoDB Graph',
+  tag: 'arango-graph',
+  type: 'arangodb',
+  envs: [{
+    slug: 'dev',
+    connection_url: 'http://localhost:8529',
+    database: 'myapp',
+    graphName: 'social_graph',
+  }],
+});
+```
+
+### Memgraph
+
+**Connection URL:**
+```
+bolt://hostname:7687
+bolt+ssc://hostname:7687  # with TLS
+```
+
+**Query Language:** Cypher (Neo4j compatible)
+
+Memgraph includes MAGE library with pre-built graph algorithms:
+```cypher
+CALL pagerank.get() YIELD node, rank
+CALL community_detection.get() YIELD node, community_id
+```
+
+## Error Handling
+
+```ts
+import { GraphError, GraphErrorType } from '@ductape/sdk';
+
+try {
+  await ductape.graph.createNode({ ... });
+} catch (error) {
+  if (error instanceof GraphError) {
+    switch (error.type) {
+      case GraphErrorType.CONNECTION_ERROR:
+        console.error('Cannot connect to graph database');
+        break;
+      case GraphErrorType.CONSTRAINT_ERROR:
+        console.error('Constraint violation');
+        break;
+      case GraphErrorType.QUERY_ERROR:
+        console.error('Query failed:', error.message);
+        break;
+    }
+  }
+}
+```

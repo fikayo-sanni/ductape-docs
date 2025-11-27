@@ -1,8 +1,0 @@
-{
-  "label": "Jobs",
-  "position": 7,
-  "link": {
-    "type": "generated-index",
-    "description": "Scheduling Jobs with Ductape"
-  }
-}

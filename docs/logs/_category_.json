@@ -1,9 +1,8 @@
 {
-    "label": "Logs",
-    "position": 8,
-    "link": {
-      "type": "generated-index",
-      "description": "Managing Logs"
-    }
+  "label": "Logs",
+  "position": 17,
+  "link": {
+    "type": "generated-index",
+    "description": "Managing Logs with Ductape"
   }
-  
+}
