@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Secrets
+# Getting Started with Secrets
 
 Secrets allow you to securely store and manage sensitive data like API keys, tokens, and credentials within your Ductape workspace. All secrets are encrypted client-side using your workspace's private key before being stored.
 

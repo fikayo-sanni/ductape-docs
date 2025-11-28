@@ -96,7 +96,7 @@ const sidebars: SidebarsConfig = {
     // Graph Databases
     {
       type: 'category',
-      label: 'Graph Databases',
+      label: 'Graphs',
       collapsed: true,
       items: [
         'graphs/getting-started',

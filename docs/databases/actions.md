@@ -227,20 +227,26 @@ await ductape.database.execute({
 });
 ```
 
-### COUNT - Count Records
+### AGGREGATE - Aggregations
 
-Count matching records:
+Perform aggregations using the `operations` object with `$COUNT`, `$SUM`, `$AVG`, `$MIN`, `$MAX`:
 
 ```ts
 await ductape.database.action.create({
-  name: 'Count Active Users',
-  tag: 'postgresdb:count-active-users',
+  name: 'User Statistics',
+  tag: 'postgresdb:user-statistics',
   tableName: 'users',
-  operation: DatabaseActionTypes.COUNT,
+  operation: DatabaseActionTypes.QUERY,
   template: {
     where: {
-      status: 'active',
+      status: '{{status}}',
       created_at: { $GTE: '{{startDate}}' },
+    },
+    operations: {
+      total_count: { $COUNT: '*' },
+      avg_age: { $AVG: 'age' },
+      min_age: { $MIN: 'age' },
+      max_age: { $MAX: 'age' },
     },
   },
 });
@@ -250,24 +256,25 @@ const result = await ductape.database.execute({
   product: 'my-product',
   env: 'prd',
   database: 'postgresdb',
-  action: 'count-active-users',
+  action: 'user-statistics',
   input: {
+    status: 'active',
     startDate: '2024-01-01',
   },
 });
-console.log('Active users:', result.count);
+
+console.log('Statistics:', result);
+// { total_count: 150, avg_age: 32.5, min_age: 18, max_age: 65 }
 ```
 
-### AGGREGATE - Complex Aggregations
-
-Perform aggregations:
+**Single Aggregation:**
 
 ```ts
 await ductape.database.action.create({
-  name: 'Sales Summary',
-  tag: 'postgresdb:sales-summary',
+  name: 'Total Sales',
+  tag: 'postgresdb:total-sales',
   tableName: 'orders',
-  operation: DatabaseActionTypes.AGGREGATE,
+  operation: DatabaseActionTypes.QUERY,
   template: {
     where: {
       status: 'completed',
@@ -276,25 +283,9 @@ await ductape.database.action.create({
         $LTE: '{{endDate}}',
       },
     },
-    groupBy: ['{{groupColumn}}'],
-    aggregates: [
-      { function: 'SUM', column: 'total', as: 'total_sales' },
-      { function: 'COUNT', column: '*', as: 'order_count' },
-      { function: 'AVG', column: 'total', as: 'avg_order_value' },
-    ],
-  },
-});
-
-// Execute
-const summary = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
-  database: 'postgresdb',
-  action: 'sales-summary',
-  input: {
-    startDate: '2024-01-01',
-    endDate: '2024-12-31',
-    groupColumn: 'category',
+    operations: {
+      total_revenue: { $SUM: 'total' },
+    },
   },
 });
 ```
@@ -652,10 +643,12 @@ await ductape.database.action.create({
 
 ### Reporting Actions
 
+Use aggregations with `operations` for analytics:
+
 ```ts
 await ductape.database.action.create({
-  name: 'Monthly Revenue Report',
-  tag: 'postgresdb:monthly-revenue',
+  name: 'Sales Summary',
+  tag: 'postgresdb:sales-summary',
   tableName: 'orders',
   operation: DatabaseActionTypes.AGGREGATE,
   template: {
@@ -666,14 +659,36 @@ await ductape.database.action.create({
         $LTE: '{{endDate}}',
       },
     },
-    groupBy: ['EXTRACT(MONTH FROM created_at)'],
-    aggregates: [
-      { function: 'SUM', column: 'total', as: 'revenue' },
-      { function: 'COUNT', column: 'id', as: 'order_count' },
-      { function: 'AVG', column: 'total', as: 'avg_order_value' },
-    ],
+    operations: {
+      total_revenue: { $SUM: 'total' },
+      order_count: { $COUNT: 'id' },
+      avg_order_value: { $AVG: 'total' },
+      highest_order: { $MAX: 'total' },
+      lowest_order: { $MIN: 'total' },
+    },
   },
 });
+
+// Execute
+const summary = await ductape.database.execute({
+  product: 'my-product',
+  env: 'prd',
+  database: 'postgresdb',
+  action: 'sales-summary',
+  input: {
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+  },
+});
+
+console.log('Summary:', summary);
+// {
+//   total_revenue: 125000.50,
+//   order_count: 850,
+//   avg_order_value: 147.06,
+//   highest_order: 2500.00,
+//   lowest_order: 9.99
+// }
 ```
 
 ## Best Practices

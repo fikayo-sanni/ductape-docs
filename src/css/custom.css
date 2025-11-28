@@ -1394,7 +1394,8 @@ li::marker {
   box-shadow: none !important;
 }
 
-.aa-DetachedSearchButton:focus {
+.aa-DetachedSearchButton:focus,
+.aa-DetachedSearchButton:focus-within {
   border-color: var(--ifm-color-primary) !important;
   box-shadow: 0 0 0 2px rgba(var(--ductape-primary-rgb), 0.15) !important;
   outline: none !important;
@@ -1412,19 +1413,29 @@ li::marker {
   outline: none !important;
 }
 
-/* Hide search icon */
+/* Search icon - blue color */
 .DocSearch-Search-Icon {
-  display: none !important;
+  color: var(--ifm-color-primary) !important;
+}
+
+.aa-DetachedSearchButtonIcon {
+  color: var(--ifm-color-primary) !important;
+}
+
+.aa-DetachedSearchButtonIcon svg,
+.aa-SubmitIcon {
+  color: var(--ifm-color-primary) !important;
 }
 
 [class*='searchBox'] svg {
-  display: none !important;
+  color: var(--ifm-color-primary) !important;
 }
 
-.DocSearch-Button-Placeholder {
+.DocSearch-Button-Placeholder,
+.aa-DetachedSearchButtonPlaceholder {
   font-size: 0.8125rem !important;
   font-weight: 400 !important;
-  color: var(--ductape-text-tertiary) !important;
+  color: var(--ifm-color-primary) !important;
   padding-right: 0 !important;
 }
 
@@ -1502,15 +1513,23 @@ li::marker {
   box-shadow: 0 0 0 3px rgba(var(--ductape-primary-rgb), 0.1) !important;
 }
 
-.DocSearch-Input {
+.DocSearch-Input,
+.aa-Input {
   font-size: 1rem !important;
   font-weight: 500 !important;
   color: var(--ductape-text) !important;
   padding-left: 0.5rem !important;
 }
 
-.DocSearch-Input::placeholder {
-  color: var(--ductape-text-tertiary) !important;
+.DocSearch-Input:focus,
+.aa-Input:focus {
+  border-color: var(--ifm-color-primary) !important;
+  outline: none !important;
+}
+
+.DocSearch-Input::placeholder,
+.aa-Input::placeholder {
+  color: var(--ifm-color-primary) !important;
 }
 
 .DocSearch-Reset {
@@ -2270,7 +2289,7 @@ a {
 }
 
 .navbar__search-input::placeholder {
-  color: var(--ductape-text-tertiary);
+  color: var(--ifm-color-primary);
 }
 
 .navbar__search-input:hover {
@@ -2287,7 +2306,7 @@ a {
 
 /* Search icon */
 .navbar__search::before {
-  color: var(--ductape-text-secondary);
+  color: var(--ifm-color-primary);
   left: 16px !important;
   font-size: 18px;
 }

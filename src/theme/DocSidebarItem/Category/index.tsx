@@ -63,7 +63,7 @@ const iconMap: Record<string, LucideIcon> = {
   'Caching': Layers,
   'Databases': Database,
   'Notification Messages': Bell,
-  'Graph Databases': Share2,
+  'Graphs': Share2,
   'Resilience': Shield,
   'Reference': BookOpen,
   'Templates': Bell,
