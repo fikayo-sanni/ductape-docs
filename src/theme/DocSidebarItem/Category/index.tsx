@@ -15,6 +15,7 @@ import {
   Workflow,
   Box,
   KeyRound,
+  Key,
   Bell,
   MessageSquare,
   HardDrive,
@@ -30,6 +31,8 @@ import {
   ChevronDown,
   ChevronRight,
   Heart,
+  Webhook,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -52,7 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
   'Quotas': Timer,
   'Fallbacks': Shield,
   'Logs': FileText,
-  'Webhooks': Settings2,
+  'Webhooks': Webhook,
   'Configuring Message Brokers': Settings2,
   'Configuring Storage': Settings2,
   'Sequencing Events': Layers,
@@ -64,7 +67,8 @@ const iconMap: Record<string, LucideIcon> = {
   'Resilience': Shield,
   'Reference': BookOpen,
   'Templates': Bell,
-  'Healthchecks': Heart,
+  'Healthchecks': Activity,
+  'Secrets': Key,
 };
 
 // Clean emoji prefix from label if present

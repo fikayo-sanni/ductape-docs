@@ -1135,40 +1135,148 @@ li::marker {
   color: var(--ifm-color-primary);
 }
 
-/* ===== PAGINATION ===== */
+/* ===== PAGINATION - Redesigned ===== */
 .pagination-nav {
-  margin-top: 2.5rem;
-  gap: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--ductape-border);
 }
 
 .pagination-nav__link {
+  flex: 1;
+  max-width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   border: 1px solid var(--ductape-border);
-  border-radius: var(--ductape-radius-lg);
+  border-radius: var(--ifm-global-radius);
   padding: 1rem 1.25rem;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   background-color: var(--ductape-bg);
+  text-decoration: none !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.pagination-nav__link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--ifm-color-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pagination-nav__link--prev::before {
+  left: 0;
+  right: auto;
+}
+
+.pagination-nav__link--next::before {
+  left: auto;
+  right: 0;
 }
 
 .pagination-nav__link:hover {
   border-color: var(--ifm-color-primary);
-  box-shadow: var(--ductape-shadow-md);
-  transform: translateY(-1px);
-  text-decoration: none;
+  background-color: var(--ductape-primary-light);
+  text-decoration: none !important;
 }
 
+.pagination-nav__link:hover::before {
+  opacity: 1;
+}
+
+/* Previous link - align left */
+.pagination-nav__link--prev {
+  text-align: left;
+  align-items: flex-start;
+  margin-right: auto;
+}
+
+/* Next link - align right */
+.pagination-nav__link--next {
+  text-align: right;
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+/* Label (Previous/Next text) */
 .pagination-nav__label {
-  font-size: 0.625rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ductape-text-tertiary);
-  margin-bottom: 0.125rem;
+  margin-bottom: 0.375rem;
 }
 
+.pagination-nav__link--prev .pagination-nav__label::before {
+  content: '←';
+  font-size: 0.75rem;
+}
+
+.pagination-nav__link--next .pagination-nav__label::after {
+  content: '→';
+  font-size: 0.75rem;
+}
+
+.pagination-nav__link:hover .pagination-nav__label {
+  color: var(--ifm-color-primary);
+}
+
+/* Page title */
 .pagination-nav__sublabel {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ductape-text);
+  line-height: 1.4;
+  transition: color 0.15s ease;
+}
+
+.pagination-nav__link:hover .pagination-nav__sublabel {
+  color: var(--ifm-color-primary);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .pagination-nav__link {
+  background-color: var(--ductape-bg-secondary);
+}
+
+[data-theme='dark'] .pagination-nav__link:hover {
+  background-color: var(--ductape-primary-light);
+}
+
+/* Responsive - Stack on mobile */
+@media (max-width: 576px) {
+  .pagination-nav {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pagination-nav__link {
+    max-width: 100%;
+  }
+
+  .pagination-nav__link--prev,
+  .pagination-nav__link--next {
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .pagination-nav__link--next .pagination-nav__label::after {
+    margin-left: auto;
+  }
 }
 
 /* ===== FOOTER ===== */
@@ -1709,6 +1817,184 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
   .navbar__search-input:focus {
     width: 180px;
   }
+
+  /* ===== DOCUSAURUS 3.x MOBILE SIDEBAR FIX ===== */
+
+  /* Doc sidebar container - hidden by default on mobile */
+  .theme-doc-sidebar-container {
+    display: block !important;
+    position: fixed !important;
+    top: var(--ifm-navbar-height) !important;
+    left: 0 !important;
+    width: 85vw !important;
+    max-width: 320px !important;
+    height: calc(100vh - var(--ifm-navbar-height)) !important;
+    z-index: 1000 !important;
+    background-color: var(--ductape-bg) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: none !important;
+    overflow-y: auto !important;
+    border-right: 1px solid var(--ductape-border) !important;
+  }
+
+  /* Docusaurus 3.x uses display:none on mobile - override it */
+  [class*='docSidebarContainer'] {
+    display: block !important;
+  }
+
+  /* When sidebar button is clicked - Docusaurus adds 'sidebarExpanded' or similar */
+  html[data-sidebar-expanded='true'] .theme-doc-sidebar-container,
+  body[data-sidebar-expanded='true'] .theme-doc-sidebar-container,
+  .theme-doc-sidebar-container[class*='Expanded'],
+  [class*='sidebarExpanded'] .theme-doc-sidebar-container,
+  .docSidebarContainer_expanded,
+  .theme-doc-sidebar-container:target {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Navbar sidebar (hamburger menu for main nav) */
+  .navbar-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 85vw !important;
+    max-width: 320px !important;
+    height: 100vh !important;
+    background-color: var(--ductape-bg) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
+    z-index: 1001 !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow-y: auto !important;
+  }
+
+  .navbar-sidebar--show .navbar-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  /* Navbar sidebar backdrop */
+  .navbar-sidebar__backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+  }
+
+  .navbar-sidebar--show .navbar-sidebar__backdrop {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Hamburger toggle button - ensure visible */
+  .navbar__toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    color: var(--ductape-text);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 1002;
+  }
+
+  .navbar__toggle svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Hide hamburger toggle when sidebar is open */
+  .navbar-sidebar--show .navbar__toggle,
+  html.navbar-sidebar--show .navbar__toggle,
+  body.navbar-sidebar--show .navbar__toggle {
+    display: none !important;
+  }
+
+  /* Doc sidebar toggle button (the one on doc pages) */
+  button[class*='sidebarButton'],
+  [class*='collapseSidebarButton'],
+  .docSidebarContainer button[class*='toggle'],
+  button[aria-label='Toggle sidebar'],
+  button[aria-label='Expand sidebar'],
+  button[aria-label='Collapse sidebar'] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: calc(var(--ifm-navbar-height) + 0.75rem) !important;
+    left: 0.75rem !important;
+    z-index: 998 !important;
+    padding: 0.5rem !important;
+    background: var(--ductape-bg) !important;
+    border: 1px solid var(--ductape-border) !important;
+    border-radius: var(--ifm-global-radius) !important;
+    box-shadow: var(--ductape-shadow) !important;
+    cursor: pointer !important;
+  }
+
+  button[class*='sidebarButton']:hover,
+  [class*='collapseSidebarButton']:hover {
+    background: var(--ductape-bg-secondary) !important;
+    border-color: var(--ifm-color-primary) !important;
+  }
+
+  /* Mobile menu items */
+  .navbar-sidebar__items {
+    padding: 0.5rem 1rem 1rem;
+  }
+
+  .navbar-sidebar__item {
+    padding: 0.5rem 1rem;
+  }
+
+  .navbar-sidebar .menu {
+    padding: 0.5rem 1rem 1rem;
+  }
+
+  .navbar-sidebar .menu__link {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  /* Close button for mobile sidebar */
+  .navbar-sidebar__close {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem;
+    background: var(--ductape-bg-secondary);
+    border-radius: var(--ifm-global-radius);
+    border: 1px solid var(--ductape-border);
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  /* Main content margin when sidebar is open */
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+
+  /* Doc sidebar menu on mobile */
+  .theme-doc-sidebar-container .menu {
+    padding: 1rem !important;
+  }
+
+  .theme-doc-sidebar-container .menu__link {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9375rem !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1723,6 +2009,71 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
   pre {
     border-radius: var(--ifm-global-radius);
     padding: 0.875rem;
+  }
+
+  /* Ensure sidebar is full width on smaller screens */
+  .navbar-sidebar {
+    width: 85vw !important;
+    max-width: 320px !important;
+  }
+
+  /* Doc sidebar within navbar sidebar (mobile doc navigation) */
+  .navbar-sidebar .navbar-sidebar__items .menu {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  .navbar-sidebar .navbar-sidebar__items .menu__list {
+    display: block !important;
+    padding-left: 0;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .navbar-sidebar .navbar-sidebar__items .menu__list-item {
+    display: block !important;
+  }
+
+  .navbar-sidebar .navbar-sidebar__items .menu__link {
+    display: flex !important;
+    padding: 0.75rem 1rem !important;
+    color: var(--ductape-text) !important;
+  }
+
+  /* Navbar sidebar brand area */
+  .navbar-sidebar__brand {
+    padding: 0.5rem 1rem !important;
+    border-bottom: 1px solid var(--ductape-border) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  /* Hide "Back to main menu" button in navbar sidebar */
+  .navbar-sidebar__back {
+    display: none !important;
+  }
+
+  /* Primary and secondary items in navbar sidebar */
+  .navbar-sidebar__items--show-secondary {
+    transform: translateX(0) !important;
+  }
+
+  .navbar-sidebar__item {
+    display: block !important;
+  }
+
+  /* Ensure all navbar sidebar content is visible */
+  .navbar-sidebar__items {
+    display: block !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    max-height: calc(100vh - 60px) !important;
   }
 }
 
@@ -1759,4 +2110,56 @@ a {
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;
   transition-duration: 0.15s;
   transition-timing-function: ease;
+}
+
+/* ===== MOBILE SIDEBAR GLOBAL FIX ===== */
+/* Ensure navbar-sidebar is properly shown when toggled */
+@media (max-width: 996px) {
+  /* When navbar sidebar is shown, make sure it's visible */
+  html.navbar-sidebar--show .navbar-sidebar,
+  body.navbar-sidebar--show .navbar-sidebar,
+  .navbar-sidebar--show .navbar-sidebar,
+  [class*='navbarSidebar'][class*='show'],
+  [class*='navbarSidebarShow'] {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+  }
+
+  /* Ensure the backdrop shows */
+  html.navbar-sidebar--show .navbar-sidebar__backdrop,
+  body.navbar-sidebar--show .navbar-sidebar__backdrop,
+  .navbar-sidebar--show .navbar-sidebar__backdrop {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  /* Make sure menu items in navbar sidebar are visible */
+  .navbar-sidebar .menu,
+  .navbar-sidebar [class*='menu'],
+  .navbar-sidebar__items .menu {
+    display: block !important;
+    visibility: visible !important;
+    max-height: none !important;
+  }
+
+  /* Ensure doc sidebar menu items show in mobile nav */
+  .navbar-sidebar [class*='sidebar'] .menu,
+  .navbar-sidebar [class*='docSidebar'] {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Fix for hidden doc sidebar content */
+  [class*='docSidebarContainer'][class*='Hidden'],
+  [class*='sidebarViewport'][class*='hidden'] {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    height: auto !important;
+    width: 100% !important;
+    transform: none !important;
+  }
 }

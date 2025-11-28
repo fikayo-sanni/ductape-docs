@@ -4,7 +4,27 @@ sidebar_position: 2
 
 # Running Actions
 
-Call any API endpoint from your connected apps using `ductape.action.run()`.
+Once you have Actions imported into an App, you can execute them using `ductape.action.run()`. This function handles authentication, environment switching, and request formatting automatically.
+
+## Prerequisites
+
+Before running Actions, ensure you have:
+
+1. The Ductape SDK installed and initialized
+2. An App with imported Actions
+3. A Product that connects to the App
+
+```ts
+import Ductape from 'ductape-sdk';
+
+const ductape = new Ductape({
+  workspace_id: 'your-workspace-id',
+  user_id: 'your-user-id',
+  public_key: 'your-public-key',
+  token: 'your-token',
+  env_type: 'development',
+});
+```
 
 ## Quick Example
 

@@ -15,33 +15,24 @@ const sidebars: SidebarsConfig = {
         'apps/getting-started',
         'apps/create-app',
         'apps/import-actions',
-        'apps/update-action',
         'apps/authentication',
         'apps/environments',
         'apps/constants-variables',
-        'apps/update-validation',
         'apps/app-instance',
-        {
-          type: 'category',
-          label: 'Webhooks',
-          items: [
-            'apps/webhooks/webhooks',
-            'apps/webhooks/webhook-events',
-            'apps/webhooks/setup',
-          ],
-        },
-        'apps/healthchecks',
         'apps/product-environments',
       ],
     },
 
-    // Actions - Running App Actions
+    // Actions - Working with Actions
     {
       type: 'category',
       label: 'Actions',
       collapsed: true,
       items: [
+        'actions/overview',
         'actions/run-actions',
+        'actions/managing-actions',
+        'actions/validation',
       ],
     },
 
@@ -108,6 +99,18 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
+    // Webhooks
+    {
+      type: 'category',
+      label: 'Webhooks',
+      collapsed: true,
+      items: [
+        'apps/webhooks/webhooks',
+        'apps/webhooks/webhook-events',
+        'apps/webhooks/setup',
+      ],
+    },
+
     // Storage
     {
       type: 'category',
@@ -148,6 +151,16 @@ const sidebars: SidebarsConfig = {
       items: [
         'jobs/overview',
         'jobs/use',
+      ],
+    },
+
+    // Healthchecks
+    {
+      type: 'category',
+      label: 'Healthchecks',
+      collapsed: true,
+      items: [
+        'apps/healthchecks',
       ],
     },
 
@@ -203,6 +216,18 @@ const sidebars: SidebarsConfig = {
         'caching/overview',
         'caching/setup',
         'caching/values',
+      ],
+    },
+
+    // Secrets
+    {
+      type: 'category',
+      label: 'Secrets',
+      collapsed: true,
+      items: [
+        'secrets/overview',
+        'secrets/managing-secrets',
+        'secrets/using-secrets',
       ],
     },
 
