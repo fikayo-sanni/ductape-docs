@@ -1864,7 +1864,7 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
     height: 100vh !important;
     background-color: var(--ductape-bg) !important;
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
-    z-index: 1001 !important;
+    z-index: 1002 !important;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     overflow-y: auto !important;
@@ -1881,16 +1881,22 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     background-color: rgba(0, 0, 0, 0.5) !important;
     z-index: 999 !important;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+    display: none !important;
+    cursor: pointer !important;
+    transition: opacity 0.3s ease !important;
   }
 
-  .navbar-sidebar--show .navbar-sidebar__backdrop {
-    opacity: 1;
-    visibility: visible;
+  /* Main content wrapper - ensure lower z-index than backdrop */
+  .main-wrapper,
+  main[class*='docMainContainer'],
+  [class*='docPage'],
+  .container {
+    position: relative;
+    z-index: 1;
   }
 
   /* Hamburger toggle button - ensure visible */
@@ -1904,7 +1910,8 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
     background: transparent;
     border: none;
     cursor: pointer;
-    z-index: 1002;
+    z-index: 1003;
+    position: relative;
   }
 
   .navbar__toggle svg {
