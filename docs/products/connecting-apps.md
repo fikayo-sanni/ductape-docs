@@ -37,7 +37,7 @@ After connecting, add environment-specific configuration:
 ```typescript
 await ductape.product.app.add({
   access_tag: 'stripe-payments',
-  app_tag: 'stripe',
+  app: 'stripe',
   envs: [
     {
       slug: 'prd',
@@ -60,7 +60,7 @@ await ductape.product.app.add({
 | Field | Type | Description |
 |-------|------|-------------|
 | `access_tag` | string | Unique identifier for this app instance |
-| `app_tag` | string | The base app tag |
+| `app` | string | The base app tag |
 | `envs` | array | Environment-specific configurations |
 
 ### Environment Fields
@@ -79,7 +79,7 @@ await ductape.product.app.add({
 const apps = await ductape.product.app.fetchAll();
 
 apps.forEach(app => {
-  console.log(`${app.access_tag} (${app.app_tag})`);
+  console.log(`${app.access_tag} (${app.app})`);
   console.log(`Environments: ${app.envs.map(e => e.slug).join(', ')}`);
 });
 ```
@@ -123,7 +123,7 @@ async function setupProductApps() {
   await ductape.product.app.connect('stripe');
   await ductape.product.app.add({
     access_tag: 'stripe-payments',
-    app_tag: 'stripe',
+    app: 'stripe',
     envs: [
       {
         slug: 'prd',
@@ -144,7 +144,7 @@ async function setupProductApps() {
   await ductape.product.app.connect('sendgrid');
   await ductape.product.app.add({
     access_tag: 'sendgrid-email',
-    app_tag: 'sendgrid',
+    app: 'sendgrid',
     envs: [
       {
         slug: 'prd',
@@ -165,7 +165,7 @@ async function setupProductApps() {
   await ductape.product.app.connect('twilio');
   await ductape.product.app.add({
     access_tag: 'twilio-sms',
-    app_tag: 'twilio',
+    app: 'twilio',
     envs: [
       {
         slug: 'prd',
@@ -219,7 +219,7 @@ You can connect the same app multiple times with different configurations:
 await ductape.product.app.connect('stripe');
 await ductape.product.app.add({
   access_tag: 'stripe-us',
-  app_tag: 'stripe',
+  app: 'stripe',
   envs: [/* US config */],
 });
 
@@ -227,7 +227,7 @@ await ductape.product.app.add({
 await ductape.product.app.connect('stripe');
 await ductape.product.app.add({
   access_tag: 'stripe-eu',
-  app_tag: 'stripe',
+  app: 'stripe',
   envs: [/* EU config */],
 });
 ```

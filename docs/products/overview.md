@@ -131,7 +131,7 @@ await ductape.product.app.connect('stripe');
 // Add app configuration
 await ductape.product.app.add({
   access_tag: 'stripe-payments',
-  app_tag: 'stripe',
+  app: 'stripe',
   envs: [],
 });
 ```

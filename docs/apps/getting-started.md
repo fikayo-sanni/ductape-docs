@@ -89,7 +89,7 @@ const file = fs.readFileSync('./stripe-api.postman_collection.json');
 await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
-  appTag: 'stripe-payments',
+  app: 'stripe-payments',
 });
 
 console.log('Actions imported successfully');
@@ -112,7 +112,7 @@ You can also create a new App directly from your API documentation:
 await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
-  // Omit appTag to create a new app
+  // Omit app to create a new app
 });
 ```
 
@@ -122,7 +122,7 @@ Set up authentication so your App can make authenticated API calls:
 
 ```ts
 await ductape.auth.create({
-  appTag: 'stripe-payments',
+  app: 'stripe-payments',
   type: 'api_key',
   config: {
     header_name: 'Authorization',
@@ -156,7 +156,7 @@ Configure environment-specific settings like base URLs:
 
 ```ts
 await ductape.app.environment.create({
-  appTag: 'stripe-payments',
+  app: 'stripe-payments',
   envs: [
     {
       slug: 'dev',
@@ -184,8 +184,8 @@ With your App configured, you can now call any imported action:
 ```ts
 // Call the "create-charge" action from your Stripe app
 const result = await ductape.action.run({
-  appTag: 'stripe-payments',
-  actionTag: 'create-charge',
+  app: 'stripe-payments',
+  event: 'create-charge',
   env: 'dev',
   input: {
     amount: 2000, // $20.00
@@ -227,12 +227,12 @@ async function main() {
   await ductape.action.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
-    appTag: 'sendgrid',
+    app: 'sendgrid',
   });
 
   // Configure authentication
   await ductape.auth.create({
-    appTag: 'sendgrid',
+    app: 'sendgrid',
     type: 'bearer',
     envs: [
       { slug: 'dev', value: 'SG.test_api_key' },
@@ -242,7 +242,7 @@ async function main() {
 
   // Set up environments
   await ductape.app.environment.create({
-    appTag: 'sendgrid',
+    app: 'sendgrid',
     envs: [
       { slug: 'dev', base_url: 'https://api.sendgrid.com/v3' },
       { slug: 'prd', base_url: 'https://api.sendgrid.com/v3' },
@@ -251,8 +251,8 @@ async function main() {
 
   // Send an email using the imported action
   const result = await ductape.action.run({
-    appTag: 'sendgrid',
-    actionTag: 'send-email',
+    app: 'sendgrid',
+    event: 'send-email',
     env: 'dev',
     input: {
       personalizations: [

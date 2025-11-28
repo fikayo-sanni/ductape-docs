@@ -23,7 +23,7 @@ const ductape = new Ductape({
 });
 
 // Set the app context
-await ductape.app.init({ appTag: 'my-app' });
+await ductape.app.init({ app: 'my-app' });
 ```
 
 ## Fetching Actions

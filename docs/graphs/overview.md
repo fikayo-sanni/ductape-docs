@@ -1,10 +1,19 @@
 ---
-sidebar_position: 1
+sidebar_position: 8
 ---
 
-# Graph Databases
+# API Reference
 
-Ductape provides a unified interface for working with graph databases including Neo4j, AWS Neptune, ArangoDB, and Memgraph. Define connections once, and work with nodes, relationships, and traversals across any provider.
+Complete API reference for Ductape's graph database operations. This page provides a comprehensive overview of all available methods and their parameters.
+
+For detailed guides and examples, see:
+- [Getting Started](./getting-started) - Quick start guide
+- [Working with Nodes](./nodes) - Node operations
+- [Relationships](./relationships) - Managing connections
+- [Traversals & Pathfinding](./traversals) - Graph exploration
+- [Indexes & Constraints](./indexing) - Performance optimization
+- [Transactions](./transactions) - Data consistency
+- [Best Practices](./best-practices) - Optimization patterns
 
 ## Install the SDK
 

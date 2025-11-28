@@ -10,7 +10,7 @@ Initializing the app retrieves the application instance, enabling interaction in
 
 ```typescript
 // Fetch the app instance by its tag for further interaction
-await ductape.app.init(appTag);
+await ductape.app.init(app);
 
 ```
 Once initialized, the `productBuilder` instance becomes accessible, exposing various management interfaces.
@@ -41,10 +41,10 @@ Manage application constants:
 
 Import actions into the application:
 
-- `import({ file, type, appTag?, updateIfExists? })`: Imports actions from a file.
+- `import({ file, type, app?, updateIfExists? })`: Imports actions from a file.
   - `file`: The file buffer containing action definitions.
   - `type`: The type of import (e.g., JSON, YAML).
-  - `appTag`: (Optional) The tag of the app to associate with the actions.
+  - `app`: (Optional) The tag of the app to associate with the actions.
   - `updateIfExists`: (Optional) If `true`, updates existing actions instead of rejecting the import.
 
 ### Authentications

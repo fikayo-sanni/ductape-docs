@@ -63,7 +63,7 @@ const file = fs.readFileSync('./api.postman_collection.json');
 await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
-  appTag: 'my-app',
+  app: 'my-app',
 });
 
 console.log('Actions imported successfully');
@@ -71,7 +71,7 @@ console.log('Actions imported successfully');
 
 ### Create a New App and Import
 
-Omit the `appTag` to create a new App from the collection:
+Omit the `app` to create a new App from the collection:
 
 ```ts
 await ductape.action.import({
@@ -95,7 +95,7 @@ Before running Actions, you can list all available Actions in an App:
 
 ```ts
 // Set the app context
-await ductape.app.init({ appTag: 'stripe-payments' });
+await ductape.app.init({ app: 'stripe-payments' });
 
 // Fetch all actions
 const actions = await ductape.action.fetchAll();
@@ -200,11 +200,11 @@ async function main() {
   await ductape.action.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
-    appTag: 'my-api',
+    app: 'my-api',
   });
 
   // List all imported Actions
-  await ductape.app.init({ appTag: 'my-api' });
+  await ductape.app.init({ app: 'my-api' });
   const actions = await ductape.action.fetchAll();
   console.log(`Imported ${actions.length} actions`);
 
