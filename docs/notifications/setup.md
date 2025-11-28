@@ -8,7 +8,7 @@ In Ductape, you can set up **credentials for each Environment**. This means your
 
 ## Example: Creating a Notification Environment
 ```typescript
-await ductape.product.notifications.create({
+await ductape.notification.create({
   name: "Notify Users",
   tag: "notify-users",
   description: "Create Notifications",

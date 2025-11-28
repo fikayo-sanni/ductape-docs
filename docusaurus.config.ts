@@ -43,14 +43,22 @@ const config: Config = {
     ],
   ],
 
-  plugins: [
+  plugins: [],
+
+  themes: [
     [
-      '@easyops-cn/docusaurus-search-local',
+      require.resolve('@cmfcmf/docusaurus-search-local'),
       {
-        hashed: true,
-        docsRouteBasePath: '/',
-        highlightSearchTermsOnTargetPage: true,
-        searchResultLimits: 8,
+        // Index all pages and docs
+        indexDocs: true,
+        indexPages: true,
+        indexBlog: false,
+
+        // Customization options
+        maxSearchResults: 8,
+
+        // Styling
+        style: undefined, // We'll use custom CSS
       },
     ],
   ],

@@ -11,7 +11,7 @@ Environments enable seamless development workflows when building products. Ducta
 ## Creating an App Environment
 
 ```ts
-import { DataFormats } from "ductape-sdk/types";
+import { DataFormats } from "@ductape/sdk/types";
 
 const data = {
   env_name: "develop",
@@ -22,7 +22,7 @@ const data = {
   request_type: DataFormats.JSON
 };
 
-const environments = await ductape.app.environments.create(data);
+const environments = await ductape.app.environment.create(data);
 ```
 
 ### Required Fields
@@ -47,7 +47,7 @@ const environments = await ductape.app.environments.create(data);
 ## Updating an App Environment
 
 ```ts
-import { DataFormats } from "ductape-sdk/types";
+import { DataFormats } from "@ductape/sdk/types";
 
 const slug = "prd";
 
@@ -59,20 +59,20 @@ const data = {
   request_type: DataFormats.JSON
 };
 
-const environments = await ductape.app.environments.update(slug, data);
+const environments = await ductape.app.environment.update(slug, data);
 ```
 
 ## Fetching Environments
 
 ```ts
-const environments = await ductape.app.environments.fetchAll();
+const environments = await ductape.app.environment.fetchAll();
 ```
 
 ## Fetching a Single Environment
 
 ```ts
 const slug = "prd";
-const environment = await ductape.app.environments.fetch(slug);
+const environment = await ductape.app.environment.fetch(slug);
 ```
 
 ## See Also

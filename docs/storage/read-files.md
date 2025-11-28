@@ -14,7 +14,7 @@ const { buffer, fileName, mimeType } = await ductape.storage.read('path/to/file.
 // Use the result in a storage operation
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'upload_document',
   input: { buffer, fileName, mimeType }
 });
@@ -37,7 +37,7 @@ const file = await ductape.storage.read('invoices/invoice-001.pdf');
 
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   event: 'upload_invoice',
   input: {
     buffer: file.buffer,

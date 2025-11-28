@@ -14,7 +14,7 @@ const { buffer, fileName, mimeType } = await ductape.storage.read('path/to/file.
 
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'upload_file',
   input: {
     buffer,
@@ -27,7 +27,7 @@ await ductape.storage.run({
 ## How It Works
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **event** - The storage event tag to trigger
 4. **input** - File data (buffer, fileName, mimeType)
 
@@ -40,7 +40,7 @@ const { buffer, fileName, mimeType } = await ductape.storage.read('invoice.pdf')
 
 const result = await ductape.storage.run({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   event: 'upload_invoice',
   input: {
     buffer,
@@ -55,7 +55,7 @@ const result = await ductape.storage.run({
 ```ts
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'profiles',
+  product: 'profiles',
   event: 'upload_avatar',
   input: {
     buffer,
@@ -74,7 +74,7 @@ await ductape.storage.run({
 ```ts
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'documents',
+  product: 'documents',
   event: 'upload_document',
   input: {
     buffer,
@@ -90,7 +90,7 @@ await ductape.storage.run({
 ```ts
 await ductape.storage.run({
   env: 'prd',
-  product_tag: 'assets',
+  product: 'assets',
   event: 'upload_image',
   input: {
     buffer,
@@ -118,7 +118,7 @@ await ductape.storage.run({
 ```ts
 interface IStorageProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   event: string;
   input: IStorageRequest;
   session?: ISession;

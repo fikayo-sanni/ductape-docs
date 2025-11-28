@@ -8,12 +8,12 @@ Ductape allows you to handle webhook events efficiently. Each webhook serves as 
 
 ## Setting Up Webhook Events
 
-To create a webhook event in Ductape, use the `create` function from the `app.webhooks.events` interface.
+To create a webhook event in Ductape, use the `create` function from the `app.webhook.event` interface.
 
 ### Example
 
 ```ts
-const event = await ductape.app.webhooks.events.create({
+const event = await ductape.app.webhook.event.create({
   name: "New Event",
   tag: "new-webhook:new-event",
   description: "Notify customer of great things",
@@ -54,12 +54,12 @@ const event = await ductape.app.webhooks.events.create({
 
 ## Updating Webhook Events
 
-To update a webhook event, use the `update` function from the `app.webhooks.events` interface.
+To update a webhook event, use the `update` function from the `app.webhook.event` interface.
 
 ### Example
 
 ```ts
-const updatedEvent = await ductape.app.webhooks.events.update("new-webhook:new-event", {
+const updatedEvent = await ductape.app.webhook.event.update("new-webhook:new-event", {
   sample: {
     event: "new-transaction",
     transaction_id: "1229100110101-192920101",
@@ -76,7 +76,7 @@ To retrieve all events registered under a webhook, use the `fetchAll` function.
 ### Example
 
 ```ts
-const events = await ductape.app.webhooks.events.fetchAll("new-webhook");
+const events = await ductape.app.webhook.event.fetchAll("new-webhook");
 ```
 
 ## Fetching a Single Webhook Event
@@ -86,7 +86,7 @@ To retrieve a specific webhook event, use the `fetch` function, passing the even
 ### Example
 
 ```ts
-const event = await ductape.app.webhooks.events.fetch("new-webhook:new-event");
+const event = await ductape.app.webhook.event.fetch("new-webhook:new-event");
 ```
 
 ## See Also

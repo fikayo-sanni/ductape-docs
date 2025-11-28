@@ -35,7 +35,7 @@ Before you begin, make sure you have:
 Install the Ductape SDK in your project:
 
 ```bash
-npm install ductape-sdk
+npm install @ductape/sdk
 ```
 
 ## Step 2: Initialize the SDK
@@ -43,14 +43,12 @@ npm install ductape-sdk
 Set up the Ductape SDK with your credentials:
 
 ```ts
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-private-key',
 });
 ```
 
@@ -81,14 +79,14 @@ console.log('Created app:', app.tag);
 Actions are the individual endpoints your App can call. Import them from a Postman collection or OpenAPI spec:
 
 ```ts
-import { ImportDocTypes } from 'ductape-sdk/types';
+import { ImportDocTypes } from '@ductape/types';
 import fs from 'fs';
 
 // Read your Postman collection
 const file = fs.readFileSync('./stripe-api.postman_collection.json');
 
 // Import into your app
-await ductape.app.actions.import({
+await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
   appTag: 'stripe-payments',
@@ -111,7 +109,7 @@ You can also create a new App directly from your API documentation:
 
 ```ts
 // This creates a new app and imports all actions
-await ductape.app.actions.import({
+await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
   // Omit appTag to create a new app
@@ -123,7 +121,7 @@ await ductape.app.actions.import({
 Set up authentication so your App can make authenticated API calls:
 
 ```ts
-await ductape.app.auth.create({
+await ductape.auth.create({
   appTag: 'stripe-payments',
   type: 'api_key',
   config: {
@@ -157,7 +155,7 @@ await ductape.app.auth.create({
 Configure environment-specific settings like base URLs:
 
 ```ts
-await ductape.app.envs.create({
+await ductape.app.environment.create({
   appTag: 'stripe-payments',
   envs: [
     {
@@ -185,7 +183,7 @@ With your App configured, you can now call any imported action:
 
 ```ts
 // Call the "create-charge" action from your Stripe app
-const result = await ductape.app.actions.run({
+const result = await ductape.action.run({
   appTag: 'stripe-payments',
   actionTag: 'create-charge',
   env: 'dev',
@@ -205,8 +203,8 @@ console.log('Charge created:', result.data);
 Here's a complete example bringing it all together:
 
 ```ts
-import Ductape from 'ductape-sdk';
-import { ImportDocTypes } from 'ductape-sdk/types';
+import Ductape from '@ductape/sdk';
+import { ImportDocTypes } from '@ductape/types';
 import fs from 'fs';
 
 async function main() {
@@ -214,9 +212,7 @@ async function main() {
   const ductape = new Ductape({
     workspace_id: 'your-workspace-id',
     user_id: 'your-user-id',
-    public_key: 'your-public-key',
-    token: 'your-token',
-    env_type: 'development',
+    private_key: 'your-private-key',
   });
 
   // Create the app
@@ -228,14 +224,14 @@ async function main() {
 
   // Import actions from Postman collection
   const collection = fs.readFileSync('./sendgrid.postman_collection.json');
-  await ductape.app.actions.import({
+  await ductape.action.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
     appTag: 'sendgrid',
   });
 
   // Configure authentication
-  await ductape.app.auth.create({
+  await ductape.auth.create({
     appTag: 'sendgrid',
     type: 'bearer',
     envs: [
@@ -245,7 +241,7 @@ async function main() {
   });
 
   // Set up environments
-  await ductape.app.envs.create({
+  await ductape.app.environment.create({
     appTag: 'sendgrid',
     envs: [
       { slug: 'dev', base_url: 'https://api.sendgrid.com/v3' },
@@ -254,7 +250,7 @@ async function main() {
   });
 
   // Send an email using the imported action
-  const result = await ductape.app.actions.run({
+  const result = await ductape.action.run({
     appTag: 'sendgrid',
     actionTag: 'send-email',
     env: 'dev',

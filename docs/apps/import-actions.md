@@ -13,20 +13,20 @@ Actions are individual endpoints that perform specific functions (e.g., sending 
 ## Importing Actions into an Existing App
 
 ```ts
-import { ImportDocTypes } from "ductape-sdk/types"
+import { ImportDocTypes } from "@ductape/sdk/types"
 
 const file: Buffer = "" // file buffer or blob here
-const appTag = "app_tag"
-await ductape.app.actions.import({ file, type: ImportDocTypes.postmanV21, appTag });
+const appTag = "app"
+await ductape.action.import({ file, type: ImportDocTypes.postmanV21, appTag });
 ```
 
 ## Importing Actions and Creating a New App
 
 ```ts
-import { ImportDocTypes } from "ductape-sdk/types"
+import { ImportDocTypes } from "@ductape/sdk/types"
 
 const file: Buffer = "" // file buffer or blob here
-await ductape.app.actions.import({ file, type: ImportDocTypes.postmanV21 });
+await ductape.action.import({ file, type: ImportDocTypes.postmanV21 });
 ```
 
 ## See Also

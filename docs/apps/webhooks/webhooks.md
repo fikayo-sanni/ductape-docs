@@ -18,7 +18,7 @@ To create a webhook in Ductape, use the `create` function from the `app.webhooks
 ### Example: Users Register Directly with Ductape
 
 ```ts
-const webhook = await ductape.app.webhooks.create({
+const webhook = await ductape.app.webhook.create({
   name: "New Webhook",
   tag: "new-webhook",
   description: "New Webhook Description",
@@ -58,7 +58,7 @@ In this example, you provide the full registration flow details: the API URL, HT
 ### Example: Users Generate a Link and Supply It to a Dashboard
 
 ```ts
-const webhook = await ductape.app.webhooks.create({
+const webhook = await ductape.app.webhook.create({
   name: "New Webhook",
   tag: "new-webhook",
   description: "New Webhook Description",
@@ -74,7 +74,7 @@ In this case, you only provide the environment slugs. Ductape will generate a we
 **Note:** You can mix both methods. The example below is valid and combines both approaches:
 
 ```ts
-const webhook = await ductape.app.webhooks.create({
+const webhook = await ductape.app.webhook.create({
   name: "New Webhook",
   tag: "new-webhook",
   description: "New Webhook Description",
@@ -131,7 +131,7 @@ To update an existing webhook, use the `update` function from the `app.webhooks`
 ### Example
 
 ```ts
-const updatedWebhook = await ductape.app.webhooks.update("new-webhook", {
+const updatedWebhook = await ductape.app.webhook.update("new-webhook", {
   envs: [
     {
       slug: "prd",
@@ -155,7 +155,7 @@ const updatedWebhook = await ductape.app.webhooks.update("new-webhook", {
 To retrieve all webhooks associated with your app, use the `fetchAll` function:
 
 ```ts
-const webhooks = await ductape.app.webhooks.fetchAll();
+const webhooks = await ductape.app.webhook.fetchAll();
 ```
 
 ## Fetching a Single Webhook
@@ -163,7 +163,7 @@ const webhooks = await ductape.app.webhooks.fetchAll();
 To retrieve a specific webhook, use the `fetch` function and pass the webhook's tag:
 
 ```ts
-const webhook = await ductape.app.webhooks.fetch("new-webhook");
+const webhook = await ductape.app.webhook.fetch("new-webhook");
 ```
 
 ## See Also

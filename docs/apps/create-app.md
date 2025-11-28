@@ -23,7 +23,7 @@ const product = await ductape.app.create(details)
 To update an app, use the app builder interface's `update` function:
 
 ```ts
-const tag = "app_tag";
+const tag = "app";
 
 const details = {
     description: "You can add a product description here",
@@ -38,7 +38,7 @@ const product = await ductape.app.update(tag, details)
 To fetch an app by tag, use the app builder interface's `fetch` function:
 
 ```ts
-const tag = "app_tag";
+const tag = "app";
 
 const product = await ductape.app.fetch(tag)
 ```

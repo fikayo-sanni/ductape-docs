@@ -11,7 +11,7 @@ Configure cloud storage providers for file uploads and downloads.
 ```ts
 import { StorageProviders } from '@ductape/types';
 
-await ductape.product.storage.create({
+await ductape.storage.create({
   name: 'Primary Storage',
   tag: 'primary-storage',
   envs: [
@@ -42,7 +42,7 @@ await ductape.product.storage.create({
 Configure different providers per environment:
 
 ```ts
-await ductape.product.storage.create({
+await ductape.storage.create({
   name: 'App Storage',
   tag: 'app-storage',
   envs: [
@@ -63,7 +63,7 @@ await ductape.product.storage.create({
 ## Updating Storage
 
 ```ts
-await ductape.product.storage.update('app-storage', {
+await ductape.storage.update('app-storage', {
   envs: [
     {
       slug: 'prd',
@@ -78,10 +78,10 @@ await ductape.product.storage.update('app-storage', {
 
 ```ts
 // Get all storage providers
-const providers = await ductape.product.storage.fetchAll();
+const providers = await ductape.storage.fetchAll();
 
 // Get specific provider
-const provider = await ductape.product.storage.fetch('app-storage');
+const provider = await ductape.storage.fetch('app-storage');
 ```
 
 ## Key Points

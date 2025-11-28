@@ -3,7 +3,244 @@ sidebar_position: 1
 ---
 # Understanding Operators
 
-Ductape Operators are powerful string and array manipulation tools designed to provide flexible data transformation capabilities. Below is the detailed documentation for each available operator, including usage, examples, and explanations.
+## What Are Operators?
+
+Operators in Ductape are built-in data transformation functions that enable you to manipulate, format, and combine data within your workflows. They are a core part of Ductape's **declarative data referencing system**, allowing you to transform data without writing custom code.
+
+## Ductape's Data Referencing Philosophy
+
+Ductape uses a **string-based placeholder syntax** for referencing and transforming data. Instead of writing JavaScript functions or imperative code, you declare what data you want and how to transform it using special placeholders and operators.
+
+### Why String-Based Placeholders?
+
+This approach provides several key benefits:
+
+1. **Platform Independence** - Your workflows are defined as pure data structures (JSON), not executable code. This makes them:
+   - Portable across different environments
+   - Easily serializable and storable in databases
+   - Inspectable and analyzable without code execution
+   - Versionable and diffable as configuration
+
+2. **Security** - No arbitrary code execution means:
+   - No risk of code injection attacks
+   - Controlled transformation operations
+   - Safe to store user-defined workflows
+   - Auditable data transformations
+
+3. **Predictability** - String-based transformations are:
+   - Deterministic and testable
+   - Easy to debug and trace
+   - Cacheable and optimizable
+   - Simple to understand at a glance
+
+4. **Visual Tooling** - String syntax enables:
+   - Visual workflow builders
+   - Auto-completion in configuration
+   - Validation before execution
+   - Clear documentation of data flow
+
+### The Data Reference System
+
+Ductape provides multiple ways to reference data within your workflows:
+
+| Reference Type | Syntax | Purpose | Example |
+|----------------|--------|---------|---------|
+| **Input** | `$Input{field}` | Access feature input values | `$Input{email}` |
+| **Sequence** | `$Sequence{seq}{event}{field}` | Get results from previous events | `$Sequence{main}{create-user}{id}` |
+| **Variable** | `$Variable{app}{key}` | Access app-level variables | `$Variable{stripe}{api_version}` |
+| **Constant** | `$Constant{app}{key}` | Access app constants | `$Constant{config}{currency}` |
+| **Session** | `$Session{tag}{field}` | Get session data | `$Session{user}{name}` |
+| **Response** | `$Response{field}` | Access current action response | `$Response{id}` |
+| **Token** | `$Token{key}` | Access workspace secrets | `$Token{api_key}` |
+| **Auth** | `$Auth{field}` | Access app authentication data | `$Auth{access_token}` |
+| **Default** | `$Default` | Provide default/fallback values | `$Default` |
+| **Size** | `$Size{reference}` | Get size of object (number of keys) | `$Size{$Input{user}}` |
+| **Length** | `$Length{reference}` | Get length of array or string | `$Length{$Input{items}}` |
+
+### How Operators Fit In
+
+Operators extend this reference system by providing **transformation capabilities**. You can wrap any data reference with operators to manipulate the data:
+
+```typescript
+// Basic reference
+email: '$Input{email}'
+
+// With operator transformation
+emailUpper: '$Uppercase($Input{email})'
+
+// Multiple operators
+fullName: '$Trim($Concat([$Input{firstName}, $Input{lastName}], " "))'
+
+// Complex nesting with sequences
+userId: '$Substring($Sequence{main}{create-user}{id}, 0, 8)'
+```
+
+## When to Use Operators
+
+Use operators when you need to:
+
+- **Format data** - Convert dates, change case, trim whitespace
+- **Combine values** - Join strings, merge arrays, concatenate data
+- **Extract portions** - Get substrings, pick array elements, filter lists
+- **Calculate values** - Add numbers, perform arithmetic
+- **Transform responses** - Shape API responses to match your needs
+
+## Practical Examples
+
+### Example 1: User Registration with Formatting
+
+```typescript
+await ductape.feature.create({
+  tag: 'register-user',
+  name: 'User Registration',
+  input: {
+    firstName: { type: DataTypes.STRING },
+    lastName: { type: DataTypes.STRING },
+    email: { type: DataTypes.STRING },
+  },
+  events: [
+    {
+      type: FeatureEventTypes.ACTION,
+      event: 'create-user',
+      app: 'user-service',
+      input: {
+        // Combine and trim names
+        fullName: '$Trim($Concat([$Input{firstName}, $Input{lastName}], " "))',
+        // Normalize email to lowercase
+        email: '$Lowercase($Trim($Input{email}))',
+      },
+    },
+  ],
+  output: {
+    userId: '$Sequence{main}{create-user}{id}',
+    displayName: '$Uppercase($Pick($Input{firstName}, 0))$Substring($Input{firstName}, 1)',
+  },
+});
+```
+
+### Example 2: Processing Payment Data
+
+```typescript
+{
+  // Add fees to payment amount
+  totalAmount: '$Add($Input{amount}, $Input{processingFee})',
+
+  // Format date for display
+  createdDate: '$Dateformat($Sequence{main}{create-charge}{created}, "DD/MM/YYYY")',
+
+  // Extract last 4 digits of card
+  cardLast4: '$Substring($Sequence{main}{get-card}{number}, -4)',
+
+  // Filter completed transactions
+  completedTransactions: '$Filter($Sequence{main}{fetch-transactions}{data}, "==", "completed")',
+}
+```
+
+### Example 3: Data Aggregation
+
+```typescript
+{
+  // Join multiple result arrays
+  allOrders: '$Join([$Sequence{main}{fetch-pending}{data}, $Sequence{main}{fetch-completed}{data}])',
+
+  // Get first matching order
+  targetOrder: '$Find($Sequence{main}{fetch-orders}{data}, "==", $Input{orderId})',
+
+  // Calculate total with discounts
+  finalTotal: '$Subtract($Input{subtotal}, $Input{discount}, $Input{couponValue})',
+}
+```
+
+### Example 4: Using Secrets, App Auth, and Utility References
+
+```typescript
+{
+  // Access workspace secrets and app authentication
+  apiKey: '$Token{stripe_api_key}',                 // Workspace secret
+  appToken: '$Auth{access_token}',                   // App authentication
+
+  // Check object size and array/string length
+  userFieldCount: '$Size{$Input{userData}}',        // Number of keys in userData object
+  itemCount: '$Length{$Input{items}}',              // Length of items array
+  nameLength: '$Length{$Input{username}}',          // Length of username string
+
+  // Use size/length in conditional logic
+  hasUserData: '$Filter([$Size{$Input{userData}}], ">", 0)',
+  hasItems: '$Filter([$Length{$Input{items}}], ">", 0)',
+
+  // Build authorization header
+  authHeader: '$Concat(["Bearer ", $Auth{access_token}], "")',
+
+  // Validate input length
+  isValidUsername: '$Filter([$Length{$Input{username}}], ">=", 3)',
+}
+```
+
+### Example 5: Using Secrets and App Auth in Workflows
+
+```typescript
+await ductape.feature.create({
+  tag: 'call-external-api',
+  name: 'Call External API with Authentication',
+  input: {
+    endpoint: { type: DataTypes.STRING },
+    data: { type: DataTypes.OBJECT },
+  },
+  events: [
+    {
+      type: FeatureEventTypes.ACTION,
+      event: 'http-request',
+      app: 'http-client',
+      input: {
+        url: '$Input{endpoint}',
+        headers: {
+          'Authorization': '$Concat(["Bearer ", $Token{api_secret}], "")',     // Workspace secret
+          'X-App-Token': '$Auth{access_token}',                                 // App authentication
+        },
+        body: '$Input{data}',
+      },
+    },
+  ],
+  output: {
+    responseId: '$Sequence{main}{http-request}{id}',
+    status: '$Sequence{main}{http-request}{status}',
+    authenticated: '$Auth{access_token}',
+  },
+});
+```
+
+## Operators vs. Custom Code
+
+Unlike traditional backends where you'd write JavaScript functions:
+
+```javascript
+// Traditional approach (NOT how Ductape works)
+const fullName = user.firstName.trim() + ' ' + user.lastName.trim();
+const email = user.email.toLowerCase().trim();
+```
+
+Ductape uses declarative operators:
+
+```typescript
+// Ductape approach
+{
+  fullName: '$Trim($Concat([$Input{firstName}, $Input{lastName}], " "))',
+  email: '$Lowercase($Trim($Input{email}))'
+}
+```
+
+This declarative approach means:
+- Your transformations are configuration, not code
+- Workflows can be stored, versioned, and migrated easily
+- Visual tools can understand and edit your logic
+- No deployment needed to change transformations
+- Built-in validation and type safety
+
+---
+
+## Available Operators
+
+Below is the complete reference for all available operators in Ductape
 
 ## 1. $Add
 

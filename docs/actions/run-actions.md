@@ -15,14 +15,12 @@ Before running Actions, ensure you have:
 3. A Product that connects to the App
 
 ```ts
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-public-key',
 });
 ```
 
@@ -31,7 +29,7 @@ const ductape = new Ductape({
 ```ts
 const result = await ductape.action.run({
   env: 'dev',
-  product_tag: 'my-product',
+  product: 'my-product',
   app: 'stripe-app',
   event: 'create_customer',
   input: {
@@ -48,7 +46,7 @@ console.log(result); // { id: 'cus_xxx', email: 'john@example.com', ... }
 ## How It Works
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **app** - The connected app's access tag (e.g., `stripe-app`, `twilio-app`)
 4. **event** - The action you want to trigger (e.g., `create_customer`, `send_sms`)
 5. **input** - The data to send (body, query params, headers, route params)
@@ -60,7 +58,7 @@ console.log(result); // { id: 'cus_xxx', email: 'john@example.com', ... }
 ```ts
 await ductape.action.run({
   env: 'prd',
-  product_tag: 'payments',
+  product: 'payments',
   app: 'stripe',
   event: 'create_payment_intent',
   input: {
@@ -78,7 +76,7 @@ await ductape.action.run({
 ```ts
 await ductape.action.run({
   env: 'dev',
-  product_tag: 'crm',
+  product: 'crm',
   app: 'hubspot',
   event: 'search_contacts',
   input: {
@@ -95,7 +93,7 @@ await ductape.action.run({
 ```ts
 await ductape.action.run({
   env: 'dev',
-  product_tag: 'inventory',
+  product: 'inventory',
   app: 'shopify',
   event: 'get_product',
   input: {
@@ -111,7 +109,7 @@ await ductape.action.run({
 ```ts
 await ductape.action.run({
   env: 'prd',
-  product_tag: 'api-gateway',
+  product: 'api-gateway',
   app: 'internal-api',
   event: 'fetch_user',
   input: {
@@ -130,7 +128,7 @@ Use sessions to inject user-specific data dynamically:
 ```ts
 await ductape.action.run({
   env: 'prd',
-  product_tag: 'dashboard',
+  product: 'dashboard',
   app: 'analytics',
   event: 'get_user_stats',
   input: {
@@ -148,7 +146,7 @@ await ductape.action.run({
 ```ts
 await ductape.action.run({
   env: 'prd',
-  product_tag: 'catalog',
+  product: 'catalog',
   app: 'products-api',
   event: 'list_products',
   input: {
@@ -176,7 +174,7 @@ await ductape.action.run({
 ```ts
 interface IActionProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   app: string;
   event: string;
   input: IActionRequest;

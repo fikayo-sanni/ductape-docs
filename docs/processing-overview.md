@@ -12,12 +12,18 @@ Think of it as the bridge between your code and where it actually runs. It ensur
 The Ductape SDK provides direct access to processor methods at the root level for most operations:
 
 ```typescript
-import { ductape } from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  workspace_id: 'your-workspace-id',
+  user_id: 'your-user-id',
+  private_key: 'your-private-key',
+});
 
 // Most processor methods are available directly on ductape
 await ductape.action.run({ ... });
 await ductape.storage.run({ ... });
-await ductape.sessions.create({ ... });
+await ductape.sessions.start({ ... });
 
 // Database operations
 await ductape.database.execute({ ... });
@@ -32,8 +38,8 @@ The SDK exposes methods for managing different types of product resources:
 - **Features**: Run product features (`ductape.feature.run`)
 - **Notifications**: Send notifications (`ductape.notification.send`)
 - **Storage**: Manage storage (`ductape.storage.run`)
-- **Message Brokers**: Publish/subscribe to message queues (`ductape.messageBroker.publish`, `ductape.messageBroker.subscribe`)
-- **Sessions**: Create, validate, and refresh sessions (`ductape.sessions.create`, `ductape.sessions.validate`, `ductape.sessions.refresh`)
+- **Message Brokers**: Publish/subscribe to message queues (`ductape.broker.publish`, `ductape.broker.subscribe`)
+- **Sessions**: Create, validate, and refresh sessions (`ductape.sessions.start`, `ductape.sessions.validate`, `ductape.sessions.refresh`)
 - **Jobs**: Schedule background jobs (`ductape.job.schedule`)
 - **Quotas**: Run quota checks (`ductape.quota.run`)
 - **Fallbacks**: Execute fallback logic (`ductape.fallback.run`)
@@ -41,12 +47,18 @@ The SDK exposes methods for managing different types of product resources:
 ## Example: Running an Action
 
 ```typescript
-import { ductape } from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  workspace_id: 'your-workspace-id',
+  user_id: 'your-user-id',
+  private_key: 'your-private-key',
+});
 
 // Run a product action directly
 const result = await ductape.action.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   app: 'email-service',
   event: 'send_welcome_email',
   input: {

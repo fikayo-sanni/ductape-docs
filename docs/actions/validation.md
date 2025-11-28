@@ -24,14 +24,12 @@ Before configuring validation, ensure you have:
 2. An App with imported Actions
 
 ```ts
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-public-key',
 });
 ```
 
@@ -94,7 +92,7 @@ await ductape.apps.validation('$Body{createUser}{user}{username}', {
 ### Example: Price Field with Decorator
 
 ```ts
-import { DecoratorPositions } from 'ductape-sdk/types';
+import { DecoratorPositions } from '@ductape/types';
 
 await ductape.apps.validation('$Body{createProduct}{product}{price}', {
   description: 'Price of the product in USD',
@@ -161,16 +159,14 @@ await ductape.apps.validation('$Params{getUser}{id}', {
 Here's a complete example setting up validation for a user registration Action:
 
 ```ts
-import Ductape from 'ductape-sdk';
-import { DecoratorPositions } from 'ductape-sdk/types';
+import Ductape from '@ductape/sdk';
+import { DecoratorPositions } from '@ductape/types';
 
 async function setupValidation() {
   const ductape = new Ductape({
     workspace_id: 'your-workspace-id',
     user_id: 'your-user-id',
-    public_key: 'your-public-key',
-    token: 'your-token',
-    env_type: 'development',
+    private_key: 'your-public-key',
   });
 
   // Username validation

@@ -14,14 +14,12 @@ Before managing Actions, ensure you have:
 2. An App with imported Actions
 
 ```ts
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-private-key',
 });
 
 // Set the app context
@@ -35,7 +33,7 @@ await ductape.app.init({ appTag: 'my-app' });
 Retrieve all Actions within the current App:
 
 ```ts
-const actions = await ductape.app.actions.fetchAll();
+const actions = await ductape.action.fetchAll();
 
 actions.forEach((action) => {
   console.log(`${action.name} (${action.tag})`);
@@ -50,7 +48,7 @@ actions.forEach((action) => {
 Get details about a single Action by its tag:
 
 ```ts
-const action = await ductape.app.actions.fetch('send-email');
+const action = await ductape.action.fetch('send-email');
 
 console.log('Action Details:');
 console.log('  Name:', action.name);
@@ -65,7 +63,7 @@ console.log('  Description:', action.description);
 Update an Action's configuration using the `update` function. You can modify the description, resource path, name, or HTTP method.
 
 ```ts
-const updatedAction = await ductape.app.actions.update('send-email', {
+const updatedAction = await ductape.action.update('send-email', {
   description: 'Send transactional emails via SendGrid API',
   resource: '/v3/mail/send',
   method: 'POST',
@@ -88,7 +86,7 @@ console.log('Updated:', updatedAction.tag);
 #### Update Description Only
 
 ```ts
-await ductape.app.actions.update('create-customer', {
+await ductape.action.update('create-customer', {
   description: 'Creates a new customer in the payment system',
 });
 ```
@@ -96,7 +94,7 @@ await ductape.app.actions.update('create-customer', {
 #### Update Endpoint Path
 
 ```ts
-await ductape.app.actions.update('list-products', {
+await ductape.action.update('list-products', {
   resource: '/api/v2/products',
 });
 ```
@@ -104,7 +102,7 @@ await ductape.app.actions.update('list-products', {
 #### Update HTTP Method
 
 ```ts
-await ductape.app.actions.update('update-user', {
+await ductape.action.update('update-user', {
   method: 'PATCH', // Changed from PUT to PATCH
 });
 ```
@@ -112,7 +110,7 @@ await ductape.app.actions.update('update-user', {
 #### Multiple Updates
 
 ```ts
-await ductape.app.actions.update('webhook-handler', {
+await ductape.action.update('webhook-handler', {
   name: 'Stripe Webhook Handler',
   description: 'Processes incoming Stripe webhook events',
   resource: '/webhooks/stripe',
@@ -128,12 +126,12 @@ Give Actions clear, action-oriented names:
 
 ```ts
 // Good
-await ductape.app.actions.update('send-email', {
+await ductape.action.update('send-email', {
   name: 'Send Transactional Email',
 });
 
 // Avoid
-await ductape.app.actions.update('send-email', {
+await ductape.action.update('send-email', {
   name: 'Email', // Too vague
 });
 ```
@@ -143,7 +141,7 @@ await ductape.app.actions.update('send-email', {
 Always add meaningful descriptions:
 
 ```ts
-await ductape.app.actions.update('charge-customer', {
+await ductape.action.update('charge-customer', {
   description: 'Charges the customer for a one-time payment. Requires a valid payment method attached to the customer.',
 });
 ```
@@ -154,7 +152,7 @@ When APIs change versions, update your resource paths:
 
 ```ts
 // Migrate to v2 API
-await ductape.app.actions.update('list-users', {
+await ductape.action.update('list-users', {
   resource: '/api/v2/users',
 });
 ```

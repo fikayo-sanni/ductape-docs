@@ -12,7 +12,7 @@ Enforce usage limits and track consumption using `ductape.quota.run()`.
 // Check if user has remaining API calls
 const result = await ductape.quota.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   quota_tag: 'api-requests',
   action: 'check'
 });
@@ -21,7 +21,7 @@ const result = await ductape.quota.run({
 ## How It Works
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **quota_tag** - The quota to check or update
 4. **action** - What to do: `check`, `increment`, or `reset`
 
@@ -32,7 +32,7 @@ const result = await ductape.quota.run({
 ```ts
 const quota = await ductape.quota.run({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   quota_tag: 'monthly-exports',
   action: 'check'
 });
@@ -43,7 +43,7 @@ const quota = await ductape.quota.run({
 ```ts
 await ductape.quota.run({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   quota_tag: 'api-requests',
   action: 'increment',
   amount: 1
@@ -55,7 +55,7 @@ await ductape.quota.run({
 ```ts
 await ductape.quota.run({
   env: 'prd',
-  product_tag: 'storage',
+  product: 'storage',
   quota_tag: 'storage-bytes',
   action: 'increment',
   amount: 1024 * 1024  // 1MB
@@ -67,7 +67,7 @@ await ductape.quota.run({
 ```ts
 await ductape.quota.run({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   quota_tag: 'monthly-exports',
   action: 'reset'
 });
@@ -78,7 +78,7 @@ await ductape.quota.run({
 ```ts
 await ductape.quota.run({
   env: 'prd',
-  product_tag: 'api-gateway',
+  product: 'api-gateway',
   quota_tag: 'user-api-calls',
   action: 'increment',
   amount: 1,
@@ -106,7 +106,7 @@ await ductape.quota.run({
 ```ts
 interface IQuotaProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   quota_tag: string;
   action: 'check' | 'increment' | 'reset';
   amount?: number;

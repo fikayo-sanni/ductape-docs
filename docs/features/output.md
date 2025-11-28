@@ -29,6 +29,11 @@ Use these patterns to pull values from different sources:
 | `$Variable{app}{key}` | Gets an app variable | `$Variable{stripe}{api_version}` |
 | `$Constant{app}{key}` | Gets an app constant | `$Constant{config}{currency}` |
 | `$Session{tag}{field}` | Gets session data | `$Session{user}{name}` |
+| `$Response{field}` | Gets current action response | `$Response{id}` |
+| `$Token{key}` | Gets workspace secrets | `$Token{api_key}` |
+| `$Auth{field}` | Gets app authentication data | `$Auth{access_token}` |
+| `$Size{reference}` | Gets size of object (number of keys) | `$Size{$Input{userData}}` |
+| `$Length{reference}` | Gets length of array or string | `$Length{$Input{items}}` |
 
 ---
 
@@ -77,12 +82,33 @@ output: {
 }
 ```
 
+### Using Secrets, App Auth, and Size References
+
+Access workspace secrets, app authentication, and check object/array sizes:
+
+```typescript
+output: {
+  // Workspace secrets and app authentication
+  apiKey: '$Token{external_api_key}',                           // Workspace secret
+  appToken: '$Auth{access_token}',                               // App authentication
+
+  // Size/length checks
+  userDataFields: '$Size{$Input{userData}}',                    // Number of keys in userData object
+  totalItems: '$Length{$Sequence{main}{fetch-items}{items}}',   // Length of items array
+  usernameLength: '$Length{$Input{username}}',                  // Length of username string
+
+  // Combined with operators
+  authHeader: '$Concat(["Bearer ", $Token{api_secret}], "")',
+  appAuthHeader: '$Concat(["Bearer ", $Auth{access_token}], "")',
+}
+```
+
 ---
 
 ## Complete Example
 
 ```typescript
-await ductape.product.features.create({
+await ductape.feature.create({
   name: 'Process Order',
   tag: 'process-order',
   description: 'Creates order and charges payment',

@@ -31,7 +31,7 @@ Create a message broker in your product with environment-specific configurations
 ```typescript
 import { MessageBrokerTypes } from '@ductape/types';
 
-await ductape.product.messageBrokers.create({
+await ductape.broker.create({
   name: 'Order Events',
   tag: 'order-events',
   description: 'Handles all order-related messages',
@@ -131,7 +131,7 @@ Topics define the channels for your messages. Each topic has a sample payload th
 ### Create a Topic
 
 ```typescript
-await ductape.product.messageBrokers.topics.create({
+await ductape.broker.topic.create({
   name: 'New Orders',
   messageBrokerTag: 'order-events',
   tag: 'order-events:new-orders',
@@ -148,7 +148,7 @@ await ductape.product.messageBrokers.topics.create({
 For **AWS SQS**, provide queue URLs per environment:
 
 ```typescript
-await ductape.product.messageBrokers.topics.create({
+await ductape.broker.topic.create({
   name: 'New Orders',
   messageBrokerTag: 'sqs-broker',
   tag: 'sqs-broker:new-orders',
@@ -163,7 +163,7 @@ await ductape.product.messageBrokers.topics.create({
 ### Update a Topic
 
 ```typescript
-await ductape.product.messageBrokers.topics.update('order-events:new-orders', {
+await ductape.broker.topic.update('order-events:new-orders', {
   description: 'Updated description',
   sample: {
     orderId: '12345',
@@ -178,10 +178,10 @@ await ductape.product.messageBrokers.topics.update('order-events:new-orders', {
 
 ```typescript
 // Get a specific topic
-const topic = await ductape.product.messageBrokers.topics.fetch('order-events:new-orders');
+const topic = await ductape.broker.topic.fetch('order-events:new-orders');
 
 // Get all topics for a broker
-const topics = await ductape.product.messageBrokers.topics.fetchAll('order-events');
+const topics = await ductape.broker.topic.fetchAll('order-events');
 ```
 
 ---

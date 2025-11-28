@@ -6,6 +6,20 @@ const sidebars: SidebarsConfig = {
     'getting-started/quickstart',
     'import',
 
+    // Products - Core Backend Systems
+    {
+      type: 'category',
+      label: 'Products',
+      collapsed: true,
+      items: [
+        'products/overview',
+        'products/creating-products',
+        'products/environments',
+        'products/connecting-apps',
+        'products/webhooks',
+      ],
+    },
+
     // Apps - External Integrations
     {
       type: 'category',
@@ -20,6 +34,17 @@ const sidebars: SidebarsConfig = {
         'apps/constants-variables',
         'apps/app-instance',
         'apps/product-environments',
+      ],
+    },
+
+    // Operators
+    {
+      type: 'category',
+      label: 'Operators',
+      collapsed: true,
+      items: [
+        'operators/operators',
+        'operators/nesting',
       ],
     },
 
@@ -238,17 +263,6 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'logs/manage-logs',
-      ],
-    },
-
-    // Operators
-    {
-      type: 'category',
-      label: 'Operators',
-      collapsed: true,
-      items: [
-        'operators/operators',
-        'operators/nesting',
       ],
     },
 

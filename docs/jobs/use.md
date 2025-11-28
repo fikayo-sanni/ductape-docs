@@ -12,7 +12,7 @@ Schedule background tasks using `ductape.job.schedule()`. Jobs can run immediate
 // Schedule a job to run immediately
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'send_welcome_email',
   start_at: 0,  // 0 means run immediately
   retries: 3,
@@ -26,7 +26,7 @@ await ductape.job.schedule({
 ## How It Works
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **event** - The job tag to execute
 4. **start_at** - When to run (Unix timestamp, or `0` for immediate)
 5. **retries** - Number of retry attempts on failure
@@ -39,7 +39,7 @@ await ductape.job.schedule({
 ```ts
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'billing',
+  product: 'billing',
   event: 'process_payment',
   start_at: 0,
   retries: 3,
@@ -56,7 +56,7 @@ await ductape.job.schedule({
 // Run at a specific timestamp
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'marketing',
+  product: 'marketing',
   event: 'send_campaign',
   start_at: 1704067200,  // Unix timestamp
   retries: 2,
@@ -73,7 +73,7 @@ await ductape.job.schedule({
 // Run every day at 9 AM
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'reports',
+  product: 'reports',
   event: 'generate_daily_report',
   start_at: 0,
   retries: 2,
@@ -91,7 +91,7 @@ await ductape.job.schedule({
 // Run every 24 hours
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'sync',
+  product: 'sync',
   event: 'sync_inventory',
   start_at: 0,
   retries: 3,
@@ -108,7 +108,7 @@ await ductape.job.schedule({
 // Run weekly, but only 4 times
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'reminders',
+  product: 'reminders',
   event: 'send_reminder',
   start_at: 0,
   retries: 2,
@@ -126,7 +126,7 @@ await ductape.job.schedule({
 // Run daily until end of year
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'promo',
+  product: 'promo',
   event: 'check_promo_status',
   start_at: 0,
   retries: 1,
@@ -143,7 +143,7 @@ await ductape.job.schedule({
 ```ts
 await ductape.job.schedule({
   env: 'prd',
-  product_tag: 'notifications',
+  product: 'notifications',
   event: 'send_digest',
   start_at: 0,
   retries: 3,
@@ -187,7 +187,7 @@ await ductape.job.schedule({
 ```ts
 interface IJobProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   event: string;
   start_at: number;
   retries: number;

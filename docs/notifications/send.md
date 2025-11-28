@@ -11,7 +11,7 @@ Send push notifications, emails, SMS, or webhook callbacks using `ductape.notifi
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'welcome_user',
   input: {
     slug: 'welcome',
@@ -33,7 +33,7 @@ Ductape supports multiple notification channels. You can send one or multiple at
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'order_confirmation',
   input: {
     slug: 'order_email',
@@ -51,7 +51,7 @@ await ductape.notification.send({
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'new_message',
   input: {
     slug: 'push_message',
@@ -70,7 +70,7 @@ await ductape.notification.send({
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'otp_code',
   input: {
     slug: 'sms_otp',
@@ -87,7 +87,7 @@ await ductape.notification.send({
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'payment_received',
   input: {
     slug: 'webhook_payment',
@@ -104,7 +104,7 @@ await ductape.notification.send({
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'order_shipped',
   input: {
     slug: 'shipping_notification',
@@ -134,7 +134,7 @@ Inject user-specific data from sessions using `$Session{key}{field}`:
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'welcome_user',
   input: {
     slug: 'welcome',
@@ -163,7 +163,7 @@ await ductape.notification.send({
 ```ts
 await ductape.notification.send({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   event: 'daily_digest',
   input: { slug: 'digest', /* ... */ },
   retries: 3,
@@ -180,7 +180,7 @@ await ductape.notification.send({
 ```ts
 interface INotificationProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   event: string;
   input: INotificationRequest;
   retries?: number;

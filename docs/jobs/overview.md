@@ -11,7 +11,7 @@ Jobs in Ductape are scheduled events that automate tasks at specific times or in
 ```ts
 import { JobEventTypes } from '@ductape/types';
 
-await ductape.product.jobs.create({
+await ductape.job.create({
   name: 'Daily Report',
   tag: 'daily-report',
   event_type: JobEventTypes.ACTION,
@@ -24,7 +24,7 @@ await ductape.product.jobs.create({
 ## Creating a Job
 
 ```ts
-await ductape.product.jobs.create({
+await ductape.job.create({
   name: 'Sync Inventory',
   tag: 'sync-inventory',
   event_type: JobEventTypes.ACTION,
@@ -58,7 +58,7 @@ await ductape.product.jobs.create({
 ## Updating a Job
 
 ```ts
-await ductape.product.jobs.update('daily-report', {
+await ductape.job.update('daily-report', {
   name: 'Weekly Report',
   intervals: 604800000  // 7 days
 });
@@ -68,10 +68,10 @@ await ductape.product.jobs.update('daily-report', {
 
 ```ts
 // Get all jobs
-const jobs = await ductape.product.jobs.fetchAll();
+const jobs = await ductape.job.fetchAll();
 
 // Get specific job
-const job = await ductape.product.jobs.fetch('daily-report');
+const job = await ductape.job.fetch('daily-report');
 ```
 
 ## Best Practices

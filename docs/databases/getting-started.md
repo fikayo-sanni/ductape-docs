@@ -35,9 +35,7 @@ import Ductape from '@ductape/sdk';
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-private-key',
 });
 ```
 
@@ -46,7 +44,7 @@ const ductape = new Ductape({
 Register your database with environment-specific connection strings:
 
 ```ts
-await ductape.product.databases.create({
+await ductape.database.create({
   name: 'User Database',
   tag: 'users-db',
   type: 'postgresql',
@@ -152,13 +150,11 @@ async function main() {
   const ductape = new Ductape({
     workspace_id: 'your-workspace-id',
     user_id: 'your-user-id',
-    public_key: 'your-public-key',
-    token: 'your-token',
-    env_type: 'development',
+    private_key: 'your-private-key',
   });
 
   // Register database (usually done once during setup)
-  await ductape.product.databases.create({
+  await ductape.database.create({
     name: 'User Database',
     tag: 'users-db',
     type: 'postgresql',
@@ -238,21 +234,21 @@ You can register and use multiple databases in a single product:
 
 ```ts
 // Register multiple databases
-await ductape.product.databases.create({
+await ductape.database.create({
   name: 'User Database',
   tag: 'users-db',
   type: 'postgresql',
   envs: [{ slug: 'dev', connection_url: '...' }],
 });
 
-await ductape.product.databases.create({
+await ductape.database.create({
   name: 'Analytics Database',
   tag: 'analytics-db',
   type: 'mongodb',
   envs: [{ slug: 'dev', connection_url: '...' }],
 });
 
-await ductape.product.databases.create({
+await ductape.database.create({
   name: 'Session Store',
   tag: 'sessions-db',
   type: 'dynamodb',
@@ -285,7 +281,7 @@ const events = await ductape.database.query({ table: 'events' });
 Update an existing database configuration:
 
 ```ts
-await ductape.product.databases.update('users-db', {
+await ductape.database.update('users-db', {
   name: 'User Database v2',
   description: 'Updated user storage',
   envs: [
@@ -301,14 +297,14 @@ Retrieve information about your registered databases:
 
 ```ts
 // Get all databases in the product
-const databases = await ductape.product.databases.fetchAll();
+const databases = await ductape.database.fetchAll();
 
 databases.forEach((db) => {
   console.log(`${db.name} (${db.tag}): ${db.type}`);
 });
 
 // Get a specific database
-const usersDb = await ductape.product.databases.fetch('users-db');
+const usersDb = await ductape.database.fetch('users-db');
 console.log('Database:', usersDb.name);
 console.log('Type:', usersDb.type);
 console.log('Environments:', usersDb.envs);

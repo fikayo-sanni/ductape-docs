@@ -22,16 +22,14 @@ import Ductape from '@ductape/sdk';
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-private-key',
 });
 ```
 
 ## Register a Graph Database
 
 ```ts
-await ductape.product.graphs.create({
+await ductape.graph.create({
   name: 'Social Graph',
   tag: 'social-graph',
   type: 'neo4j',
@@ -401,7 +399,7 @@ https://cluster.region.neptune.amazonaws.com:8182/openCypher
 **Query Languages:** Gremlin or openCypher
 
 ```ts
-await ductape.product.graphs.create({
+await ductape.graph.create({
   name: 'Neptune Graph',
   tag: 'neptune-graph',
   type: 'neptune',
@@ -425,7 +423,7 @@ http://user:pass@hostname:8529
 **Query Language:** AQL
 
 ```ts
-await ductape.product.graphs.create({
+await ductape.graph.create({
   name: 'ArangoDB Graph',
   tag: 'arango-graph',
   type: 'arangodb',

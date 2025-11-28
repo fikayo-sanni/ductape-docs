@@ -32,13 +32,13 @@ Apps are collections of endpoints from a 3rd party provider or internal service.
 
 | Field         | Type           | Required | Default | Description                                 | Example           |
 |---------------|----------------|----------|---------|---------------------------------------------|-------------------|
-| access_tag    | string         | Yes      |         | Unique tag for app access                   | email_app_tag     |
+| access_tag    | string         | Yes      |         | Unique tag for app access                   | email_app     |
 | envs          | array          | Yes      |         | List of environment configurations          | See below         |
 
 **Example:**
 ```typescript
-const appAccess = await ductape.product.apps.connect("email_app_tag");
-await ductape.product.apps.add({
+const appAccess = await ductape.product.app.connect("email_app");
+await ductape.product.app.add({
   access_tag: appAccess.access_tag,
   envs: [
     {
@@ -62,7 +62,7 @@ Environments let you run the same logic in different contexts (dev, staging, pro
 
 **Example:**
 ```typescript
-const environment = await ductape.product.environments.create({
+const environment = await ductape.product.environment.create({
   env_name: "Development",
   slug: "dev",
   description: "Development environment"
@@ -90,7 +90,7 @@ To enable caching, you need to create a cache resource for your product and refe
 
 **Example:**
 ```typescript
-const cache = await ductape.product.caches.create({
+const cache = await ductape.cache.create({
   name: "Main Cache",
   tag: "main_cache",
   expiry: 60000, // 1 minute
@@ -104,7 +104,7 @@ To use the cache when running an action, include the `cache` field in your `IAct
 const result = await ductape.action.run({
   env: "dev",
   product: "payments_service",
-  app: "email_app_tag",
+  app: "email_app",
   event: "send_email",
   cache: "main_cache", // Enable caching for this action
   input: {
@@ -130,7 +130,7 @@ To run an action, use the `ductape.action.run` method. This method requires an `
 |---------|--------|----------|---------|-------------|---------|
 | env     | string | Yes      |         | Environment slug (e.g., 'dev', 'prd') | dev |
 | product | string | Yes      |         | Product tag or ID | payments_service |
-| app     | string | Yes      |         | App access tag | email_app_tag |
+| app     | string | Yes      |         | App access tag | email_app |
 | event   | string | Yes      |         | Action tag (as defined in the app) | send_email |
 | input   | object | Yes      |         | Action input (see below) | `{"body": {"to": "user@example.com"}}` |
 | cache   | string | No       |         | Cache tag (if using caching) |   |
@@ -151,7 +151,7 @@ To run an action, use the `ductape.action.run` method. This method requires an `
 const result = await ductape.action.run({
   env: "dev",
   product: "payments_service",
-  app: "email_app_tag",
+  app: "email_app",
   event: "send_email",
   input: {
     body: {

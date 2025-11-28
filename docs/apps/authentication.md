@@ -9,7 +9,7 @@ Ductape allows you to set up various authentication rules for users or systems t
 ## Creating Authentication
 
 ```ts
-import { AuthTypes, TokenPeriods } from "ductape-sdk/types";
+import { AuthTypes, TokenPeriods } from "@ductape/sdk/types";
 
 const setup = {
     name: "Login Access",
@@ -53,7 +53,7 @@ The `action_tag` defines the tag of the action that can refresh the token, such 
 Token-based access is designed for scenarios where long-term access is required without token expiration or the overhead of managing token refreshes. You don't need to specify an expiry, but you must provide a sample token and specify where it should be used in your requests. Here's an example:
 
 ```ts
-import { AuthTypes, InputTypes } from "ductape-sdk/types";
+import { AuthTypes, InputTypes } from "@ductape/sdk/types";
 
 const setup = {
     name: "Token Access",

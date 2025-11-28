@@ -12,7 +12,7 @@ Handle failures gracefully with backup logic using `ductape.fallback.run()`.
 // Trigger a fallback when payment fails
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   fallback_tag: 'payment-failure',
   action: 'trigger',
   input: {
@@ -25,7 +25,7 @@ await ductape.fallback.run({
 ## How It Works
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **fallback_tag** - The fallback logic to use
 4. **action** - What to do: `trigger`, `update`, or `reset`
 
@@ -36,7 +36,7 @@ await ductape.fallback.run({
 ```ts
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'payments',
+  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'trigger',
   input: {
@@ -52,7 +52,7 @@ await ductape.fallback.run({
 ```ts
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'notifications',
+  product: 'notifications',
   fallback_tag: 'sms-failure',
   action: 'trigger',
   input: {
@@ -68,7 +68,7 @@ await ductape.fallback.run({
 ```ts
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'payments',
+  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'update',
   input: {
@@ -83,7 +83,7 @@ await ductape.fallback.run({
 ```ts
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'payments',
+  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'reset'
 });
@@ -94,7 +94,7 @@ await ductape.fallback.run({
 ```ts
 await ductape.fallback.run({
   env: 'prd',
-  product_tag: 'checkout',
+  product: 'checkout',
   fallback_tag: 'checkout-failure',
   action: 'trigger',
   input: {
@@ -125,7 +125,7 @@ await ductape.fallback.run({
 ```ts
 interface IFallbackProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   fallback_tag: string;
   action: 'trigger' | 'update' | 'reset';
   input?: Record<string, unknown>;

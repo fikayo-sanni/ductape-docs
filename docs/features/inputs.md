@@ -74,7 +74,7 @@ input: {
 ## Complete Example
 
 ```typescript
-await ductape.product.features.create({
+await ductape.feature.create({
   name: 'Create User',
   tag: 'create-user',
   description: 'Creates a new user account',

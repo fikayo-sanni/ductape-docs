@@ -29,7 +29,7 @@ Before working with Actions, make sure you have:
 Install the Ductape SDK in your project:
 
 ```bash
-npm install ductape-sdk
+npm install @ductape/sdk
 ```
 
 ## Step 2: Initialize the SDK
@@ -37,14 +37,12 @@ npm install ductape-sdk
 Set up the Ductape SDK with your credentials:
 
 ```ts
-import Ductape from 'ductape-sdk';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
-  public_key: 'your-public-key',
-  token: 'your-token',
-  env_type: 'development',
+  private_key: 'your-private-key',
 });
 ```
 
@@ -55,14 +53,14 @@ Actions are imported from API documentation like Postman collections or OpenAPI 
 ### Import into an Existing App
 
 ```ts
-import { ImportDocTypes } from 'ductape-sdk/types';
+import { ImportDocTypes } from '@ductape/types';
 import fs from 'fs';
 
 // Read your Postman collection
 const file = fs.readFileSync('./api.postman_collection.json');
 
 // Import into an existing app
-await ductape.app.actions.import({
+await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
   appTag: 'my-app',
@@ -76,7 +74,7 @@ console.log('Actions imported successfully');
 Omit the `appTag` to create a new App from the collection:
 
 ```ts
-await ductape.app.actions.import({
+await ductape.action.import({
   file,
   type: ImportDocTypes.postmanV21,
   // App will be created from collection metadata
@@ -100,7 +98,7 @@ Before running Actions, you can list all available Actions in an App:
 await ductape.app.init({ appTag: 'stripe-payments' });
 
 // Fetch all actions
-const actions = await ductape.app.actions.fetchAll();
+const actions = await ductape.action.fetchAll();
 
 actions.forEach((action) => {
   console.log(`${action.name} (${action.tag}): ${action.method} ${action.resource}`);
@@ -112,7 +110,7 @@ actions.forEach((action) => {
 Get details about a single Action by its tag:
 
 ```ts
-const action = await ductape.app.actions.fetch('create-charge');
+const action = await ductape.action.fetch('create-charge');
 
 console.log('Action:', action.name);
 console.log('Method:', action.method);
@@ -127,7 +125,7 @@ Call any Action using `ductape.action.run()`:
 ```ts
 const result = await ductape.action.run({
   env: 'dev',
-  product_tag: 'my-product',
+  product: 'my-product',
   app: 'stripe-payments',
   event: 'create-charge',
   input: {
@@ -157,7 +155,7 @@ Actions accept different types of input depending on the endpoint:
 // Example with multiple input types
 await ductape.action.run({
   env: 'dev',
-  product_tag: 'my-product',
+  product: 'my-product',
   app: 'my-api',
   event: 'get-user-orders',
   input: {
@@ -173,7 +171,7 @@ await ductape.action.run({
 After importing Actions, you can update their configuration:
 
 ```ts
-await ductape.app.actions.update('send-email', {
+await ductape.action.update('send-email', {
   description: 'Send transactional email via SendGrid',
   resource: '/v3/mail/send',
   method: 'POST',
@@ -185,8 +183,8 @@ await ductape.app.actions.update('send-email', {
 Here's a complete workflow showing how to work with Actions:
 
 ```ts
-import Ductape from 'ductape-sdk';
-import { ImportDocTypes } from 'ductape-sdk/types';
+import Ductape from '@ductape/sdk';
+import { ImportDocTypes } from '@ductape/types';
 import fs from 'fs';
 
 async function main() {
@@ -194,14 +192,12 @@ async function main() {
   const ductape = new Ductape({
     workspace_id: 'your-workspace-id',
     user_id: 'your-user-id',
-    public_key: 'your-public-key',
-    token: 'your-token',
-    env_type: 'development',
+    private_key: 'your-private-key',
   });
 
   // Import Actions from a Postman collection
   const collection = fs.readFileSync('./api.postman_collection.json');
-  await ductape.app.actions.import({
+  await ductape.action.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
     appTag: 'my-api',
@@ -209,18 +205,18 @@ async function main() {
 
   // List all imported Actions
   await ductape.app.init({ appTag: 'my-api' });
-  const actions = await ductape.app.actions.fetchAll();
+  const actions = await ductape.action.fetchAll();
   console.log(`Imported ${actions.length} actions`);
 
   // Update an Action's configuration
-  await ductape.app.actions.update('create-user', {
+  await ductape.action.update('create-user', {
     description: 'Create a new user account',
   });
 
   // Run the Action
   const result = await ductape.action.run({
     env: 'dev',
-    product_tag: 'my-product',
+    product: 'my-product',
     app: 'my-api',
     event: 'create-user',
     input: {

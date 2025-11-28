@@ -4,14 +4,14 @@ sidebar_position: 2
 
 # Fetching Cached Values
 
-Retrieve previously stored values from your caches using `ductape.product.caches.values()`.
+Retrieve previously stored values from your caches using `ductape.cache.values()`.
 
 ## Quick Example
 
 ```ts
-const values = await ductape.product.caches.values({
+const values = await ductape.cache.values({
   cache_tag: 'api-responses',
-  product_tag: 'my-app'
+  product: 'my-app'
 });
 
 console.log(values);
@@ -26,29 +26,29 @@ Query cached data by specifying filters like cache tag, component tag, or produc
 ### Fetch all values from a cache
 
 ```ts
-const values = await ductape.product.caches.values({
+const values = await ductape.cache.values({
   cache_tag: 'user-data',
-  product_tag: 'dashboard'
+  product: 'dashboard'
 });
 ```
 
 ### Filter by component
 
 ```ts
-const values = await ductape.product.caches.values({
+const values = await ductape.cache.values({
   cache_tag: 'api-responses',
   component_tag: 'fetch-user',
   component_type: 'action',
-  product_tag: 'my-app'
+  product: 'my-app'
 });
 ```
 
 ### Filter non-expired values only
 
 ```ts
-const values = await ductape.product.caches.values({
+const values = await ductape.cache.values({
   cache_tag: 'temp-data',
-  product_tag: 'my-app',
+  product: 'my-app',
   expiry: new Date()
 });
 ```
@@ -61,7 +61,7 @@ const values = await ductape.product.caches.values({
     "key": "user_123_result",
     "value": "{\"score\":88}",
     "cache_tag": "api-responses",
-    "product_tag": "my-app",
+    "product": "my-app",
     "component_tag": "score_action",
     "component_type": "action",
     "expiry": "2025-05-01T00:00:00.000Z"
@@ -74,7 +74,7 @@ const values = await ductape.product.caches.values({
 | `key` | Unique key for this cached value |
 | `value` | The cached value (typically stringified JSON) |
 | `cache_tag` | Cache this value belongs to |
-| `product_tag` | Product where this value was stored |
+| `product` | Product where this value was stored |
 | `component_tag` | Component that stored the value |
 | `component_type` | Type of component (`action`, `event`, etc.) |
 | `expiry` | Expiration date, if set |
@@ -88,7 +88,7 @@ const values = await ductape.product.caches.values({
 ```ts
 interface FetchRemoteCachePayload {
   cache_tag: string;
-  product_tag: string;
+  product: string;
   component_tag?: string;
   component_type?: string;
   expiry?: Date;

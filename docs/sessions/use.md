@@ -4,12 +4,12 @@ sidebar_position: 1
 
 # Generating Session Tokens
 
-Create session tokens to track user activity across your products using `ductape.sessions.create()`.
+Create session tokens to track user activity across your products using `ductape.sessions.start()`.
 
 ## Quick Example
 
 ```ts
-const result = await ductape.sessions.create({
+const result = await ductape.sessions.start({
   product: 'my-app',
   env: 'prd',
   tag: 'user-session',
@@ -38,7 +38,7 @@ console.log(result.refreshToken); // Refresh token
 ### Basic session
 
 ```ts
-const session = await ductape.sessions.create({
+const session = await ductape.sessions.start({
   product: 'ecommerce',
   env: 'prd',
   tag: 'checkout-session',
@@ -54,7 +54,7 @@ const session = await ductape.sessions.create({
 ### Session with rich user data
 
 ```ts
-const session = await ductape.sessions.create({
+const session = await ductape.sessions.start({
   product: 'dashboard',
   env: 'prd',
   tag: 'user-session',
@@ -74,7 +74,7 @@ const session = await ductape.sessions.create({
 
 ```ts
 // Checkout flow session
-const checkoutSession = await ductape.sessions.create({
+const checkoutSession = await ductape.sessions.start({
   product: 'marketplace',
   env: 'prd',
   tag: 'checkout-flow',
@@ -82,7 +82,7 @@ const checkoutSession = await ductape.sessions.create({
 });
 
 // Support chat session
-const supportSession = await ductape.sessions.create({
+const supportSession = await ductape.sessions.start({
   product: 'marketplace',
   env: 'prd',
   tag: 'support-chat',

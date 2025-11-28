@@ -11,7 +11,7 @@ Execute your workflow features using `ductape.feature.run()`.
 ```ts
 const result = await ductape.feature.run({
   env: 'prd',
-  product_tag: 'my-app',
+  product: 'my-app',
   feature_tag: 'process_order',
   input: {
     orderId: '12345',
@@ -27,7 +27,7 @@ console.log(result); // Output from your feature workflow
 Features are pre-defined workflows that chain multiple operations together. When you run a feature:
 
 1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product_tag** - Your product's unique identifier
+2. **product** - Your product's unique identifier
 3. **feature_tag** - The feature workflow to execute
 4. **input** - Data to pass into the feature
 
@@ -38,7 +38,7 @@ Features are pre-defined workflows that chain multiple operations together. When
 ```ts
 await ductape.feature.run({
   env: 'prd',
-  product_tag: 'ecommerce',
+  product: 'ecommerce',
   feature_tag: 'checkout_flow',
   input: {
     cartId: 'cart_123',
@@ -53,7 +53,7 @@ await ductape.feature.run({
 ```ts
 await ductape.feature.run({
   env: 'dev',
-  product_tag: 'analytics',
+  product: 'analytics',
   feature_tag: 'generate_daily_report',
   input: {}
 });
@@ -66,7 +66,7 @@ Use `$Session{key}{field}` to inject user-specific values:
 ```ts
 await ductape.feature.run({
   env: 'prd',
-  product_tag: 'marketplace',
+  product: 'marketplace',
   feature_tag: 'create_listing',
   input: {
     title: 'Vintage Watch',
@@ -88,7 +88,7 @@ Cache results to avoid re-running expensive operations:
 ```ts
 await ductape.feature.run({
   env: 'prd',
-  product_tag: 'dashboard',
+  product: 'dashboard',
   feature_tag: 'get_user_stats',
   input: { userId: '123' },
   cache: 'user-stats-123'
@@ -123,7 +123,7 @@ All defined in one reusable workflow.
 ```ts
 interface IFeatureProcessorInput {
   env: string;
-  product_tag: string;
+  product: string;
   feature_tag: string;
   input: Record<string, unknown>;
   cache?: string;

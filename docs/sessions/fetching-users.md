@@ -15,7 +15,7 @@ To fetch all users associated with a particular session, use the `users` method 
 ```ts
 const users = await ductape.products.sessions.users({
   session: "session_tag", // The tag of the session
-  product: "product_tag", // The tag of your product
+  product: "product", // The tag of your product
   page: 1,                // Page number (pagination)
   limit: 20               // Number of users per page
 });
@@ -34,7 +34,7 @@ const users = await ductape.products.sessions.users({
 
 Returns an array of user objects associated with the session. Each user object includes fields such as:
 - `ductape_user_id`
-- `product_tag`
+- `product`
 - `session_tag`
 - `identifier`
 - `last_seen`

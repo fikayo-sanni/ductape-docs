@@ -13,7 +13,7 @@ Constants are values that do not change and can be reused across multiple action
 ### Creating Constants
 
 ```ts
-import { DataTypes } from "ductape-sdk/types";
+import { DataTypes } from "@ductape/sdk/types";
 
 const details = {
   key: "USER_TYPE",
@@ -48,7 +48,7 @@ const constants = await ductape.app.constant.create(details);
 ### Updating Constants
 
 ```ts
-import { DataTypes } from "ductape-sdk/types";
+import { DataTypes } from "@ductape/sdk/types";
 
 const details = {
   value: "user",
@@ -77,7 +77,7 @@ Variables are values that are meant to be supplied by third parties and can be r
 ### Creating Variables
 
 ```ts
-import { DataTypes } from "ductape-sdk/types";
+import { DataTypes } from "@ductape/sdk/types";
 
 const details = {
   key: "PUBLIC_KEY",
@@ -91,7 +91,7 @@ const variable = await ductape.app.variable.create(details);
 ### Updating Variables
 
 ```ts
-import { DataTypes } from "ductape-sdk/types";
+import { DataTypes } from "@ductape/sdk/types";
 
 const key = "PUBLIC_KEY";
 const update = {
