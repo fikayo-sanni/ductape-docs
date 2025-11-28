@@ -703,7 +703,7 @@ await ductape.graph.action.create({
 ### 1. Use Descriptive Names
 
 ```ts
-// ✅ Good - clear purpose
+//  Good - clear purpose
 await ductape.graph.action.create({
   name: 'Find Mutual Friends Between Users',
   tag: 'social-graph:find-mutual-friends',
@@ -732,7 +732,7 @@ await ductape.graph.action.create({
 ### 3. Limit Traversal Depth
 
 ```ts
-// ✅ Good - reasonable depth
+//  Good - reasonable depth
 template: {
   startNodeId: '{{userId}}',
   maxDepth: 3, // Controlled exploration
@@ -750,7 +750,7 @@ template: {
 ### 4. Use Specific Relationship Types
 
 ```ts
-// ✅ Good - specific types
+//  Good - specific types
 template: {
   relationshipTypes: ['FRIENDS_WITH', 'WORKS_WITH'],
 }
@@ -764,7 +764,7 @@ template: {
 ### 5. Filter Early
 
 ```ts
-// ✅ Good - filter in query
+//  Good - filter in query
 template: {
   startNodeId: '{{userId}}',
   relationshipTypes: ['FRIENDS_WITH'],
@@ -787,7 +787,7 @@ template: {
 ### 6. Keep Actions Focused
 
 ```ts
-// ✅ Good - single purpose
+//  Good - single purpose
 await ductape.graph.action.create({
   name: 'Get User Friends',
   operation: GraphActionTypes.FIND_RELATIONSHIPS,
@@ -804,7 +804,7 @@ await ductape.graph.action.create({
 ### 7. Use Consistent Naming
 
 ```ts
-// ✅ Good - consistent pattern
+//  Good - consistent pattern
 'social-graph:get-user-friends'
 'social-graph:create-friendship'
 'social-graph:update-friendship'
@@ -893,7 +893,7 @@ template: {
 Filter in the query, not in code:
 
 ```ts
-// ✅ Good - filtered in query
+//  Good - filtered in query
 template: {
   nodeFilter: {
     where: { status: 'active' },

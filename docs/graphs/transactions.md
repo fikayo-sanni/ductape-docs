@@ -92,7 +92,7 @@ await ductape.graph.executeTransaction(async (tx) => {
     properties: { balance: recipient.properties.balance + 500 },
   }, tx);
 
-  // ✅ Both updates happen or neither happens
+  //  Both updates happen or neither happens
 });
 ```
 
@@ -547,7 +547,7 @@ await ductape.graph.executeTransaction(async (tx) => {
   await ductape.graph.updateNode({ /* ... */ }, tx);
 });
 
-// ✅ Good - keep transaction short
+//  Good - keep transaction short
 const user = await ductape.graph.executeTransaction(async (tx) => {
   const user = await ductape.graph.createNode({ /* ... */ }, tx);
   await ductape.graph.updateNode({ /* ... */ }, tx);
@@ -564,7 +564,7 @@ await fetch('https://api.example.com/notify', {
 ### Batch Operations
 
 ```ts
-// ✅ Batch operations in single transaction
+//  Batch operations in single transaction
 await ductape.graph.executeTransaction(async (tx) => {
   const nodes = [];
 
@@ -604,7 +604,7 @@ await ductape.graph.executeTransaction(
 ### 1. Always Use Transactions for Multiple Operations
 
 ```ts
-// ✅ Good - ensures atomicity
+//  Good - ensures atomicity
 await ductape.graph.executeTransaction(async (tx) => {
   const user = await ductape.graph.createNode({ /* ... */ }, tx);
   await ductape.graph.createNode({ /* profile */ }, tx);
@@ -615,7 +615,7 @@ await ductape.graph.executeTransaction(async (tx) => {
 ### 2. Use executeTransaction Instead of Manual Control
 
 ```ts
-// ✅ Recommended - automatic commit/rollback
+//  Recommended - automatic commit/rollback
 await ductape.graph.executeTransaction(async (tx) => {
   // operations
 });
@@ -662,7 +662,7 @@ await ductape.graph.executeTransaction(async (tx) => {
   });
 });
 
-// ✅ Good - single transaction for all operations
+//  Good - single transaction for all operations
 await ductape.graph.executeTransaction(async (tx) => {
   await ductape.graph.createNode({ /* ... */ }, tx);
   await ductape.graph.createNode({ /* ... */ }, tx);
@@ -673,7 +673,7 @@ await ductape.graph.executeTransaction(async (tx) => {
 ### 5. Pass Transaction to All Operations
 
 ```ts
-// ✅ Correct - all operations in same transaction
+//  Correct - all operations in same transaction
 await ductape.graph.executeTransaction(async (tx) => {
   const user = await ductape.graph.createNode({ /* ... */ }, tx);
   const profile = await ductape.graph.createNode({ /* ... */ }, tx);

@@ -696,7 +696,7 @@ console.log('Summary:', summary);
 ### 1. Use Descriptive Names
 
 ```ts
-// ✅ Good - clear purpose
+//  Good - clear purpose
 await ductape.database.action.create({
   name: 'Get Active Users Created This Month',
   tag: 'postgresdb:get-active-users-this-month',
@@ -746,7 +746,7 @@ const users = await ductape.database.execute({
 ### 4. Use Consistent Naming
 
 ```ts
-// ✅ Good - consistent pattern
+//  Good - consistent pattern
 'postgresdb:get-users'
 'postgresdb:create-user'
 'postgresdb:update-user'
@@ -762,7 +762,7 @@ const users = await ductape.database.execute({
 ### 5. Keep Actions Focused
 
 ```ts
-// ✅ Good - single purpose
+//  Good - single purpose
 await ductape.database.action.create({
   name: 'Get User Orders',
   tag: 'postgresdb:get-user-orders',
@@ -791,7 +791,7 @@ await ductape.database.action.create({
 ### 6. Limit Result Sets
 
 ```ts
-// ✅ Always include limit
+//  Always include limit
 template: {
   where: { status: '{{status}}' },
   limit: '{{limit}}', // Prevent unbounded queries

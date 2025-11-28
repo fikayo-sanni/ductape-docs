@@ -87,61 +87,8 @@ const config: Config = {
     },
 
     footer: {
+      // Using custom footer component in src/theme/Footer
       style: 'light',
-      links: [
-        {
-          title: 'Documentation',
-          items: [
-            {
-              label: 'Getting Started',
-              to: '/getting-started/quickstart',
-            },
-            {
-              label: 'Apps',
-              to: '/apps/getting-started',
-            },
-            {
-              label: 'Features',
-              to: '/features/overview',
-            },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Discord',
-              href: 'https://discord.gg/JHXxQ6MAwb',
-            },
-            {
-              label: 'Twitter',
-              href: 'https://twitter.com/ductapetech',
-            },
-            {
-              label: 'LinkedIn',
-              href: 'https://www.linkedin.com/company/ductape-technologies',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'Website',
-              href: 'https://ductape.app',
-            },
-            {
-              label: 'Workbench',
-              href: 'https://workbench.ductape.app',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/ductape',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Ductape Technologies. All rights reserved.`,
     },
 
     prism: {

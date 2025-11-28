@@ -11,7 +11,7 @@ Learn essential patterns and optimization techniques for building high-performan
 ### Use Descriptive Labels
 
 ```ts
-// ✅ Good - clear and specific
+//  Good - clear and specific
 await ductape.graph.createNode({
   labels: ['Person', 'Employee', 'Engineer'],
   properties: { name: 'Alice' },
@@ -32,7 +32,7 @@ await ductape.graph.createNode({
 ### Model Relationships Correctly
 
 ```ts
-// ✅ Good - relationship types are verbs
+//  Good - relationship types are verbs
 await ductape.graph.createRelationship({
   type: 'WORKS_FOR',
   startNodeId: personId,
@@ -61,7 +61,7 @@ await ductape.graph.createRelationship({
 - Not queried independently
 
 ```ts
-// ✅ Property
+//  Property
 await ductape.graph.createNode({
   labels: ['Person'],
   properties: {
@@ -79,7 +79,7 @@ await ductape.graph.createNode({
 - Reused across many nodes
 
 ```ts
-// ✅ Separate nodes
+//  Separate nodes
 const alice = await ductape.graph.createNode({
   labels: ['Person'],
   properties: { name: 'Alice', age: 28 },
@@ -115,7 +115,7 @@ await ductape.graph.createNode({
   },
 });
 
-// ✅ Good - structured properly
+//  Good - structured properly
 await ductape.graph.createNode({
   labels: ['User'],
   properties: {
@@ -125,7 +125,7 @@ await ductape.graph.createNode({
   },
 });
 
-// ✅ Even better - use nodes for complex relationships
+//  Even better - use nodes for complex relationships
 const alice = await ductape.graph.createNode({
   labels: ['User'],
   properties: { name: 'Alice' },
@@ -152,7 +152,7 @@ await ductape.graph.createRelationship({
 ### Index High-Cardinality Properties
 
 ```ts
-// ✅ Good - index unique or near-unique values
+//  Good - index unique or near-unique values
 await ductape.graph.createNodeIndex({
   name: 'idx_user_email',
   type: NodeIndexType.BTREE,
@@ -180,7 +180,7 @@ await ductape.graph.createNodeIndex({
 ### Use Composite Indexes Wisely
 
 ```ts
-// ✅ Good - matches query patterns
+//  Good - matches query patterns
 await ductape.graph.createNodeIndex({
   name: 'idx_order_user_status',
   type: NodeIndexType.BTREE,
@@ -201,7 +201,7 @@ const orders = await ductape.graph.findNodes({
 ### Create Constraints for Uniqueness
 
 ```ts
-// ✅ Use constraints instead of just indexes
+//  Use constraints instead of just indexes
 await ductape.graph.createNodeConstraint({
   name: 'unique_user_email',
   type: NodeConstraintType.UNIQUE,
@@ -216,7 +216,7 @@ await ductape.graph.createNodeConstraint({
 ### Filter Early
 
 ```ts
-// ✅ Good - filter at query time
+//  Good - filter at query time
 const users = await ductape.graph.findNodes({
   labels: ['User'],
   where: {
@@ -238,7 +238,7 @@ const filtered = allUsers.nodes.filter(
 ### Use Specific Labels
 
 ```ts
-// ✅ Good - specific label
+//  Good - specific label
 const engineers = await ductape.graph.findNodes({
   labels: ['Engineer'],
   where: { experience: { $GT: 5 } },
@@ -257,7 +257,7 @@ const engineers = await ductape.graph.findNodes({
 ### Limit Traversal Depth
 
 ```ts
-// ✅ Good - reasonable depth
+//  Good - reasonable depth
 const network = await ductape.graph.traverse({
   startNodeId: userId,
   relationshipTypes: ['FRIENDS_WITH'],
@@ -274,7 +274,7 @@ const network = await ductape.graph.traverse({
 ### Use Relationship Types
 
 ```ts
-// ✅ Good - specific relationship types
+//  Good - specific relationship types
 const friends = await ductape.graph.traverse({
   startNodeId: userId,
   relationshipTypes: ['FRIENDS_WITH', 'KNOWS'],
@@ -292,7 +292,7 @@ const connections = await ductape.graph.traverse({
 ### Paginate Large Result Sets
 
 ```ts
-// ✅ Good - paginate results
+//  Good - paginate results
 async function getUsersPaginated(page: number = 1, pageSize: number = 50) {
   const offset = (page - 1) * pageSize;
 
@@ -317,7 +317,7 @@ async function getUsersPaginated(page: number = 1, pageSize: number = 50) {
 ### Batch Operations in Transactions
 
 ```ts
-// ✅ Good - batch in single transaction
+//  Good - batch in single transaction
 await ductape.graph.executeTransaction(async (tx) => {
   for (const userData of largeUserList) {
     await ductape.graph.createNode({
@@ -339,7 +339,7 @@ for (const userData of largeUserList) {
 ### Cache Frequently Accessed Data
 
 ```ts
-// ✅ Good - cache popular queries
+//  Good - cache popular queries
 const cache = new Map<string, any>();
 
 async function getPopularPosts() {
@@ -368,7 +368,7 @@ async function getPopularPosts() {
 ### Use Connection Pooling
 
 ```ts
-// ✅ Good - reuse connections
+//  Good - reuse connections
 const ductape = new Ductape({
   workspace_id: 'workspace-123',
   user_id: 'user-456',
@@ -415,7 +415,7 @@ for (const user of users.nodes) {
   user.posts = posts.relationships;
 }
 
-// ✅ Good - single query with pattern
+//  Good - single query with pattern
 const usersWithPosts = await ductape.graph.query({
   query: `
     MATCH (u:User)-[r:POSTED]->(p:Post)
@@ -432,7 +432,7 @@ const usersWithPosts = await ductape.graph.query({
 ### Use Transactions for Multi-Step Operations
 
 ```ts
-// ✅ Always use transactions for related operations
+//  Always use transactions for related operations
 await ductape.graph.executeTransaction(async (tx) => {
   const order = await ductape.graph.createNode({
     labels: ['Order'],
@@ -455,7 +455,7 @@ await ductape.graph.executeTransaction(async (tx) => {
 ### Validate Data Before Writing
 
 ```ts
-// ✅ Good - validate first
+//  Good - validate first
 function validateUser(data: any) {
   if (!data.email || !data.email.includes('@')) {
     throw new Error('Invalid email');
@@ -479,7 +479,7 @@ async function createUser(data: any) {
 ### Use Merge for Idempotent Operations
 
 ```ts
-// ✅ Good - merge is idempotent
+//  Good - merge is idempotent
 const user = await ductape.graph.mergeNode({
   labels: ['User'],
   matchProperties: { email: 'alice@example.com' },
@@ -548,7 +548,7 @@ await ductape.graph.createRelationship({
   },
 });
 
-// ✅ Better - enrollment as node
+//  Better - enrollment as node
 const enrollment = await ductape.graph.createNode({
   labels: ['Enrollment'],
   properties: {
@@ -603,7 +603,7 @@ async function getUser(id: string) {
 ### Catch Specific Errors
 
 ```ts
-// ✅ Good - handle specific errors
+//  Good - handle specific errors
 try {
   await ductape.graph.createNode({
     labels: ['User'],
@@ -626,7 +626,7 @@ try {
 ### Implement Retry Logic
 
 ```ts
-// ✅ Retry transient errors
+//  Retry transient errors
 async function withRetry<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -666,7 +666,7 @@ const user = await withRetry(() =>
 ### Log Slow Queries
 
 ```ts
-// ✅ Monitor query performance
+//  Monitor query performance
 async function timedQuery<T>(
   name: string,
   operation: () => Promise<T>
@@ -738,7 +738,7 @@ setInterval(getGraphHealth, 5 * 60 * 1000); // Every 5 minutes
 ### Sanitize User Input
 
 ```ts
-// ✅ Good - use parameterized queries
+//  Good - use parameterized queries
 async function findUserByEmail(email: string) {
   return ductape.graph.findNodes({
     labels: ['User'],
@@ -757,7 +757,7 @@ async function findUserByEmailUnsafe(email: string) {
 ### Use Read-Only Transactions for Queries
 
 ```ts
-// ✅ Good - read-only transaction for analytics
+//  Good - read-only transaction for analytics
 await ductape.graph.executeTransaction(
   async (tx) => {
     const stats = await ductape.graph.getStatistics(tx);
@@ -773,7 +773,7 @@ await ductape.graph.executeTransaction(
 ### Limit Result Sizes
 
 ```ts
-// ✅ Always limit query results
+//  Always limit query results
 async function searchUsers(query: string) {
   return ductape.graph.findNodes({
     labels: ['User'],
@@ -790,7 +790,7 @@ async function searchUsers(query: string) {
 ### Use Transactions in Tests
 
 ```ts
-// ✅ Good - test in transaction, rollback after
+//  Good - test in transaction, rollback after
 import { describe, it, beforeEach, afterEach } from 'vitest';
 
 describe('User operations', () => {
@@ -819,7 +819,7 @@ describe('User operations', () => {
 ### Test with Realistic Data
 
 ```ts
-// ✅ Create test fixtures
+//  Create test fixtures
 async function setupTestData() {
   return ductape.graph.executeTransaction(async (tx) => {
     const users = [];
@@ -853,7 +853,7 @@ async function setupTestData() {
 ### Use Environment Variables
 
 ```ts
-// ✅ Good - environment-based config
+//  Good - environment-based config
 const config = {
   uri: process.env.NEO4J_URI,
   username: process.env.NEO4J_USERNAME,
@@ -870,7 +870,7 @@ await ductape.graph.register({
 ### Connection Pooling in Production
 
 ```ts
-// ✅ Configure for production load
+//  Configure for production load
 await ductape.graph.register({
   tag: 'main-graph',
   driver: GraphDriver.NEO4J,
@@ -890,7 +890,7 @@ await ductape.graph.register({
 ### Health Checks
 
 ```ts
-// ✅ Implement health check endpoint
+//  Implement health check endpoint
 async function healthCheck() {
   try {
     await ductape.graph.testConnection({ tag: 'main-graph' });
@@ -910,31 +910,31 @@ app.get('/health', async (req, res) => {
 ## Summary Checklist
 
 **Data Modeling:**
-- ✅ Use descriptive labels
-- ✅ Relationships are verbs
-- ✅ Properties for simple values, nodes for complex entities
+-  Use descriptive labels
+-  Relationships are verbs
+-  Properties for simple values, nodes for complex entities
 
 **Performance:**
-- ✅ Create indexes on frequently queried properties
-- ✅ Use constraints for uniqueness
-- ✅ Limit traversal depth
-- ✅ Batch operations in transactions
-- ✅ Paginate large results
+-  Create indexes on frequently queried properties
+-  Use constraints for uniqueness
+-  Limit traversal depth
+-  Batch operations in transactions
+-  Paginate large results
 
 **Data Integrity:**
-- ✅ Use transactions for multi-step operations
-- ✅ Validate data before writing
-- ✅ Use merge for idempotent operations
+-  Use transactions for multi-step operations
+-  Validate data before writing
+-  Use merge for idempotent operations
 
 **Monitoring:**
-- ✅ Log slow queries
-- ✅ Track database statistics
-- ✅ Implement health checks
+-  Log slow queries
+-  Track database statistics
+-  Implement health checks
 
 **Security:**
-- ✅ Use parameterized queries
-- ✅ Sanitize user input
-- ✅ Limit result sizes
+-  Use parameterized queries
+-  Sanitize user input
+-  Limit result sizes
 
 ## Next Steps
 

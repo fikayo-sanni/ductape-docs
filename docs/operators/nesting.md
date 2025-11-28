@@ -307,17 +307,17 @@ await ductape.feature.create({
 
 ## Tips for Success
 
-✅ **Test incrementally** - Build complex expressions step by step, testing each level
+ **Test incrementally** - Build complex expressions step by step, testing each level
 
-✅ **Use consistent spacing** - Format nested operators for readability
+ **Use consistent spacing** - Format nested operators for readability
 
-✅ **Document complex logic** - Add comments explaining the transformation intent
+ **Document complex logic** - Add comments explaining the transformation intent
 
-✅ **Validate data types** - Ensure operations match the data type (strings, numbers, arrays)
+ **Validate data types** - Ensure operations match the data type (strings, numbers, arrays)
 
-✅ **Consider sequence order** - Reference events that have already executed in the workflow
+ **Consider sequence order** - Reference events that have already executed in the workflow
 
-✅ **Keep transformations pure** - Operators should not have side effects
+ **Keep transformations pure** - Operators should not have side effects
 
 ## Debugging Nested Operators
 

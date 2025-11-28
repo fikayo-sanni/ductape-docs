@@ -1348,6 +1348,23 @@ li::marker {
   border-top: 1px solid var(--ductape-border);
 }
 
+/* Footer Social Icons */
+.footer__copyright a[aria-label]:hover {
+  color: var(--ifm-color-primary) !important;
+  border-color: var(--ifm-color-primary) !important;
+  transform: scale(1.05);
+}
+
+/* Pulse animation for status indicator */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 /* ===== SEARCH - Clean Compact Style ===== */
 .DocSearch-Button,
 [class*='searchBox'] button,
