@@ -9,7 +9,7 @@ Jobs in Ductape are scheduled events that automate tasks at specific times or in
 ## Quick Example
 
 ```ts
-import { JobEventTypes } from '@ductape/types';
+import { JobEventTypes } from '@ductape/sdk/types';
 
 await ductape.job.create({
   name: 'Daily Report',

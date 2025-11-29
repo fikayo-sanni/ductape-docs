@@ -92,7 +92,7 @@ await ductape.apps.validation('$Body{createUser}{user}{username}', {
 ### Example: Price Field with Decorator
 
 ```ts
-import { DecoratorPositions } from '@ductape/types';
+import { DecoratorPositions } from '@ductape/sdk/types';
 
 await ductape.apps.validation('$Body{createProduct}{product}{price}', {
   description: 'Price of the product in USD',
@@ -160,7 +160,7 @@ Here's a complete example setting up validation for a user registration Action:
 
 ```ts
 import Ductape from '@ductape/sdk';
-import { DecoratorPositions } from '@ductape/types';
+import { DecoratorPositions } from '@ductape/sdk/types';
 
 async function setupValidation() {
   const ductape = new Ductape({

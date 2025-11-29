@@ -9,7 +9,7 @@ Configure cloud storage providers for file uploads and downloads.
 ## Quick Example
 
 ```ts
-import { StorageProviders } from '@ductape/types';
+import { StorageProviders } from '@ductape/sdk/types';
 
 await ductape.storage.create({
   name: 'Primary Storage',

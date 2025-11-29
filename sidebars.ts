@@ -86,6 +86,7 @@ const sidebars: SidebarsConfig = {
         'databases/aggregations',
         'databases/transactions',
         'databases/migrations',
+        'databases/table-management',
         'databases/indexing',
         'databases/actions',
         'databases/direct-queries',

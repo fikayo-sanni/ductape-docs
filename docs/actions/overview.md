@@ -53,7 +53,7 @@ Actions are imported from API documentation like Postman collections or OpenAPI 
 ### Import into an Existing App
 
 ```ts
-import { ImportDocTypes } from '@ductape/types';
+import { ImportDocTypes } from '@ductape/sdk/types';
 import fs from 'fs';
 
 // Read your Postman collection
@@ -184,7 +184,7 @@ Here's a complete workflow showing how to work with Actions:
 
 ```ts
 import Ductape from '@ductape/sdk';
-import { ImportDocTypes } from '@ductape/types';
+import { ImportDocTypes } from '@ductape/sdk/types';
 import fs from 'fs';
 
 async function main() {

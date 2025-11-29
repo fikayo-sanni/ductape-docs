@@ -21,6 +21,7 @@ Message brokers let you build event-driven applications by sending and receiving
 | **Redis** | `REDIS` | Simple pub/sub, low latency |
 | **AWS SQS** | `AWS_SQS` | Serverless managed queues |
 | **Google Pub/Sub** | `GOOGLE_PUBSUB` | Google Cloud integration |
+| **NATS** | `NATS` | Lightweight, high-performance messaging |
 
 ---
 
@@ -29,7 +30,7 @@ Message brokers let you build event-driven applications by sending and receiving
 Create a message broker in your product with environment-specific configurations:
 
 ```typescript
-import { MessageBrokerTypes } from '@ductape/types';
+import { MessageBrokerTypes } from '@ductape/sdk/types';
 
 await ductape.broker.create({
   name: 'Order Events',
@@ -122,6 +123,19 @@ await ductape.broker.create({
 }
 ```
 
+**NATS**
+```typescript
+{
+  servers: string | string[];  // 'nats://localhost:4222' or ['nats://server1:4222', 'nats://server2:4222']
+  user?: string;               // Optional username
+  pass?: string;               // Optional password
+  token?: string;              // Optional token authentication
+  name?: string;               // Optional client name
+  maxReconnectAttempts?: number; // -1 for unlimited (default)
+  reconnectTimeWait?: number;  // Time between reconnection attempts in ms (default: 2000)
+}
+```
+
 ---
 
 ## Managing Topics
@@ -191,7 +205,7 @@ const topics = await ductape.broker.topic.fetchAll('order-events');
 Send messages to a topic using `ductape.broker.publish()`:
 
 ```typescript
-await ductape.broker.publish({
+await ductape.event.publish({
   env: 'prd',
   product: 'my-product',
   event: 'order-events:new-orders',
@@ -209,7 +223,7 @@ await ductape.broker.publish({
 Include session data when publishing user-related events:
 
 ```typescript
-await ductape.broker.publish({
+await ductape.event.publish({
   env: 'prd',
   product: 'my-product',
   event: 'order-events:new-orders',
@@ -231,7 +245,7 @@ await ductape.broker.publish({
 Listen for messages on a topic using `ductape.broker.subscribe()`:
 
 ```typescript
-await ductape.broker.subscribe({
+await ductape.event.subscribe({
   env: 'prd',
   product: 'my-product',
   event: 'order-events:new-orders',

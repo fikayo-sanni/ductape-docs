@@ -79,7 +79,7 @@ console.log('Created app:', app.tag);
 Actions are the individual endpoints your App can call. Import them from a Postman collection or OpenAPI spec:
 
 ```ts
-import { ImportDocTypes } from '@ductape/types';
+import { ImportDocTypes } from '@ductape/sdk/types';
 import fs from 'fs';
 
 // Read your Postman collection
@@ -204,7 +204,7 @@ Here's a complete example bringing it all together:
 
 ```ts
 import Ductape from '@ductape/sdk';
-import { ImportDocTypes } from '@ductape/types';
+import { ImportDocTypes } from '@ductape/sdk/types';
 import fs from 'fs';
 
 async function main() {

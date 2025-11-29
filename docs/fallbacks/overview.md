@@ -29,7 +29,7 @@ Create a fallback using `ductape.fallback.create()`:
 
 ```typescript
 import Ductape from '@ductape/sdk';
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
@@ -251,7 +251,7 @@ await ductape.fallback.update('payment-fallback', {
 Integrate fallbacks into feature workflows:
 
 ```typescript
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 await ductape.feature.create({
   tag: 'process-payment',
@@ -300,7 +300,7 @@ await ductape.feature.create({
 
 ```typescript
 import Ductape from '@ductape/sdk';
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',

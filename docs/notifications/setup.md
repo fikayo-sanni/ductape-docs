@@ -61,28 +61,115 @@ const push_notifications = {
 ```
 
 ### Email Notifications
+
+Ductape supports **5 email providers: SMTP, SendGrid, Mailgun, Postmark, and AWS SES**. Configure them by setting the appropriate fields based on your chosen provider.
+
+#### Common Fields
+| Field          | Type          | Required | Description         |
+| :------------- | :------------ | :------- | :------------------ |
+| `provider`     | `EmailProvider` | Yes    | Email service provider. |
+| `sender_email` | `string`      | Yes      | From email address. |
+
+#### SMTP Configuration
 | Field          | Type      | Required | Description         |
 | :------------- | :-------- | :------- | :------------------ |
 | `host`         | `string`  | Yes      | SMTP server host.   |
 | `port`         | `string`  | Yes      | SMTP port.          |
-| `sender_email` | `string`  | Yes      | From email address. |
 | `auth.user`    | `string`  | Yes      | SMTP auth username. |
 | `auth.pass`    | `string`  | Yes      | SMTP auth password. |
-| `secure`       | `boolean` | Yes      | Use SSL/TLS.        |
+| `secure`       | `boolean` | Optional | Use SSL/TLS.        |
+| `tls`          | `object`  | Optional | TLS configuration.  |
 
-**Example**
+**SMTP Example**
 ```typescript
 const emails = {
+  provider: 'smtp',
+  sender_email: 'noreply@ductape.app',
   host: 'smtp.elasticemail.com',
   port: '2524',
-  sender_email: 'noreply@ductape.app',
   auth: {
     user: 'fikayo@ductape.app',
     pass: '***'
   },
-  secure: false
+  secure: false,
+  tls: {
+    rejectUnauthorized: false
+  }
 };
 ```
+
+#### SendGrid Configuration
+| Field     | Type     | Required | Description        |
+| :-------- | :------- | :------- | :----------------- |
+| `apiKey`  | `string` | Yes      | SendGrid API key.  |
+
+**SendGrid Example**
+```typescript
+const emails = {
+  provider: 'sendgrid',
+  sender_email: 'noreply@ductape.app',
+  apiKey: 'SG.xxxxxxxxxxxxxxxxxxxxx'
+};
+```
+
+#### Mailgun Configuration
+| Field    | Type     | Required | Description                                    |
+| :------- | :------- | :------- | :--------------------------------------------- |
+| `apiKey` | `string` | Yes      | Mailgun API key.                               |
+| `domain` | `string` | Yes      | Mailgun domain.                                |
+| `url`    | `string` | Optional | API base URL (for EU region, use https://api.eu.mailgun.net). |
+
+**Mailgun Example**
+```typescript
+const emails = {
+  provider: 'mailgun',
+  sender_email: 'noreply@ductape.app',
+  apiKey: 'key-xxxxxxxxxxxxxxxxxxxxx',
+  domain: 'mg.ductape.app',
+  url: 'https://api.eu.mailgun.net' // Optional - for EU region
+};
+```
+
+#### Postmark Configuration
+| Field         | Type     | Required | Description          |
+| :------------ | :------- | :------- | :------------------- |
+| `serverToken` | `string` | Yes      | Postmark server token. |
+
+**Postmark Example**
+```typescript
+const emails = {
+  provider: 'postmark',
+  sender_email: 'noreply@ductape.app',
+  serverToken: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+};
+```
+
+#### AWS SES Configuration
+| Field             | Type     | Required | Description            |
+| :---------------- | :------- | :------- | :--------------------- |
+| `region`          | `string` | Yes      | AWS region.            |
+| `accessKeyId`     | `string` | Yes      | AWS access key ID.     |
+| `secretAccessKey` | `string` | Yes      | AWS secret access key. |
+
+**AWS SES Example**
+```typescript
+const emails = {
+  provider: 'aws_ses',
+  sender_email: 'noreply@ductape.app',
+  region: 'us-east-1',
+  accessKeyId: 'AKIAXXXXXXXXXX',
+  secretAccessKey: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+};
+```
+
+#### EmailProvider Enum Values
+| Enum Value  | Description                    |
+| :---------- | :----------------------------- |
+| `smtp`      | Traditional SMTP email server  |
+| `sendgrid`  | SendGrid email service         |
+| `mailgun`   | Mailgun email service          |
+| `postmark`  | Postmark email service         |
+| `aws_ses`   | Amazon Simple Email Service    |
 
 ### Callback Notifications
 | Field          | Type          | Required | Description                                       |

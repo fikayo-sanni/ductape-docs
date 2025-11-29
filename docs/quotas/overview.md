@@ -27,7 +27,7 @@ Create a quota using `ductape.quota.create()`:
 
 ```typescript
 import Ductape from '@ductape/sdk';
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
@@ -202,7 +202,7 @@ await ductape.quota.update('api-calls', {
 Reference quotas in your feature workflows to enforce limits:
 
 ```typescript
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 await ductape.feature.create({
   tag: 'send-notification',
@@ -257,7 +257,7 @@ Access quota results in subsequent events using sequence syntax:
 
 ```typescript
 import Ductape from '@ductape/sdk';
-import { FeatureEventTypes, DataTypes } from '@ductape/types';
+import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
