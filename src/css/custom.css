@@ -1124,6 +1124,20 @@ tbody tr:hover {
   background-color: var(--ductape-bg-secondary);
 }
 
+/* Table wrapper for horizontal scrolling on mobile */
+.markdown table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .markdown table {
+    width: 100%;
+    min-width: 600px;
+  }
+}
+
 /* ===== BLOCKQUOTES ===== */
 blockquote {
   background-color: var(--ductape-bg-secondary);
@@ -2436,4 +2450,14 @@ a {
 
 .navbar__search .suggestions::-webkit-scrollbar-thumb:hover {
   background: var(--ductape-text-tertiary);
+}
+
+/* Hide search bar on mobile */
+@media (max-width: 768px) {
+  .DocSearch-Button,
+  [class*='searchBox'],
+  .navbar__search,
+  .aa-DetachedSearchButton {
+    display: none !important;
+  }
 }
