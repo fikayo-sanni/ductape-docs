@@ -1,0 +1,1023 @@
+---
+sidebar_position: 5
+---
+
+# Execution & Rollbacks
+
+This guide explains how workflows execute, handle failures, and perform automatic rollbacks.
+
+## Executing a Workflow
+
+Start a workflow using `ductape.workflows.execute()`:
+
+```typescript
+const result = await ductape.workflows.execute({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'order-fulfillment',
+  input: {
+    orderId: 'ORD-12345',
+    customerId: 'cust-001',
+    amount: 99.99,
+    items: ['SKU-001', 'SKU-002'],
+  },
+});
+```
+
+### Execution Options
+
+```typescript
+const result = await ductape.workflows.execute({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'order-fulfillment',
+  input: { orderId: 'ORD-12345' },
+
+  // Optional settings
+  workflow_id: 'custom-id-123',     // Custom execution ID
+  idempotency_key: 'order-12345',   // Prevent duplicate executions
+  timeout: 300000,                   // Overall timeout (ms)
+  context: {                         // Additional context
+    source: 'api',
+    requestId: 'req-abc',
+  },
+});
+```
+
+### Execution Result
+
+```typescript
+interface WorkflowResult {
+  workflow_id: string;           // Execution ID
+  status: 'completed' | 'failed' | 'rolled_back' | 'running';
+  output?: unknown;               // Return value from handler
+  error?: {                       // Error details (if failed)
+    message: string;
+    step?: string;
+    code?: string;
+  };
+  completed_steps: string[];      // Successfully completed steps
+  failed_step?: string;           // Step that caused failure
+  execution_time: number;         // Duration in milliseconds
+  rollback_result?: {             // Rollback details (if rolled back)
+    rolled_back_steps: string[];
+    failed_steps?: Array<{ tag: string; error: string }>;
+  };
+}
+```
+
+### Example: Handling Results
+
+```typescript
+const result = await ductape.workflows.execute({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'order-fulfillment',
+  input: { orderId: 'ORD-12345' },
+});
+
+switch (result.status) {
+  case 'completed':
+    console.log('Order processed:', result.output);
+    console.log('Steps completed:', result.completed_steps);
+    break;
+
+  case 'failed':
+    console.error('Workflow failed at step:', result.failed_step);
+    console.error('Error:', result.error?.message);
+    break;
+
+  case 'rolled_back':
+    console.log('Workflow rolled back');
+    console.log('Rolled back steps:', result.rollback_result?.rolled_back_steps);
+    break;
+}
+```
+
+---
+
+## Workflow Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        WORKFLOW EXECUTION                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Start                                                         │
+│     │                                                           │
+│     ▼                                                           │
+│   ┌───────────┐   ┌───────────┐   ┌───────────┐                │
+│   │  Step A   │ → │  Step B   │ → │  Step C   │ → Complete     │
+│   └───────────┘   └───────────┘   └───────────┘                │
+│        │               │               │                        │
+│        ▼               ▼               ▼                        │
+│   [Rollback A]   [Rollback B]   [Rollback C]                   │
+│                                                                 │
+│   If Step C fails: Rollback C → Rollback B → Rollback A        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Step States
+
+Each step transitions through these states:
+
+| State | Description |
+|-------|-------------|
+| `pending` | Step not yet started |
+| `running` | Step currently executing |
+| `completed` | Step finished successfully |
+| `failed` | Step failed |
+| `skipped` | Step skipped (due to `allow_fail`) |
+| `rolled_back` | Step's rollback handler executed |
+
+---
+
+## Rollback Strategies
+
+Configure how failures trigger rollbacks:
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-product',
+  tag: 'my-workflow',
+  options: {
+    rollback_strategy: 'reverse_all',  // Default
+  },
+  handler: async (ctx) => { /* ... */ },
+});
+```
+
+### Available Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| `reverse_all` | Roll back all completed steps in reverse order |
+| `critical_only` | Only roll back steps marked as `critical: true` |
+| `to_checkpoint` | Roll back to the most recent checkpoint |
+| `none` | No automatic rollback |
+
+### reverse_all (Default)
+
+Rolls back every completed step that has a rollback handler:
+
+```typescript
+await ductape.workflows.define({
+  options: { rollback_strategy: 'reverse_all' },
+  handler: async (ctx) => {
+    await ctx.step('step-a', handler, rollbackA);  // Will rollback
+    await ctx.step('step-b', handler, rollbackB);  // Will rollback
+    await ctx.step('step-c', handler);             // Fails - no rollback
+    // If step-c fails: rollbackB() → rollbackA()
+  },
+});
+```
+
+### critical_only
+
+Only rolls back steps marked as critical:
+
+```typescript
+await ductape.workflows.define({
+  options: { rollback_strategy: 'critical_only' },
+  handler: async (ctx) => {
+    // Payment is critical - always rollback on failure
+    await ctx.step('payment', chargeHandler, refundHandler, { critical: true });
+
+    // Analytics is not critical - won't rollback
+    await ctx.step('analytics', trackHandler, rollbackAnalytics, { critical: false });
+
+    // Inventory reservation fails
+    await ctx.step('inventory', reserveHandler);
+
+    // Only 'payment' is rolled back
+  },
+});
+```
+
+### to_checkpoint
+
+Rolls back only to the most recent checkpoint:
+
+```typescript
+await ductape.workflows.define({
+  options: { rollback_strategy: 'to_checkpoint' },
+  handler: async (ctx) => {
+    await ctx.step('create-user', createHandler, deleteUser);
+
+    await ctx.checkpoint('user-created');  // Checkpoint here
+
+    await ctx.step('payment', chargeHandler, refundHandler);
+    await ctx.step('inventory', reserveHandler, releaseHandler);
+
+    // If inventory fails: only payment is rolled back
+    // create-user is NOT rolled back (before checkpoint)
+  },
+});
+```
+
+### none
+
+Disable automatic rollbacks entirely:
+
+```typescript
+await ductape.workflows.define({
+  options: { rollback_strategy: 'none' },
+  handler: async (ctx) => {
+    // No automatic rollbacks - handle failures manually
+    try {
+      await ctx.step('risky-operation', handler);
+    } catch (error) {
+      // Manual cleanup
+      await ctx.triggerRollback('Manual rollback triggered');
+    }
+  },
+});
+```
+
+---
+
+## Step Options for Failure Handling
+
+### allow_fail
+
+Continue workflow execution even if the step fails:
+
+```typescript
+await ctx.step(
+  'send-notification',
+  async () => {
+    await ctx.notification.email({ /* ... */ });
+  },
+  null,
+  { allow_fail: true }  // Workflow continues if this fails
+);
+```
+
+### retries and retry_delay
+
+Automatically retry failed steps:
+
+```typescript
+await ctx.step(
+  'external-api-call',
+  async () => {
+    return ctx.action.run({
+      app: 'external-service',
+      event: 'fetch-data',
+      input: {},
+    });
+  },
+  null,
+  {
+    retries: 3,           // Retry up to 3 times
+    retry_delay: 2000,    // Wait 2 seconds between retries
+  }
+);
+```
+
+### timeout
+
+Set a maximum duration for step execution:
+
+```typescript
+await ctx.step(
+  'slow-operation',
+  async () => {
+    return ctx.action.run({
+      app: 'slow-service',
+      event: 'process',
+      input: {},
+    });
+  },
+  null,
+  { timeout: 30000 }  // 30 second timeout
+);
+```
+
+### critical
+
+Mark a step as always requiring rollback:
+
+```typescript
+// With 'critical_only' strategy, only critical steps roll back
+await ctx.step(
+  'payment',
+  async () => ctx.action.run({ app: 'stripe', event: 'charge', input: {} }),
+  async (result) => ctx.action.run({ app: 'stripe', event: 'refund', input: { body: { id: result.id } } }),
+  { critical: true }
+);
+```
+
+---
+
+## Manual Rollback
+
+Trigger rollback programmatically using `ctx.triggerRollback()`:
+
+```typescript
+handler: async (ctx) => {
+  const payment = await ctx.step('payment', chargeHandler, refundHandler);
+
+  // Check for fraud
+  const fraudCheck = await ctx.step('fraud-check', async () => {
+    return ctx.action.run({
+      app: 'fraud-detection',
+      event: 'analyze',
+      input: { body: { transactionId: payment.id } },
+    });
+  });
+
+  if (fraudCheck.riskScore > 0.8) {
+    // Manually trigger rollback
+    const result = await ctx.triggerRollback('High fraud risk detected');
+
+    return {
+      success: false,
+      reason: 'fraud_detected',
+      rolledBackSteps: result.rolled_back_steps,
+    };
+  }
+
+  // Continue with order...
+}
+```
+
+### Rollback Result
+
+```typescript
+interface RollbackResult {
+  success: boolean;
+  rolled_back_steps: string[];
+  failed_steps?: Array<{
+    tag: string;
+    error: string;
+  }>;
+  reason: string;
+}
+```
+
+---
+
+## Checkpoints
+
+Create checkpoints to save progress and control rollback scope:
+
+```typescript
+handler: async (ctx) => {
+  // Phase 1: User setup
+  await ctx.step('create-user', createUser, deleteUser);
+  await ctx.step('verify-email', sendVerification);
+
+  // Checkpoint after user is fully created
+  await ctx.checkpoint('user-setup-complete', {
+    userId: ctx.steps['create-user'].id,
+  });
+
+  // Phase 2: Payment processing
+  await ctx.step('payment', chargeCard, refundCard);
+
+  // Checkpoint after payment
+  await ctx.checkpoint('payment-complete', {
+    chargeId: ctx.steps['payment'].id,
+  });
+
+  // Phase 3: Fulfillment
+  await ctx.step('ship-order', shipOrder, cancelShipment);
+
+  // If shipping fails with 'to_checkpoint' strategy:
+  // - Only 'ship-order' is rolled back
+  // - User and payment remain intact
+}
+```
+
+### Accessing Checkpoints
+
+```typescript
+// In your handler
+const lastCheckpoint = ctx.checkpoint_name;  // e.g., 'payment-complete'
+const checkpointData = ctx.checkpoint_data;  // { chargeId: '...' }
+```
+
+---
+
+## Signals
+
+Wait for external events during workflow execution:
+
+### Waiting for Signals
+
+```typescript
+handler: async (ctx) => {
+  // Create order
+  const order = await ctx.step('create-order', createOrder);
+
+  // Wait for manual approval
+  const approval = await ctx.waitForSignal('order-approved', {
+    timeout: '24h',
+  });
+
+  console.log('Approved by:', approval.approvedBy);
+  console.log('Comments:', approval.comments);
+
+  // Continue with fulfillment
+  await ctx.step('fulfill', fulfillOrder);
+}
+```
+
+### Sending Signals
+
+From outside the workflow, send a signal to continue execution:
+
+```typescript
+await ductape.workflows.signal({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  signal: 'order-approved',
+  payload: {
+    approvedBy: 'manager@company.com',
+    comments: 'Approved for processing',
+    timestamp: Date.now(),
+  },
+});
+```
+
+### Multiple Signals
+
+Wait for any of multiple possible signals:
+
+```typescript
+const result = await ctx.waitForSignal(['approved', 'rejected', 'escalated'], {
+  timeout: '48h',
+});
+
+// Check which signal was received
+if (result._signal === 'approved') {
+  await ctx.step('process', processOrder);
+} else if (result._signal === 'rejected') {
+  await ctx.triggerRollback('Order rejected');
+} else if (result._signal === 'escalated') {
+  await ctx.step('notify-manager', notifyManager);
+}
+```
+
+---
+
+## Querying Workflow Status
+
+Check the status of running or completed workflows:
+
+```typescript
+// Get workflow status
+const status = await ductape.workflows.status({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+});
+
+console.log('Status:', status.status);
+console.log('Current step:', status.current_step);
+console.log('Completed steps:', status.completed_steps);
+console.log('State:', status.state);
+```
+
+### Query Handlers
+
+Define queries in your workflow definition:
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-product',
+  tag: 'order-workflow',
+
+  queries: {
+    'getProgress': {
+      handler: (ctx) => ({
+        completedSteps: ctx.completed_steps.length,
+        totalSteps: 5,
+        currentStep: ctx.current_step,
+        percentComplete: (ctx.completed_steps.length / 5) * 100,
+      }),
+    },
+    'getOrderDetails': {
+      handler: (ctx) => ({
+        orderId: ctx.input.orderId,
+        status: ctx.state.orderStatus,
+        paymentId: ctx.steps['payment']?.id,
+      }),
+    },
+  },
+
+  handler: async (ctx) => { /* ... */ },
+});
+
+// Query from outside
+const progress = await ductape.workflows.query({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  query: 'getProgress',
+});
+```
+
+---
+
+## Cancelling Workflows
+
+Cancel a running workflow:
+
+```typescript
+const result = await ductape.workflows.cancel({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  reason: 'User requested cancellation',
+});
+
+console.log('Cancelled:', result.cancelled);
+console.log('Rolled back steps:', result.rolled_back_steps);
+```
+
+---
+
+## Dispatching Workflows
+
+Dispatch workflows to run on a schedule or at a specific time:
+
+### Schedule for Later
+
+```typescript
+// Run workflow in 1 hour
+const result = await ductape.workflows.dispatch({
+  product: 'my-product',
+  env: 'prd',
+  workflow: 'order-fulfillment',
+  input: { orderId: 'ORD-123' },
+  schedule: {
+    start_at: Date.now() + 3600000, // 1 hour from now
+  },
+});
+
+console.log('Scheduled job ID:', result.job_id);
+console.log('Scheduled for:', result.scheduled_at);
+```
+
+### Cron Schedule
+
+```typescript
+// Run daily at midnight
+const result = await ductape.workflows.dispatch({
+  product: 'my-product',
+  env: 'prd',
+  workflow: 'daily-report',
+  input: { reportType: 'sales' },
+  schedule: {
+    cron: '0 0 * * *', // Every day at midnight
+  },
+});
+```
+
+### Recurring Dispatch
+
+```typescript
+// Run every hour with retry options
+const result = await ductape.workflows.dispatch({
+  product: 'my-product',
+  env: 'prd',
+  workflow: 'sync-inventory',
+  input: { source: 'warehouse-a' },
+  schedule: {
+    cron: '0 * * * *', // Every hour
+    timezone: 'America/New_York',
+  },
+  options: {
+    retries: 3,
+    timeout: 300000,
+  },
+});
+```
+
+---
+
+## Replay, Restart & Resume
+
+Ductape Workflows track execution state persistently, enabling powerful recovery capabilities:
+
+| Operation | Description | Input | State |
+|-----------|-------------|-------|-------|
+| **Replay** | Re-execute with same input | Original | Fresh |
+| **Restart** | Re-execute with new/modified input | New/Modified | Fresh |
+| **Resume** | Continue from last state | Original | Preserved |
+
+### Replay Workflow
+
+Re-execute a workflow using the same input from a previous execution:
+
+```typescript
+// Replay a failed workflow
+const replayResult = await ductape.workflows.replay({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  reason: 'Debugging payment failure',
+});
+
+console.log(replayResult.workflow_id);    // New workflow ID
+console.log(replayResult.replayed_from);  // Original: 'wf-abc123'
+```
+
+#### Replay with Options
+
+```typescript
+const replayResult = await ductape.workflows.replay({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  options: {
+    retries: 5,
+    timeout: 120000,
+    debug: true,
+  },
+  reason: 'Debugging payment failure',
+  idempotency_key: 'replay-wf-abc123-attempt-2',
+});
+```
+
+#### Detecting Replay in Handler
+
+```typescript
+handler: async (ctx) => {
+  if (ctx.is_replay) {
+    ctx.log.info('Replaying workflow', {
+      original_id: ctx.replayed_from,
+      reason: ctx.replay_reason,
+    });
+  }
+
+  // Normal workflow logic...
+}
+```
+
+### Restart Workflow
+
+Reset and re-execute with new or modified input:
+
+```typescript
+// Restart with corrected input
+const restartResult = await ductape.workflows.restart({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  input: {
+    orderId: 'ORD-123',
+    email: 'corrected@email.com', // Fixed email
+  },
+  reason: 'Customer email was incorrect',
+});
+```
+
+#### Partial Input Override
+
+```typescript
+// Only override specific fields, merge with original
+const restartResult = await ductape.workflows.restart({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  input_override: {
+    email: 'corrected@email.com',
+  },
+  merge_input: true,
+});
+```
+
+### Resume Workflow
+
+Continue a workflow from where it stopped (paused, failed, or crashed):
+
+```typescript
+// Resume a paused workflow
+const resumeResult = await ductape.workflows.resume({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+});
+```
+
+#### Resume from Checkpoint
+
+```typescript
+// Resume from a specific checkpoint
+const resumeResult = await ductape.workflows.resume({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  from_checkpoint: 'payment-complete',
+  input: {
+    retry_payment: false,
+  },
+});
+```
+
+#### Resume from Failed Step
+
+```typescript
+// Resume from the step that failed
+const resumeResult = await ductape.workflows.resume({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  from_step: 'create-shipment',
+  skip_steps: ['send-confirmation'], // Skip problematic step
+});
+```
+
+#### Handling Resume in Handler
+
+```typescript
+handler: async (ctx) => {
+  if (ctx.is_restored) {
+    ctx.log.info('Resuming workflow', {
+      from_checkpoint: ctx.restored_checkpoint?.name,
+      completed_steps: ctx.completed_steps,
+    });
+  }
+
+  // Check if step already completed before running
+  if (!ctx.completed_steps.includes('validate-order')) {
+    await ctx.step('validate-order', async () => {
+      // Validation logic...
+    });
+  }
+
+  await ctx.checkpoint('validation-complete');
+
+  if (!ctx.completed_steps.includes('process-payment')) {
+    await ctx.step('process-payment', async () => {
+      // Payment logic...
+    });
+  }
+
+  // Continue with remaining steps...
+}
+```
+
+### Replay from Step
+
+Re-execute starting from a specific step, using state from the original execution:
+
+```typescript
+const result = await ductape.workflows.replayFromStep({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  from_step: 'create-shipment',
+});
+```
+
+#### Step Replay with State Override
+
+```typescript
+// Replay from step with corrected previous step outputs
+const result = await ductape.workflows.replayFromStep({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  from_step: 'process-payment',
+  step_outputs: {
+    'validate-order': {
+      valid: true,
+      total: 150.00, // Corrected total
+    },
+  },
+});
+```
+
+---
+
+## Workflow History
+
+Get detailed execution history for debugging and auditing:
+
+### Get Execution History
+
+```typescript
+const history = await ductape.workflows.history({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+});
+
+console.log(history.events);
+// [
+//   { type: 'workflow_started', timestamp: 1701936000000, data: { input: {...} } },
+//   { type: 'step_started', timestamp: 1701936001000, data: { step: 'validate-order' } },
+//   { type: 'step_completed', timestamp: 1701936002000, data: { step: 'validate-order', output: {...} } },
+//   { type: 'checkpoint_created', timestamp: 1701936003000, data: { name: 'validation-complete' } },
+//   { type: 'step_started', timestamp: 1701936004000, data: { step: 'process-payment' } },
+//   { type: 'step_failed', timestamp: 1701936005000, data: { step: 'process-payment', error: {...} } },
+//   { type: 'rollback_started', timestamp: 1701936006000, data: {} },
+//   { type: 'workflow_rolled_back', timestamp: 1701936008000, data: {} },
+// ]
+```
+
+### Get Step Details
+
+```typescript
+const stepDetail = await ductape.workflows.stepDetail({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+  step_tag: 'process-payment',
+});
+
+console.log(stepDetail);
+// {
+//   tag: 'process-payment',
+//   status: 'failed',
+//   input: { body: { amount: 100, customer_id: 'CUST-123' } },
+//   output: null,
+//   error: { message: 'Card declined', code: 'card_declined' },
+//   attempts: 3,
+//   duration: 1000,
+//   rollback_status: 'completed',
+// }
+```
+
+### List Related Executions
+
+Find all replays, restarts, and resumes of a workflow:
+
+```typescript
+const related = await ductape.workflows.relatedExecutions({
+  product: 'my-product',
+  env: 'prd',
+  workflow_id: 'wf-abc123',
+});
+
+console.log(related.executions);
+// [
+//   { workflow_id: 'wf-abc123', type: 'original', status: 'failed' },
+//   { workflow_id: 'wf-def456', type: 'replay', status: 'failed', replayed_from: 'wf-abc123' },
+//   { workflow_id: 'wf-ghi789', type: 'restart', status: 'completed', restarted_from: 'wf-abc123' },
+// ]
+```
+
+### Compare Executions
+
+Compare two executions to see what changed:
+
+```typescript
+const comparison = await ductape.workflows.compare({
+  product: 'my-product',
+  env: 'prd',
+  workflow_ids: ['wf-abc123', 'wf-ghi789'],
+});
+
+console.log(comparison.input_diff);
+// { email: ['wrong@email.com', 'correct@email.com'] }
+
+console.log(comparison.step_diffs);
+// [
+//   {
+//     step: 'process-payment',
+//     'wf-abc123': { status: 'failed', error: 'Card declined' },
+//     'wf-ghi789': { status: 'completed', output: { charge_id: 'ch_123' } },
+//   },
+// ]
+```
+
+---
+
+## Child Workflows
+
+Run workflows as children of other workflows:
+
+```typescript
+handler: async (ctx) => {
+  // Run payment as a child workflow
+  const paymentResult = await ctx.workflow(
+    'payment-' + ctx.input.orderId,   // Child workflow ID
+    'payment-processing',              // Workflow tag
+    {                                  // Input
+      amount: ctx.input.amount,
+      customerId: ctx.input.customerId,
+    },
+    {
+      timeout: '5m',
+      retries: 2,
+      parent_close_policy: 'terminate',  // Cancel child if parent fails
+    }
+  );
+
+  ctx.log.info('Payment completed', { chargeId: paymentResult.chargeId });
+}
+```
+
+### Parent Close Policies
+
+| Policy | Description |
+|--------|-------------|
+| `terminate` | Cancel child workflow when parent completes/fails |
+| `abandon` | Let child workflow continue independently |
+| `request_cancel` | Request cancellation but don't force it |
+
+---
+
+## Error Handling
+
+### Try-Catch in Steps
+
+```typescript
+await ctx.step('risky-operation', async () => {
+  try {
+    return await ctx.action.run({
+      app: 'unreliable-service',
+      event: 'fetch',
+      input: {},
+    });
+  } catch (error) {
+    ctx.log.warn('Primary service failed, using fallback', { error: error.message });
+
+    return await ctx.action.run({
+      app: 'fallback-service',
+      event: 'fetch',
+      input: {},
+    });
+  }
+});
+```
+
+### Fallback Component
+
+Use the fallback component for structured failure handling:
+
+```typescript
+const result = await ctx.fallback.execute({
+  fallback: 'payment-fallback',
+  input: {
+    amount: ctx.input.amount,
+    method: ctx.input.paymentMethod,
+  },
+  timeout: 30000,
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Always Define Rollback Handlers for Critical Operations
+
+```typescript
+// Good: Payment has rollback
+await ctx.step('payment', chargeCard, refundCard);
+
+// Bad: No way to undo if later steps fail
+await ctx.step('payment', chargeCard);
+```
+
+### 2. Use Checkpoints for Long Workflows
+
+```typescript
+// Break long workflows into phases with checkpoints
+await ctx.checkpoint('phase-1-complete');
+// ...later steps won't roll back phase 1
+```
+
+### 3. Mark Non-Critical Steps with allow_fail
+
+```typescript
+// Email failures shouldn't stop order processing
+await ctx.step('send-email', sendEmail, null, { allow_fail: true });
+```
+
+### 4. Use Idempotency Keys for Retries
+
+```typescript
+await ctx.action.run({
+  app: 'stripe',
+  event: 'charge',
+  input: {
+    body: { amount: 1000 },
+    headers: { 'Idempotency-Key': `${ctx.workflow_id}-payment` },
+  },
+});
+```
+
+### 5. Log Important State Changes
+
+```typescript
+ctx.log.info('Order status changed', {
+  orderId: order.id,
+  from: 'pending',
+  to: 'processing',
+});
+```
+
+## Next Steps
+
+- [Examples](./examples) - Real-world workflow patterns
+- [Building Workflows](./building-workflows) - Complete API reference
+- [Context API](./step-types) - All ctx methods

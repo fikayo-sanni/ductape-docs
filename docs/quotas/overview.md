@@ -204,7 +204,7 @@ Reference quotas in your feature workflows to enforce limits:
 ```typescript
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
-await ductape.feature.create({
+await ductape.features.create({
   tag: 'send-notification',
   name: 'Send Notification with Quota',
   input: {

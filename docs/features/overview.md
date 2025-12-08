@@ -35,7 +35,7 @@ Input → [Event 1] → [Event 2] → [Event 3] → Output
 ## Creating a Feature
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   name: 'Process Order',
   tag: 'process-order',
   description: 'Validates order, charges payment, sends confirmation',

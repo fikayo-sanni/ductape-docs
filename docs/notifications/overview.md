@@ -10,7 +10,7 @@ Send notifications to users via push, email, SMS, or webhooks.
 
 ```ts
 // Send an email notification
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'welcome_email',
@@ -36,7 +36,7 @@ await ductape.notification.send({
 ### Push Notifications
 
 ```ts
-await ductape.notification.create({
+await ductape.notifications.create({
   name: 'Order Update',
   tag: 'order-update',
   type: 'push',
@@ -47,7 +47,7 @@ await ductape.notification.create({
 ### Email Notifications
 
 ```ts
-await ductape.notification.create({
+await ductape.notifications.create({
   name: 'Welcome Email',
   tag: 'welcome-email',
   type: 'email',
@@ -58,7 +58,7 @@ await ductape.notification.create({
 ### SMS Notifications
 
 ```ts
-await ductape.notification.create({
+await ductape.notifications.create({
   name: 'OTP Code',
   tag: 'otp-code',
   type: 'sms',
@@ -69,7 +69,7 @@ await ductape.notification.create({
 ### Webhooks
 
 ```ts
-await ductape.notification.create({
+await ductape.notifications.create({
   name: 'Order Webhook',
   tag: 'order-webhook',
   type: 'webhook',

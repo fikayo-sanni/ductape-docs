@@ -253,7 +253,7 @@ Integrate fallbacks into feature workflows:
 ```typescript
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
-await ductape.feature.create({
+await ductape.features.create({
   tag: 'process-payment',
   name: 'Process Payment with Fallback',
   input: {

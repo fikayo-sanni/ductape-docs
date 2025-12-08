@@ -71,7 +71,7 @@ await ductape.product.apps.add({
 Reference secrets in custom headers:
 
 ```typescript
-const result = await ductape.action.run({
+const result = await ductape.actions.run({
   env: 'prd',
   product: 'my_product',
   app: 'custom_api',
@@ -137,7 +137,7 @@ await ductape.secrets.create({
 });
 
 // This works - payment_app is in scope
-await ductape.action.run({
+await ductape.actions.run({
   app: 'payment_app',
   // ...
   input: {
@@ -146,7 +146,7 @@ await ductape.action.run({
 });
 
 // This fails - analytics_app is not in scope
-await ductape.action.run({
+await ductape.actions.run({
   app: 'analytics_app',
   // ...
   input: {
@@ -166,13 +166,13 @@ await ductape.secrets.create({
 });
 
 // This works - running in production
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   // ...
 });
 
 // This fails - secret not available in dev
-await ductape.action.run({
+await ductape.actions.run({
   env: 'dev',
   // ...
   input: {

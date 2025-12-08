@@ -188,7 +188,7 @@ Once connected, use apps in your workflows:
 
 ```typescript
 // Run an action from a connected app
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'ecommerce-platform',
   app: 'stripe-payments',

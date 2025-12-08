@@ -4,49 +4,82 @@ sidebar_position: 2
 
 # Scheduling Jobs
 
-Schedule background tasks using `ductape.job.schedule()`. Jobs can run immediately, at a specific time, or on a recurring schedule.
+Schedule background tasks using the `dispatch()` methods available on each namespace. Jobs can run immediately, at a specific time, or on a recurring schedule.
 
 ## Quick Example
 
 ```ts
-// Schedule a job to run immediately
-await ductape.job.schedule({
+// Schedule an action to run in 1 hour
+const job = await ductape.actions.dispatch({
   env: 'prd',
   product: 'my-app',
+  app: 'email-service',
   event: 'send_welcome_email',
-  start_at: 0,  // 0 means run immediately
-  retries: 3,
   input: {
-    userId: 'user_123',
-    email: 'john@example.com'
+    body: {
+      userId: 'user_123',
+      email: 'john@example.com'
+    }
+  },
+  retries: 3,
+  schedule: {
+    start_at: Date.now() + 3600000  // 1 hour from now
   }
 });
+
+console.log('Job ID:', job.job_id);
+console.log('Status:', job.status);  // 'scheduled' or 'queued'
 ```
 
-## How It Works
+## Dispatch Methods by Namespace
 
-1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product** - Your product's unique identifier
-3. **event** - The job tag to execute
-4. **start_at** - When to run (Unix timestamp, or `0` for immediate)
-5. **retries** - Number of retry attempts on failure
-6. **input** - Data to pass to the job
+Each namespace has its own `dispatch()` method for scheduling operations as jobs:
+
+| Namespace | Method | Description |
+|-----------|--------|-------------|
+| `ductape.actions` | `dispatch()` | Schedule app actions |
+| `ductape.features` | `dispatch()` | Schedule feature execution |
+| `ductape.notifications` | `dispatch()` | Schedule notifications |
+| `ductape.storage` | `dispatch()` | Schedule storage operations |
+| `ductape.events` | `dispatch()` | Schedule message broker publishes |
+| `ductape.databases.action` | `dispatch()` | Schedule database actions |
+| `ductape.databases` | `dispatch()` | Schedule database operations |
+| `ductape.graphs.action` | `dispatch()` | Schedule graph actions |
+| `ductape.graphs` | `dispatch()` | Schedule graph operations |
+
+## Schedule Options
+
+All `dispatch()` methods accept a `schedule` option:
+
+```ts
+interface IDispatchSchedule {
+  start_at?: number | string;  // Unix timestamp (ms) or ISO date string
+  cron?: string;               // Cron expression for recurring jobs
+  every?: number;              // Interval in milliseconds
+  limit?: number;              // Max number of repetitions
+  endDate?: number | string;   // Stop after this date
+  tz?: string;                 // Timezone for cron
+}
+```
 
 ## Examples
 
 ### Run immediately
 
 ```ts
-await ductape.job.schedule({
+// Omit schedule or use start_at: Date.now()
+const job = await ductape.actions.dispatch({
   env: 'prd',
   product: 'billing',
+  app: 'payment-service',
   event: 'process_payment',
-  start_at: 0,
-  retries: 3,
   input: {
-    orderId: 'order_456',
-    amount: 99.99
-  }
+    body: {
+      orderId: 'order_456',
+      amount: 99.99
+    }
+  },
+  retries: 3
 });
 ```
 
@@ -54,15 +87,20 @@ await ductape.job.schedule({
 
 ```ts
 // Run at a specific timestamp
-await ductape.job.schedule({
+const job = await ductape.actions.dispatch({
   env: 'prd',
   product: 'marketing',
+  app: 'campaign-service',
   event: 'send_campaign',
-  start_at: 1704067200,  // Unix timestamp
-  retries: 2,
   input: {
-    campaignId: 'camp_123',
-    audience: 'active_users'
+    body: {
+      campaignId: 'camp_123',
+      audience: 'active_users'
+    }
+  },
+  retries: 2,
+  schedule: {
+    start_at: new Date('2025-01-15T10:00:00Z').getTime()
   }
 });
 ```
@@ -71,32 +109,34 @@ await ductape.job.schedule({
 
 ```ts
 // Run every day at 9 AM
-await ductape.job.schedule({
+const job = await ductape.features.dispatch({
   env: 'prd',
   product: 'reports',
-  event: 'generate_daily_report',
-  start_at: 0,
-  retries: 2,
+  tag: 'generate_daily_report',
   input: {},
-  repeat: {
+  retries: 2,
+  schedule: {
     cron: '0 9 * * *',
     tz: 'America/New_York'
   }
 });
+
+console.log('Recurring:', job.recurring);  // true
+console.log('Next run:', job.next_run_at);
 ```
 
 ### Recurring job with interval
 
 ```ts
 // Run every 24 hours
-await ductape.job.schedule({
+const job = await ductape.databases.action.dispatch({
   env: 'prd',
   product: 'sync',
+  database: 'inventory-db',
   event: 'sync_inventory',
-  start_at: 0,
+  input: { query: {}, data: {} },
   retries: 3,
-  input: {},
-  repeat: {
+  schedule: {
     every: 86400000  // 24 hours in milliseconds
   }
 });
@@ -106,14 +146,16 @@ await ductape.job.schedule({
 
 ```ts
 // Run weekly, but only 4 times
-await ductape.job.schedule({
+const job = await ductape.notifications.dispatch({
   env: 'prd',
   product: 'reminders',
+  notification: 'user-notifications',
   event: 'send_reminder',
-  start_at: 0,
+  input: {
+    email: { recipients: ['user@example.com'] }
+  },
   retries: 2,
-  input: { userId: 'user_123' },
-  repeat: {
+  schedule: {
     every: 604800000,  // 7 days
     limit: 4
   }
@@ -124,14 +166,14 @@ await ductape.job.schedule({
 
 ```ts
 // Run daily until end of year
-await ductape.job.schedule({
+const job = await ductape.events.dispatch({
   env: 'prd',
   product: 'promo',
+  broker: 'kafka-broker',
   event: 'check_promo_status',
-  start_at: 0,
+  input: { message: { check: true } },
   retries: 1,
-  input: {},
-  repeat: {
+  schedule: {
     every: 86400000,
     endDate: '2025-12-31T23:59:59Z'
   }
@@ -141,16 +183,18 @@ await ductape.job.schedule({
 ### With session data
 
 ```ts
-await ductape.job.schedule({
+const job = await ductape.notifications.dispatch({
   env: 'prd',
   product: 'notifications',
+  notification: 'digest-notifications',
   event: 'send_digest',
-  start_at: 0,
-  retries: 3,
   input: {
-    userId: '$Session{user}{id}',
-    email: '$Session{user}{email}'
+    email: {
+      recipients: ['$Session{user}{email}'],
+      subject: { userId: '$Session{user}{id}' }
+    }
   },
+  retries: 3,
   session: {
     tag: 'user-session',
     token: 'eyJhbGciOi...'
@@ -158,15 +202,53 @@ await ductape.job.schedule({
 });
 ```
 
-## Repeat Options
+### Database operation dispatch
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `cron` | `string` | Cron expression (e.g., `'0 9 * * *'` for 9 AM daily) |
-| `every` | `number` | Interval in milliseconds |
-| `limit` | `number` | Max number of repetitions |
-| `endDate` | `string` | Stop after this date (ISO format) |
-| `tz` | `string` | Timezone for cron (e.g., `'America/New_York'`) |
+```ts
+// Schedule a database cleanup operation
+const job = await ductape.databases.dispatch({
+  env: 'prd',
+  product: 'my-app',
+  database: 'logs-db',
+  operation: 'deleteMany',
+  input: {
+    filter: { createdAt: { $lt: '$DateAdd($Now(), -30, "days")' } }
+  },
+  schedule: {
+    cron: '0 3 * * *'  // Daily at 3 AM
+  }
+});
+```
+
+### Graph operation dispatch
+
+```ts
+// Schedule a graph cleanup operation
+const job = await ductape.graphs.dispatch({
+  env: 'prd',
+  product: 'my-app',
+  graph: 'session-graph',
+  operation: 'deleteNodes',
+  input: { filter: { expired: true } },
+  schedule: {
+    cron: '0 4 * * *'  // Daily at 4 AM
+  }
+});
+```
+
+## Dispatch Result
+
+All `dispatch()` methods return an `IDispatchResult`:
+
+```ts
+interface IDispatchResult {
+  job_id: string;                        // Unique job ID
+  status: 'scheduled' | 'queued';        // Job status
+  scheduled_at: number;                  // Scheduled start time
+  recurring: boolean;                    // Whether this is a recurring job
+  next_run_at?: number;                  // Next run time (for recurring)
+}
+```
 
 ## Common Cron Patterns
 
@@ -177,32 +259,31 @@ await ductape.job.schedule({
 | `0 0 * * 0` | Every Sunday at midnight |
 | `0 0 1 * *` | First day of every month |
 | `*/15 * * * *` | Every 15 minutes |
+| `0 9 * * 1` | Every Monday at 9 AM |
 
 ---
 
 ## Reference
 
-### IJobProcessorInput
+### IDispatchOptions (base for all dispatch inputs)
 
 ```ts
-interface IJobProcessorInput {
-  env: string;
-  product: string;
-  event: string;
-  start_at: number;
-  retries: number;
-  input: Record<string, unknown>;
-  app?: string;
+interface IDispatchOptions {
+  retries?: number;
+  schedule?: IDispatchSchedule;
+  session?: {
+    tag: string;
+    token: string;
+  };
   cache?: string;
-  session?: ISession;
-  repeat?: IJobRepeatOptions;
 }
 ```
 
-### IJobRepeatOptions
+### IDispatchSchedule
 
 ```ts
-interface IJobRepeatOptions {
+interface IDispatchSchedule {
+  start_at?: number | string;
   cron?: string;
   every?: number;
   limit?: number;
@@ -211,17 +292,93 @@ interface IJobRepeatOptions {
 }
 ```
 
-### ISession
+### Namespace-Specific Dispatch Inputs
 
 ```ts
-interface ISession {
+// Actions
+interface IActionDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  app: string;
+  event: string;
+  input: IActionRequest;
+}
+
+// Features
+interface IFeatureDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
   tag: string;
-  token: string;
+  input: Record<string, unknown>;
+}
+
+// Notifications
+interface INotificationDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  notification: string;
+  event: string;
+  input: INotificationRequest;
+}
+
+// Storage
+interface IStorageDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  storage: string;
+  event: string;
+  input: IStorageRequest;
+}
+
+// Message Broker (Events)
+interface IPublishDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  broker: string;
+  event: string;
+  input: IPublishRequest;
+}
+
+// Database Actions
+interface IDBActionDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  database: string;
+  event: string;
+  input: IDbActionRequest;
+}
+
+// Database Operations
+interface IDBOperationDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  database: string;
+  operation: string;
+  input: Record<string, unknown>;
+}
+
+// Graph Actions
+interface IGraphActionDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  graph: string;
+  event: string;
+  input: Record<string, unknown>;
+}
+
+// Graph Operations
+interface IGraphOperationDispatchInput extends IDispatchOptions {
+  env: string;
+  product: string;
+  graph: string;
+  operation: string;
+  input: Record<string, unknown>;
 }
 ```
 
 ## See Also
 
 * [Setting Up Jobs](./overview)
+* [Processing Overview](../processing-overview)
 * [Sessions](../sessions/overview)
 * [Features](../features/overview)

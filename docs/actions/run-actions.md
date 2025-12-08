@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Running Actions
 
-Once you have Actions imported into an App, you can execute them using `ductape.action.run()`. This function handles authentication, environment switching, and request formatting automatically.
+Once you have Actions imported into an App, you can execute them using `ductape.actions.run()`. This function handles authentication, environment switching, and request formatting automatically.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ const ductape = new Ductape({
 ## Quick Example
 
 ```ts
-const result = await ductape.action.run({
+const result = await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'stripe-app',
@@ -56,7 +56,7 @@ console.log(result); // { id: 'cus_xxx', email: 'john@example.com', ... }
 ### Sending data in the request body
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'payments',
   app: 'stripe',
@@ -74,7 +74,7 @@ await ductape.action.run({
 ### Using query parameters
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'dev',
   product: 'crm',
   app: 'hubspot',
@@ -91,7 +91,7 @@ await ductape.action.run({
 ### With route parameters
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'dev',
   product: 'inventory',
   app: 'shopify',
@@ -107,7 +107,7 @@ await ductape.action.run({
 ### With custom headers
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'api-gateway',
   app: 'internal-api',
@@ -126,7 +126,7 @@ await ductape.action.run({
 Use sessions to inject user-specific data dynamically:
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'dashboard',
   app: 'analytics',
@@ -144,7 +144,7 @@ await ductape.action.run({
 ### With caching and retries
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'catalog',
   app: 'products-api',

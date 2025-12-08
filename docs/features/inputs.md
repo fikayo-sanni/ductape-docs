@@ -74,7 +74,7 @@ input: {
 ## Complete Example
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   name: 'Create User',
   tag: 'create-user',
   description: 'Creates a new user account',
@@ -95,10 +95,10 @@ When running this feature:
 
 ```typescript
 // This will pass validation
-await ductape.feature.run({
+await ductape.features.run({
   env: 'prd',
   product: 'my-app',
-  tag: 'create-user',
+  feature_tag: 'create-user',
   input: {
     email: 'john@example.com',
     username: 'johndoe',
@@ -109,10 +109,10 @@ await ductape.feature.run({
 });
 
 // This will fail - email is invalid
-await ductape.feature.run({
+await ductape.features.run({
   env: 'prd',
   product: 'my-app',
-  tag: 'create-user',
+  feature_tag: 'create-user',
   input: {
     email: 'not-an-email',  // Invalid!
     username: 'johndoe',

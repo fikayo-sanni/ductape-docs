@@ -240,7 +240,7 @@ activeUsers: '$Filter($Sequence{main}{fetch-users}{users}, "==", "active")'
 Document your transformations, especially nested operators:
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   tag: 'format-order',
   output: {
     // Extract order ID prefix (first 8 chars after "ord_")

@@ -108,7 +108,7 @@ output: {
 ## Complete Example
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   name: 'Process Order',
   tag: 'process-order',
   description: 'Creates order and charges payment',

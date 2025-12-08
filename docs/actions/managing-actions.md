@@ -33,7 +33,7 @@ await ductape.app.init({ app: 'my-app' });
 Retrieve all Actions within the current App:
 
 ```ts
-const actions = await ductape.action.fetchAll();
+const actions = await ductape.actions.fetchAll();
 
 actions.forEach((action) => {
   console.log(`${action.name} (${action.tag})`);
@@ -48,7 +48,7 @@ actions.forEach((action) => {
 Get details about a single Action by its tag:
 
 ```ts
-const action = await ductape.action.fetch('send-email');
+const action = await ductape.actions.fetch('send-email');
 
 console.log('Action Details:');
 console.log('  Name:', action.name);
@@ -63,7 +63,7 @@ console.log('  Description:', action.description);
 Update an Action's configuration using the `update` function. You can modify the description, resource path, name, or HTTP method.
 
 ```ts
-const updatedAction = await ductape.action.update('send-email', {
+const updatedAction = await ductape.actions.update('send-email', {
   description: 'Send transactional emails via SendGrid API',
   resource: '/v3/mail/send',
   method: 'POST',
@@ -86,7 +86,7 @@ console.log('Updated:', updatedAction.tag);
 #### Update Description Only
 
 ```ts
-await ductape.action.update('create-customer', {
+await ductape.actions.update('create-customer', {
   description: 'Creates a new customer in the payment system',
 });
 ```
@@ -94,7 +94,7 @@ await ductape.action.update('create-customer', {
 #### Update Endpoint Path
 
 ```ts
-await ductape.action.update('list-products', {
+await ductape.actions.update('list-products', {
   resource: '/api/v2/products',
 });
 ```
@@ -102,7 +102,7 @@ await ductape.action.update('list-products', {
 #### Update HTTP Method
 
 ```ts
-await ductape.action.update('update-user', {
+await ductape.actions.update('update-user', {
   method: 'PATCH', // Changed from PUT to PATCH
 });
 ```
@@ -110,7 +110,7 @@ await ductape.action.update('update-user', {
 #### Multiple Updates
 
 ```ts
-await ductape.action.update('webhook-handler', {
+await ductape.actions.update('webhook-handler', {
   name: 'Stripe Webhook Handler',
   description: 'Processes incoming Stripe webhook events',
   resource: '/webhooks/stripe',
@@ -126,12 +126,12 @@ Give Actions clear, action-oriented names:
 
 ```ts
 // Good
-await ductape.action.update('send-email', {
+await ductape.actions.update('send-email', {
   name: 'Send Transactional Email',
 });
 
 // Avoid
-await ductape.action.update('send-email', {
+await ductape.actions.update('send-email', {
   name: 'Email', // Too vague
 });
 ```
@@ -141,7 +141,7 @@ await ductape.action.update('send-email', {
 Always add meaningful descriptions:
 
 ```ts
-await ductape.action.update('charge-customer', {
+await ductape.actions.update('charge-customer', {
   description: 'Charges the customer for a one-time payment. Requires a valid payment method attached to the customer.',
 });
 ```
@@ -152,7 +152,7 @@ When APIs change versions, update your resource paths:
 
 ```ts
 // Migrate to v2 API
-await ductape.action.update('list-users', {
+await ductape.actions.update('list-users', {
   resource: '/api/v2/users',
 });
 ```

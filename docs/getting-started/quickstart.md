@@ -101,7 +101,7 @@ const cache = await ductape.cache.create({
 To use the cache when running an action, include the `cache` field in your `IActionProcessorInput`:
 
 ```typescript
-const result = await ductape.action.run({
+const result = await ductape.actions.run({
   env: "dev",
   product: "payments_service",
   app: "email_app",
@@ -123,7 +123,7 @@ const result = await ductape.action.run({
 
 ## Step 5: Run an Action
 
-To run an action, use the `ductape.action.run` method. This method requires an `IActionProcessorInput` object, which specifies the environment, product, app, event (action tag), and input data.
+To run an action, use the `ductape.actions.run` method. This method requires an `IActionProcessorInput` object, which specifies the environment, product, app, event (action tag), and input data.
 
 ### IActionProcessorInput
 | Field   | Type   | Required | Default | Description | Example |
@@ -148,7 +148,7 @@ To run an action, use the `ductape.action.run` method. This method requires an `
 
 **Example:**
 ```typescript
-const result = await ductape.action.run({
+const result = await ductape.actions.run({
   env: "dev",
   product: "payments_service",
   app: "email_app",

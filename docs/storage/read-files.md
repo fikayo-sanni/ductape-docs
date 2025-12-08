@@ -12,7 +12,7 @@ Read files from disk and prepare them for upload using `ductape.storage.read()`.
 const { buffer, fileName, mimeType } = await ductape.storage.read('path/to/file.pdf');
 
 // Use the result in a storage operation
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'my-app',
   event: 'upload_document',
@@ -35,7 +35,7 @@ The `read` function:
 ```ts
 const file = await ductape.storage.read('invoices/invoice-001.pdf');
 
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'billing',
   event: 'upload_invoice',

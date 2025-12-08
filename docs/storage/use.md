@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Processing Storage
 
-Upload files to your configured storage providers using `ductape.storage.run()`.
+Upload files to your configured storage providers using `ductape.storage.upload()`.
 
 ## Quick Example
 
@@ -12,7 +12,7 @@ Upload files to your configured storage providers using `ductape.storage.run()`.
 // Read a local file and upload it
 const { buffer, fileName, mimeType } = await ductape.storage.read('path/to/file.txt');
 
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'my-app',
   event: 'upload_file',
@@ -38,7 +38,7 @@ await ductape.storage.run({
 ```ts
 const { buffer, fileName, mimeType } = await ductape.storage.read('invoice.pdf');
 
-const result = await ductape.storage.run({
+const result = await ductape.storage.upload({
   env: 'prd',
   product: 'billing',
   event: 'upload_invoice',
@@ -53,7 +53,7 @@ const result = await ductape.storage.run({
 ### Upload with session context
 
 ```ts
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'profiles',
   event: 'upload_avatar',
@@ -72,7 +72,7 @@ await ductape.storage.run({
 ### Upload with retries
 
 ```ts
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'documents',
   event: 'upload_document',
@@ -88,7 +88,7 @@ await ductape.storage.run({
 ### Upload with caching
 
 ```ts
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'assets',
   event: 'upload_image',
@@ -125,7 +125,7 @@ fileName: 'users/123/documents/invoice.pdf'
 **User-specific folders**
 ```ts
 const userId = 'user_12345';
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'profiles',
   event: 'upload_avatar',
@@ -144,7 +144,7 @@ const year = now.getFullYear();
 const month = String(now.getMonth() + 1).padStart(2, '0');
 const day = String(now.getDate()).padStart(2, '0');
 
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'documents',
   event: 'upload_invoice',
@@ -159,7 +159,7 @@ await ductape.storage.run({
 **Type-based organization**
 ```ts
 const fileType = mimeType.startsWith('image/') ? 'images' : 'documents';
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'media',
   event: 'upload_file',
@@ -173,7 +173,7 @@ await ductape.storage.run({
 
 **Environment separation** (if using same bucket across environments)
 ```ts
-await ductape.storage.run({
+await ductape.storage.upload({
   env: 'prd',
   product: 'assets',
   event: 'upload_asset',

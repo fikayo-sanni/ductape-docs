@@ -232,7 +232,7 @@ import ductape from "./ductape"
 
 export const fetchBanksPaystack = async () => {
 
-    const Banks = await ductape.action.run({
+    const Banks = await ductape.actions.run({
         env: "snd",
         product: process.env.PRODUCT_TAG,
         app: process.env.PAYSTACK_APP_TAG,

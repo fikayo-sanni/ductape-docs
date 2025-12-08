@@ -60,7 +60,7 @@ import fs from 'fs';
 const file = fs.readFileSync('./api.postman_collection.json');
 
 // Import into an existing app
-await ductape.action.import({
+await ductape.actions.import({
   file,
   type: ImportDocTypes.postmanV21,
   app: 'my-app',
@@ -74,7 +74,7 @@ console.log('Actions imported successfully');
 Omit the `app` to create a new App from the collection:
 
 ```ts
-await ductape.action.import({
+await ductape.actions.import({
   file,
   type: ImportDocTypes.postmanV21,
   // App will be created from collection metadata
@@ -98,7 +98,7 @@ Before running Actions, you can list all available Actions in an App:
 await ductape.app.init({ app: 'stripe-payments' });
 
 // Fetch all actions
-const actions = await ductape.action.fetchAll();
+const actions = await ductape.actions.fetchAll();
 
 actions.forEach((action) => {
   console.log(`${action.name} (${action.tag}): ${action.method} ${action.resource}`);
@@ -110,7 +110,7 @@ actions.forEach((action) => {
 Get details about a single Action by its tag:
 
 ```ts
-const action = await ductape.action.fetch('create-charge');
+const action = await ductape.actions.fetch('create-charge');
 
 console.log('Action:', action.name);
 console.log('Method:', action.method);
@@ -120,10 +120,10 @@ console.log('Description:', action.description);
 
 ## Step 5: Run an Action
 
-Call any Action using `ductape.action.run()`:
+Call any Action using `ductape.actions.run()`:
 
 ```ts
-const result = await ductape.action.run({
+const result = await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'stripe-payments',
@@ -153,7 +153,7 @@ Actions accept different types of input depending on the endpoint:
 
 ```ts
 // Example with multiple input types
-await ductape.action.run({
+await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'my-api',
@@ -171,7 +171,7 @@ await ductape.action.run({
 After importing Actions, you can update their configuration:
 
 ```ts
-await ductape.action.update('send-email', {
+await ductape.actions.update('send-email', {
   description: 'Send transactional email via SendGrid',
   resource: '/v3/mail/send',
   method: 'POST',
@@ -197,7 +197,7 @@ async function main() {
 
   // Import Actions from a Postman collection
   const collection = fs.readFileSync('./api.postman_collection.json');
-  await ductape.action.import({
+  await ductape.actions.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
     app: 'my-api',
@@ -205,16 +205,16 @@ async function main() {
 
   // List all imported Actions
   await ductape.app.init({ app: 'my-api' });
-  const actions = await ductape.action.fetchAll();
+  const actions = await ductape.actions.fetchAll();
   console.log(`Imported ${actions.length} actions`);
 
   // Update an Action's configuration
-  await ductape.action.update('create-user', {
+  await ductape.actions.update('create-user', {
     description: 'Create a new user account',
   });
 
   // Run the Action
-  const result = await ductape.action.run({
+  const result = await ductape.actions.run({
     env: 'dev',
     product: 'my-product',
     app: 'my-api',

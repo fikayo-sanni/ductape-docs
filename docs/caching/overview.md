@@ -56,12 +56,12 @@ const caches = await ductape.cache.fetchAll();
 const cache = await ductape.cache.fetch('user-data');
 ```
 
-## Using Cache in Processors
+## Using Cache in Operations
 
-Add the `cache` parameter when calling processors:
+Add the `cache` parameter when calling operations:
 
 ```ts
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'my-app',
   app: 'api-service',

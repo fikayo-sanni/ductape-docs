@@ -33,8 +33,8 @@ Set up the Ductape SDK with your credentials:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
   user_id: 'your-user-id',
+  workspace_id: 'your-workspace-id',
   private_key: 'your-private-key',
 });
 ```
@@ -44,7 +44,8 @@ const ductape = new Ductape({
 Register your database with environment-specific connection strings:
 
 ```ts
-await ductape.database.create({
+await ductape.databases.create({
+  product_tag: 'my-app',
   name: 'User Database',
   tag: 'users-db',
   type: 'postgresql',
@@ -70,6 +71,7 @@ await ductape.database.create({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `product_tag` | string | Yes | Product identifier to associate the database with |
 | `name` | string | Yes | Human-readable display name |
 | `tag` | string | Yes | Unique identifier for the database |
 | `type` | string | Yes | Database type: `postgresql`, `mysql`, `mongodb`, or `dynamodb` |
@@ -89,7 +91,7 @@ await ductape.database.create({
 Before running queries, establish a connection:
 
 ```ts
-const result = await ductape.database.connect({
+const result = await ductape.databases.connect({
   env: 'dev',
   product: 'my-app',
   database: 'users-db',
@@ -108,13 +110,13 @@ With the connection established, you can query your database:
 
 ```ts
 // Query all active users
-const result = await ductape.database.query({
+const result = await ductape.databases.find({
   table: 'users',
   where: { status: 'active' },
   limit: 10,
 });
 
-console.log('Found users:', result.data);
+console.log('Found users:', result.records);
 console.log('Total count:', result.count);
 ```
 
@@ -123,19 +125,19 @@ console.log('Total count:', result.count);
 Add new records to your database:
 
 ```ts
-const result = await ductape.database.insert({
+const result = await ductape.databases.insert({
   table: 'users',
-  data: {
+  records: [{
     name: 'Jane Doe',
     email: 'jane@example.com',
     status: 'active',
     created_at: new Date(),
-  },
+  }],
   returning: true,
 });
 
 console.log('Inserted user ID:', result.insertedIds[0]);
-console.log('Inserted data:', result.data);
+console.log('Inserted data:', result.records);
 ```
 
 ## Complete Example
@@ -148,13 +150,14 @@ import Ductape from '@ductape/sdk';
 async function main() {
   // Initialize SDK
   const ductape = new Ductape({
-    workspace_id: 'your-workspace-id',
     user_id: 'your-user-id',
+    workspace_id: 'your-workspace-id',
     private_key: 'your-private-key',
   });
 
   // Register database (usually done once during setup)
-  await ductape.database.create({
+  await ductape.databases.create({
+    product_tag: 'my-app',
     name: 'User Database',
     tag: 'users-db',
     type: 'postgresql',
@@ -165,44 +168,44 @@ async function main() {
   });
 
   // Connect to database
-  await ductape.database.connect({
+  await ductape.databases.connect({
     env: 'dev',
     product: 'my-app',
     database: 'users-db',
   });
 
   // Insert a new user
-  const insertResult = await ductape.database.insert({
+  const insertResult = await ductape.databases.insert({
     table: 'users',
-    data: {
+    records: [{
       name: 'John Doe',
       email: 'john@example.com',
       status: 'active',
-    },
+    }],
     returning: true,
   });
 
-  console.log('Created user:', insertResult.data);
+  console.log('Created user:', insertResult.records);
 
   // Query users
-  const queryResult = await ductape.database.query({
+  const queryResult = await ductape.databases.find({
     table: 'users',
     where: { status: 'active' },
-    orderBy: { column: 'created_at', order: 'DESC' },
+    orderBy: [{ column: 'created_at', order: 'DESC' }],
     limit: 10,
   });
 
-  console.log('Active users:', queryResult.data);
+  console.log('Active users:', queryResult.records);
 
   // Count total users
-  const count = await ductape.database.count({
+  const count = await ductape.databases.count({
     table: 'users',
   });
 
   console.log('Total users:', count);
 
   // Close connections when done
-  await ductape.database.closeAll();
+  await ductape.databases.closeAll();
 }
 
 main().catch(console.error);
@@ -213,7 +216,7 @@ main().catch(console.error);
 Use the `testConnection` method to verify connectivity without performing operations:
 
 ```ts
-const result = await ductape.database.testConnection({
+const result = await ductape.databases.testConnection({
   env: 'dev',
   product: 'my-app',
   database: 'users-db',
@@ -234,21 +237,24 @@ You can register and use multiple databases in a single product:
 
 ```ts
 // Register multiple databases
-await ductape.database.create({
+await ductape.databases.create({
+  product_tag: 'my-app',
   name: 'User Database',
   tag: 'users-db',
   type: 'postgresql',
   envs: [{ slug: 'dev', connection_url: '...' }],
 });
 
-await ductape.database.create({
+await ductape.databases.create({
+  product_tag: 'my-app',
   name: 'Analytics Database',
   tag: 'analytics-db',
   type: 'mongodb',
   envs: [{ slug: 'dev', connection_url: '...' }],
 });
 
-await ductape.database.create({
+await ductape.databases.create({
+  product_tag: 'my-app',
   name: 'Session Store',
   tag: 'sessions-db',
   type: 'dynamodb',
@@ -256,24 +262,24 @@ await ductape.database.create({
 });
 
 // Switch between databases by connecting to each
-await ductape.database.connect({
+await ductape.databases.connect({
   env: 'dev',
   product: 'my-app',
   database: 'users-db',
 });
 
 // Query users database
-const users = await ductape.database.query({ table: 'users' });
+const users = await ductape.databases.find({ table: 'users' });
 
 // Connect to a different database
-await ductape.database.connect({
+await ductape.databases.connect({
   env: 'dev',
   product: 'my-app',
   database: 'analytics-db',
 });
 
 // Query analytics database
-const events = await ductape.database.query({ table: 'events' });
+const events = await ductape.databases.find({ table: 'events' });
 ```
 
 ## Updating Database Configuration
@@ -281,7 +287,7 @@ const events = await ductape.database.query({ table: 'events' });
 Update an existing database configuration:
 
 ```ts
-await ductape.database.update('users-db', {
+await ductape.databases.update('my-app', 'users-db', {
   name: 'User Database v2',
   description: 'Updated user storage',
   envs: [
@@ -297,17 +303,17 @@ Retrieve information about your registered databases:
 
 ```ts
 // Get all databases in the product
-const databases = await ductape.database.fetchAll();
+const databases = await ductape.databases.fetchAll('my-app');
 
-databases.forEach((db) => {
-  console.log(`${db.name} (${db.tag}): ${db.type}`);
+databases.forEach((database) => {
+  console.log(`${database.name} (${database.tag}): ${database.type}`);
 });
 
 // Get a specific database
-const usersDb = await ductape.database.fetch('users-db');
-console.log('Database:', usersDb.name);
-console.log('Type:', usersDb.type);
-console.log('Environments:', usersDb.envs);
+const usersDb = await ductape.databases.fetch('my-app', 'users-db');
+console.log('Database:', usersductape.databases.name);
+console.log('Type:', usersductape.databases.type);
+console.log('Environments:', usersductape.databases.envs);
 ```
 
 ## Connection String Formats
@@ -328,7 +334,7 @@ mysql://user:pass@localhost:3306/myapp
 ```
 mongodb://username:password@host:port/database
 mongodb://user:pass@localhost:27017/myapp
-mongodb+srv://user:pass@cluster.mongodb.net/myapp
+mongodb+srv://user:pass@cluster.mongoductape.databases.net/myapp
 ```
 
 ### DynamoDB

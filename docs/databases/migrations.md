@@ -4,859 +4,561 @@ sidebar_position: 6
 
 # Database Migrations
 
-Migrations provide version-controlled schema changes for your database. Create tables, add columns, create indexes, and evolve your schema safely across environments.
+Migrations provide version-controlled schema changes for your database. Every schema operation in Ductape automatically creates a migration, ensuring all changes are tracked, reproducible, and reversible across all environments.
 
 ## Quick Example
 
 ```ts
-import { createTableMigration, SchemaHelpers } from '@ductape/sdk';
+import { DatabaseService } from '@ductape/sdk';
 
-// Define migration
-const migration = createTableMigration('create_users_table', {
-  name: 'users',
-  columns: [
-    SchemaHelpers.id(),
-    SchemaHelpers.string('email', 255, false),
-    SchemaHelpers.string('name', 255),
-    ...SchemaHelpers.timestamps(),
-  ],
+const db = new DatabaseService();
+await db.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+
+// Create table - automatically generates and applies a migration
+const result = await db.schema.create('users', {
+  id: { type: 'uuid', primaryKey: true },
+  email: { type: 'string', length: 255, required: true, unique: true },
+  name: { type: 'string', length: 100 },
+}, { timestamps: true });
+
+// The migration is tracked and can be replayed
+console.log('Migration:', result.migration.tag);
+```
+
+## How It Works
+
+Unlike traditional ORMs where you write migration files manually, Ductape uses a **migration-first approach**:
+
+1. **Every schema change creates a migration** - When you call `db.schema.create()`, `db.schema.addField()`, etc., a migration is automatically generated
+2. **Migrations are applied immediately** - By default, the migration runs on the connected environment
+3. **Migrations are tracked** - All applied migrations are stored in a migrations table
+4. **Platform-independent** - The same migration works across PostgreSQL, MySQL, MongoDB, DynamoDB, Cassandra, and MariaDB
+
+```
+Your Code                  Generated Migration           Database
+    ↓                            ↓                           ↓
+db.schema.create()  →  { type: 'createCollection' }  →  CREATE TABLE
+db.schema.addField() →  { type: 'addField' }         →  ALTER TABLE ADD
+db.schema.dropIndex() → { type: 'dropIndex' }        →  DROP INDEX
+```
+
+## Why This Approach?
+
+- **No migration files to manage** - Migrations are generated from your intent
+- **Type-safe** - Schema definitions are validated at compile time
+- **Cross-database** - Same API works for SQL and NoSQL databases
+- **Automatic rollback** - Every migration includes down operations
+- **Environment-aware** - Apply to dev, staging, or production
+
+## Schema Operations (Automatic Migrations)
+
+### Create Table
+
+```ts
+await db.schema.create('products', {
+  id: { type: 'uuid', primaryKey: true },
+  name: { type: 'string', length: 255, required: true },
+  price: { type: 'decimal', precision: 10, scale: 2 },
+  stock: 'integer',
+  is_active: { type: 'boolean', default: true },
+  metadata: 'json',
+}, { timestamps: true });
+
+// Generated migration:
+// {
+//   type: 'createCollection',
+//   name: 'products',
+//   fields: [...],
+//   up: [...],
+//   down: [{ type: 'dropCollection', name: 'products' }]
+// }
+```
+
+### Add Field
+
+```ts
+await db.schema.addField('users', 'phone', {
+  type: 'string',
+  length: 20,
 });
 
-// Run migration
-await ductape.database.runMigration(migration, {
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-});
+// Generated migration:
+// {
+//   type: 'addField',
+//   collection: 'users',
+//   field: { name: 'phone', type: 'string', length: 20 },
+//   down: [{ type: 'dropField', collection: 'users', field: 'phone' }]
+// }
 ```
 
-## Why Use Migrations?
-
-- **Version Control** - Track schema changes alongside code
-- **Reproducibility** - Apply the same changes across all environments
-- **Rollback** - Safely undo changes when needed
-- **Team Collaboration** - Share schema changes with your team
-- **Audit Trail** - Know what changed, when, and by whom
-
-## Creating Migrations
-
-### Using Migration Helpers
-
-The SDK provides helper functions for common migrations:
-
-#### Create Table Migration
+### Drop Field
 
 ```ts
-import { createTableMigration, SchemaHelpers } from '@ductape/sdk';
-
-const migration = createTableMigration('create_products_table', {
-  name: 'products',
-  columns: [
-    SchemaHelpers.id(),
-    SchemaHelpers.string('name', 255, false),
-    SchemaHelpers.text('description'),
-    SchemaHelpers.decimal('price', 10, 2),
-    SchemaHelpers.integer('stock'),
-    SchemaHelpers.boolean('is_active', true),
-    SchemaHelpers.json('metadata'),
-    ...SchemaHelpers.timestamps(),
-  ],
-});
+await db.schema.dropField('users', 'old_column');
 ```
 
-#### Add Column Migration
+### Rename Field
 
 ```ts
-import { addColumnMigration, SchemaHelpers } from '@ductape/sdk';
-
-const migration = addColumnMigration(
-  'add_phone_to_users',
-  'users',
-  SchemaHelpers.string('phone', 20)
-);
+await db.schema.renameField('users', 'name', 'full_name');
 ```
 
-#### Add Index Migration
+### Modify Field
 
 ```ts
-import { addIndexMigration } from '@ductape/sdk';
-
-const migration = addIndexMigration(
-  'add_email_index',
-  'users',
-  'idx_users_email',
-  ['email'],
-  true // unique
-);
-```
-
-### Manual Migration Definition
-
-For complex migrations, define them manually:
-
-```ts
-import { createMigration, createTable, addColumn, dropTable, ColumnType } from '@ductape/sdk';
-
-const migration = createMigration(
-  'create_orders_system',
-  // Up migrations (apply)
-  [
-    createTable({
-      name: 'orders',
-      columns: [
-        {
-          name: 'id',
-          type: ColumnType.UUID,
-          primaryKey: true,
-          nullable: false,
-          defaultValue: 'gen_random_uuid()',
-        },
-        {
-          name: 'customer_id',
-          type: ColumnType.INTEGER,
-          nullable: false,
-          references: { table: 'users', column: 'id' },
-        },
-        {
-          name: 'total',
-          type: ColumnType.DECIMAL,
-          precision: 10,
-          scale: 2,
-          nullable: false,
-        },
-        {
-          name: 'status',
-          type: ColumnType.ENUM,
-          enumValues: ['pending', 'processing', 'completed', 'cancelled'],
-          nullable: false,
-          defaultValue: 'pending',
-        },
-        {
-          name: 'created_at',
-          type: ColumnType.TIMESTAMP,
-          nullable: false,
-          defaultValue: 'NOW()',
-        },
-      ],
-    }),
-    createTable({
-      name: 'order_items',
-      columns: [
-        { name: 'id', type: ColumnType.INTEGER, primaryKey: true, autoIncrement: true },
-        { name: 'order_id', type: ColumnType.UUID, nullable: false },
-        { name: 'product_id', type: ColumnType.INTEGER, nullable: false },
-        { name: 'quantity', type: ColumnType.INTEGER, nullable: false },
-        { name: 'unit_price', type: ColumnType.DECIMAL, precision: 10, scale: 2 },
-      ],
-    }),
-  ],
-  // Down migrations (rollback)
-  [
-    dropTable('order_items'),
-    dropTable('orders'),
-  ]
-);
-```
-
-## Schema Helpers
-
-Pre-configured column definitions for common types:
-
-```ts
-import { SchemaHelpers } from '@ductape/sdk';
-
-const columns = [
-  // Primary Keys
-  SchemaHelpers.id(),                           // Auto-increment integer PK
-  SchemaHelpers.uuid(),                         // UUID primary key
-
-  // Strings
-  SchemaHelpers.string('name', 255),            // VARCHAR(255), nullable
-  SchemaHelpers.string('email', 255, false),    // VARCHAR(255), not null
-  SchemaHelpers.text('description'),            // TEXT
-
-  // Numbers
-  SchemaHelpers.integer('count'),               // INTEGER
-  SchemaHelpers.bigint('views'),                // BIGINT
-  SchemaHelpers.decimal('price', 10, 2),        // DECIMAL(10,2)
-  SchemaHelpers.float('rating'),                // FLOAT
-
-  // Boolean
-  SchemaHelpers.boolean('is_active', true),     // BOOLEAN, default true
-
-  // Dates
-  SchemaHelpers.date('birth_date'),             // DATE
-  SchemaHelpers.datetime('scheduled_at'),       // DATETIME
-  SchemaHelpers.timestamp('logged_at'),         // TIMESTAMP
-
-  // JSON
-  SchemaHelpers.json('settings'),               // JSON
-  SchemaHelpers.jsonb('metadata'),              // JSONB (PostgreSQL)
-
-  // References
-  SchemaHelpers.foreignKey('user_id', 'users'), // INTEGER FK to users.id
-
-  // Timestamps
-  ...SchemaHelpers.timestamps(),                // created_at, updated_at
-  SchemaHelpers.softDelete(),                   // deleted_at
-];
-```
-
-## Column Types
-
-| Type | Description | SQL Equivalent |
-|------|-------------|----------------|
-| `INTEGER` | Integer number | INT |
-| `BIGINT` | Large integer | BIGINT |
-| `FLOAT` | Floating point | FLOAT |
-| `DOUBLE` | Double precision | DOUBLE |
-| `DECIMAL` | Exact decimal | DECIMAL(p,s) |
-| `STRING` | Variable text | VARCHAR(n) |
-| `TEXT` | Long text | TEXT |
-| `BOOLEAN` | True/false | BOOLEAN |
-| `DATE` | Date only | DATE |
-| `DATETIME` | Date and time | DATETIME |
-| `TIMESTAMP` | Timestamp | TIMESTAMP |
-| `JSON` | JSON data | JSON |
-| `JSONB` | Binary JSON | JSONB (PostgreSQL) |
-| `UUID` | UUID | UUID |
-| `ENUM` | Enumeration | ENUM |
-| `ARRAY` | Array type | ARRAY |
-
-## Running Migrations
-
-### Run a Migration
-
-```ts
-const result = await ductape.database.runMigration(migration, {
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-});
-
-console.log('Success:', result.success);
-console.log('Operations:', result.operations);
-```
-
-### Execute via Action Tag
-
-```ts
-await ductape.processor.db.migration.run({
-  migration: 'main-db:create_users_table',
-  env: 'prd',
-  product: 'my-app',
+await db.schema.modifyField('users', 'email', {
+  length: 500,
+  required: true,
 });
 ```
 
-## Rolling Back Migrations
-
-### Rollback a Migration
+### Create Index
 
 ```ts
-const result = await ductape.database.rollbackMigration(migration, {
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-});
-
-console.log('Rollback success:', result.success);
-```
-
-### Rollback via Action Tag
-
-```ts
-await ductape.processor.db.migration.rollback({
-  migration: 'main-db:create_users_table',
-  env: 'prd',
-  product: 'my-app',
+await db.schema.createIndex('users', ['email'], {
+  unique: true,
+  name: 'idx_users_email',
 });
 ```
 
-## Migration History
-
-### Get Migration History
+### Drop Index
 
 ```ts
-const history = await ductape.database.getMigrationHistory({
-  env: 'prd',
-  product: 'my-app',
-  database: 'main-db',
-});
-
-history.forEach((entry) => {
-  console.log('Tag:', entry.tag);
-  console.log('Name:', entry.name);
-  console.log('Applied at:', entry.appliedAt);
-  console.log('Applied by:', entry.appliedBy);
-  console.log('---');
-});
+await db.schema.dropIndex('users', 'idx_users_old');
 ```
 
-### Get Migration Status
+### Add Constraint (SQL)
 
 ```ts
-const status = await ductape.database.getMigrationStatus({
-  env: 'prd',
-  product: 'my-app',
-  database: 'main-db',
-  definedMigrations: allMigrations, // Your migration definitions
-});
-
-console.log('Total migrations:', status.total);
-console.log('Completed:', status.completed);
-console.log('Pending:', status.pending);
-console.log('Last applied:', status.lastApplied?.name);
-console.log('Pending migrations:', status.pendingMigrations);
-```
-
-## Schema Management
-
-### Create Table Directly
-
-```ts
-import { SchemaHelpers, ColumnType } from '@ductape/sdk';
-
-await ductape.database.createTable(
-  {
-    env: 'dev',
-    product: 'my-app',
-    database: 'main-db',
+await db.schema.addConstraint('posts', {
+  name: 'fk_posts_author',
+  type: 'foreignKey',
+  columns: ['author_id'],
+  references: {
+    table: 'users',
+    columns: ['id'],
+    onDelete: 'CASCADE',
   },
-  {
-    name: 'users',
-    columns: [
-      SchemaHelpers.id(),
-      SchemaHelpers.string('email', 255, false),
-      SchemaHelpers.string('name', 255),
-      ...SchemaHelpers.timestamps(),
-    ],
-    indexes: [
-      {
-        name: 'idx_users_email',
-        table: 'users',
-        columns: [{ name: 'email' }],
-        unique: true,
-      },
-    ],
-  },
-  { ifNotExists: true }
-);
-```
-
-### Alter Table
-
-```ts
-import { ColumnAlterationType, SchemaHelpers } from '@ductape/sdk';
-
-// Add column
-await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  'users',
-  [
-    {
-      type: ColumnAlterationType.ADD,
-      column: SchemaHelpers.string('phone', 20),
-    },
-  ]
-);
-
-// Modify column
-await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  'users',
-  [
-    {
-      type: ColumnAlterationType.MODIFY,
-      column: {
-        name: 'bio',
-        type: ColumnType.TEXT,
-        nullable: true,
-      },
-    },
-  ]
-);
-
-// Drop column
-await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  'users',
-  [
-    {
-      type: ColumnAlterationType.DROP,
-      columnName: 'old_field',
-    },
-  ]
-);
-
-// Rename column
-await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  'users',
-  [
-    {
-      type: ColumnAlterationType.RENAME,
-      oldName: 'old_name',
-      newName: 'new_name',
-    },
-  ]
-);
+});
 ```
 
 ### Drop Table
 
 ```ts
-await ductape.database.dropTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  'old_table'
-);
+await db.schema.drop('old_table', { cascade: true });
 ```
 
-### List Tables
+## Advanced: Migration Builder
+
+For complex scenarios where you need to batch multiple operations or have more control, use the `MigrationBuilder`:
 
 ```ts
-const tables = await ductape.database.listTables({
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
+import { MigrationBuilder, migration } from '@ductape/sdk';
+
+// Fluent API for building migrations
+const usersMigration = migration('create_users_with_indexes')
+  .description('Create users table with all indexes')
+  .createCollection('users', [
+    { name: 'id', type: 'uuid', primaryKey: true },
+    { name: 'email', type: 'string', length: 255, unique: true },
+    { name: 'name', type: 'string', length: 100 },
+    { name: 'status', type: 'enum', enumValues: ['active', 'inactive'] },
+  ])
+  .createIndex('users', 'idx_users_email', [{ name: 'email' }], { unique: true })
+  .createIndex('users', 'idx_users_status', [{ name: 'status' }])
+  .build();
+
+// Apply the migration
+const engine = new MigrationEngine(db.getAdapter());
+await engine.up(usersMigration);
+```
+
+### Batch Multiple Operations
+
+```ts
+const orderSystemMigration = migration('create_order_system')
+  .description('Create orders and order_items tables')
+  .createCollection('orders', [
+    { name: 'id', type: 'uuid', primaryKey: true },
+    { name: 'customer_id', type: 'uuid', nullable: false },
+    { name: 'status', type: 'string', length: 50 },
+    { name: 'total', type: 'decimal', precision: 10, scale: 2 },
+  ])
+  .createCollection('order_items', [
+    { name: 'id', type: 'uuid', primaryKey: true },
+    { name: 'order_id', type: 'uuid', nullable: false },
+    { name: 'product_id', type: 'uuid', nullable: false },
+    { name: 'quantity', type: 'integer' },
+    { name: 'unit_price', type: 'decimal', precision: 10, scale: 2 },
+  ])
+  .createIndex('orders', 'idx_orders_customer', [{ name: 'customer_id' }])
+  .createIndex('order_items', 'idx_order_items_order', [{ name: 'order_id' }])
+  .build();
+```
+
+## Migration Engine
+
+The `MigrationEngine` handles executing migrations directly:
+
+```ts
+import { MigrationEngine } from '@ductape/sdk';
+
+const engine = new MigrationEngine(db.getAdapter());
+
+// Run migration up
+await engine.up(migration);
+
+// Run migration down (rollback)
+await engine.down(migration);
+
+// Get migration history
+const history = await engine.getHistory();
+
+// Check migration status
+const status = await engine.getStatus({
+  definedMigrations: [migration1, migration2, migration3],
 });
 
-console.log('Tables:', tables);
+console.log('Pending migrations:', status.pending);
+console.log('Completed migrations:', status.completed);
 ```
 
-## Index Management
+## Field Types
 
-Indexes improve query performance by allowing the database to find rows without scanning the entire table. Proper indexing is crucial for application performance.
+Platform-independent field types that work across all databases:
 
-### Why Use Indexes?
+| Type | Description | SQL | MongoDB | DynamoDB | Cassandra |
+|------|-------------|-----|---------|----------|-----------|
+| `integer` | Whole numbers | INT | Number | N | int |
+| `bigint` | Large integers | BIGINT | Long | N | bigint |
+| `smallint` | Small integers | SMALLINT | Number | N | smallint |
+| `float` | Floating point | FLOAT | Double | N | float |
+| `double` | Double precision | DOUBLE | Double | N | double |
+| `decimal` | Exact decimal | DECIMAL | Decimal128 | N | decimal |
+| `string` | Variable text | VARCHAR | String | S | text |
+| `text` | Long text | TEXT | String | S | text |
+| `boolean` | True/false | BOOLEAN | Boolean | BOOL | boolean |
+| `date` | Date only | DATE | Date | S | date |
+| `time` | Time only | TIME | String | S | time |
+| `datetime` | Date and time | DATETIME | Date | S | timestamp |
+| `timestamp` | Timestamp | TIMESTAMP | Date | N | timestamp |
+| `json` | JSON data | JSON/JSONB | Object | M | text |
+| `uuid` | UUID | UUID | String | S | uuid |
+| `enum` | Enumeration | ENUM | String | S | text |
+| `array` | Array type | ARRAY | Array | L | list |
+| `binary` | Binary data | BYTEA | BinData | B | blob |
+| `blob` | Large binary | BLOB | BinData | B | blob |
 
-| Without Index | With Index |
-|--------------|------------|
-| Full table scan | Direct row lookup |
-| O(n) complexity | O(log n) complexity |
-| Slow on large tables | Fast regardless of size |
-| High I/O | Minimal I/O |
+## Database-Specific Migrations
 
-### Create Index
+### SQL Databases (PostgreSQL, MySQL, MariaDB)
 
 ```ts
-await ductape.database.createIndex({
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-  table: 'users',
-  index: {
-    name: 'idx_users_email',
-    table: 'users',
-    columns: [{ name: 'email' }],
-    unique: true,
+await db.schema.create('users', {
+  id: { type: 'uuid', primaryKey: true },
+  email: { type: 'string', required: true },
+}, {
+  sqlOptions: {
+    ifNotExists: true,
+    temporary: false,
+    unlogged: false,  // PostgreSQL only
   },
-  ifNotExists: true,
 });
-```
 
-### Index Types
-
-#### Single Column Index
-
-Index on one column - best for simple lookups:
-
-```ts
-// For queries like: WHERE email = 'user@example.com'
-await ductape.database.createIndex({
-  ...config,
-  table: 'users',
-  index: {
-    name: 'idx_users_email',
+// Add constraint
+await db.schema.addConstraint('orders', {
+  name: 'fk_orders_user',
+  type: 'foreignKey',
+  columns: ['user_id'],
+  references: {
     table: 'users',
-    columns: [{ name: 'email' }],
+    columns: ['id'],
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   },
 });
 ```
 
-#### Composite Index
-
-Index on multiple columns - order matters:
+### MongoDB
 
 ```ts
-// For queries like: WHERE customer_id = 123 AND status = 'active'
-await ductape.database.createIndex({
-  ...config,
-  table: 'orders',
-  index: {
-    name: 'idx_orders_customer_status',
-    table: 'orders',
-    columns: [
-      { name: 'customer_id' },
-      { name: 'status' },
+await db.schema.create('users', {
+  _id: { type: 'uuid', primaryKey: true },
+  email: { type: 'string', required: true },
+}, {
+  mongoOptions: {
+    capped: false,
+    validator: {
+      $jsonSchema: {
+        bsonType: 'object',
+        required: ['email'],
+        properties: {
+          email: { bsonType: 'string' }
+        }
+      }
+    },
+    validationLevel: 'strict',
+    validationAction: 'error',
+  },
+});
+
+// Shard a collection
+// (handled via raw migration operations)
+```
+
+### DynamoDB
+
+```ts
+await db.schema.create('users', {
+  id: { type: 'string', primaryKey: true },
+  email: 'string',
+  created_at: 'timestamp',
+}, {
+  dynamoOptions: {
+    partitionKey: { name: 'id', type: 'S' },
+    sortKey: { name: 'created_at', type: 'N' },
+    billingMode: 'PAY_PER_REQUEST',
+    globalSecondaryIndexes: [{
+      name: 'email-index',
+      partitionKey: { name: 'email', type: 'S' },
+      projection: 'ALL',
+    }],
+    localSecondaryIndexes: [{
+      name: 'created-index',
+      sortKey: { name: 'created_at', type: 'N' },
+      projection: 'KEYS_ONLY',
+    }],
+    streamEnabled: true,
+    streamViewType: 'NEW_AND_OLD_IMAGES',
+    ttlAttribute: 'expires_at',
+  },
+});
+```
+
+### Cassandra
+
+```ts
+await db.schema.create('events', {
+  id: { type: 'uuid', primaryKey: true },
+  user_id: 'uuid',
+  event_type: 'string',
+  data: 'json',
+  created_at: 'timestamp',
+}, {
+  cassandraOptions: {
+    partitionKey: ['user_id'],
+    clusteringColumns: ['created_at', 'id'],
+    clusteringOrder: [
+      { column: 'created_at', order: 'DESC' },
+      { column: 'id', order: 'ASC' },
     ],
+    defaultTTL: 86400,
+    compaction: {
+      class: 'LeveledCompactionStrategy',
+    },
   },
 });
 ```
 
-**Important**: Column order in composite indexes matters. The index above works for:
-- `WHERE customer_id = 123`
-- `WHERE customer_id = 123 AND status = 'active'`
+## Migration History
 
-But NOT efficiently for:
-- `WHERE status = 'active'` (needs separate index)
-
-#### Unique Index
-
-Enforces uniqueness constraint:
+### View Migration History
 
 ```ts
-await ductape.database.createIndex({
-  ...config,
-  table: 'users',
-  index: {
-    name: 'idx_users_email_unique',
-    table: 'users',
-    columns: [{ name: 'email' }],
-    unique: true,
-  },
-});
-```
+const engine = new MigrationEngine(db.getAdapter());
+const history = await engine.getHistory();
 
-#### Sorted Index
-
-Control sort order for range queries:
-
-```ts
-// For queries with ORDER BY created_at DESC
-await ductape.database.createIndex({
-  ...config,
-  table: 'orders',
-  index: {
-    name: 'idx_orders_created_desc',
-    table: 'orders',
-    columns: [
-      { name: 'created_at', order: 'DESC' },
-    ],
-  },
-});
-```
-
-#### Partial Index (PostgreSQL)
-
-Index only rows matching a condition:
-
-```ts
-// Only index active users - smaller and faster
-await ductape.database.createIndex({
-  ...config,
-  table: 'users',
-  index: {
-    name: 'idx_users_email_active',
-    table: 'users',
-    columns: [{ name: 'email' }],
-    where: "status = 'active'", // Partial index condition
-  },
-});
-```
-
-#### Index Methods (PostgreSQL)
-
-Specify the index algorithm:
-
-```ts
-// B-tree (default) - Best for equality and range queries
-await ductape.database.createIndex({
-  ...config,
-  table: 'orders',
-  index: {
-    name: 'idx_orders_total',
-    table: 'orders',
-    columns: [{ name: 'total' }],
-    method: 'btree',
-  },
-});
-
-// Hash - Best for equality comparisons only
-await ductape.database.createIndex({
-  ...config,
-  table: 'sessions',
-  index: {
-    name: 'idx_sessions_token',
-    table: 'sessions',
-    columns: [{ name: 'token' }],
-    method: 'hash',
-  },
-});
-
-// GIN - Best for full-text search and JSONB
-await ductape.database.createIndex({
-  ...config,
-  table: 'products',
-  index: {
-    name: 'idx_products_metadata',
-    table: 'products',
-    columns: [{ name: 'metadata' }],
-    method: 'gin',
-  },
-});
-
-// GiST - Best for geometric and full-text data
-await ductape.database.createIndex({
-  ...config,
-  table: 'locations',
-  index: {
-    name: 'idx_locations_coords',
-    table: 'locations',
-    columns: [{ name: 'coordinates' }],
-    method: 'gist',
-  },
-});
-```
-
-### Concurrent Index Creation (PostgreSQL)
-
-Create indexes without locking the table:
-
-```ts
-// Won't block reads/writes during creation
-await ductape.database.createIndex({
-  env: 'prd',
-  product: 'my-app',
-  database: 'main-db',
-  table: 'users',
-  index: {
-    name: 'idx_users_email',
-    table: 'users',
-    columns: [{ name: 'email' }],
-    unique: true,
-  },
-  concurrent: true, // Create without locking
-});
-```
-
-### List Indexes
-
-View all indexes on a table:
-
-```ts
-const indexes = await ductape.database.listIndexes({
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-  table: 'users',
-  includeSystem: false, // Exclude system-generated indexes
-});
-
-indexes.forEach((index) => {
-  console.log('Name:', index.name);
-  console.log('Table:', index.table);
-  console.log('Columns:', index.columns);
-  console.log('Unique:', index.unique);
-  console.log('Primary Key:', index.primaryKey);
-  console.log('Type:', index.type);
-  console.log('Size:', index.size);
+history.forEach((entry) => {
+  console.log('Tag:', entry.tag);
+  console.log('Name:', entry.name);
+  console.log('Applied at:', entry.appliedAt);
+  console.log('Checksum:', entry.checksum);
   console.log('---');
 });
 ```
 
-### Get Index Statistics
-
-Analyze index usage and performance:
+### Check Migration Status
 
 ```ts
-// Get statistics for all indexes on a table
-const stats = await ductape.database.getIndexStatistics(
-  { env: 'prd', product: 'my-app', database: 'main-db' },
-  'users'
-);
-
-stats.forEach((stat) => {
-  console.log('Index:', stat.indexName);
-  console.log('Scans:', stat.scans);
-  console.log('Tuples Read:', stat.tuplesRead);
-  console.log('Size:', stat.sizeFormatted);
-  console.log('Last Used:', stat.lastUsed);
-  console.log('Bloated:', stat.bloated);
-  console.log('---');
+const status = await engine.getStatus({
+  definedMigrations: allMigrations,
 });
 
-// Get statistics for a specific index
-const emailStats = await ductape.database.getIndexStatistics(
-  { env: 'prd', product: 'my-app', database: 'main-db' },
-  'users',
-  'idx_users_email'
-);
-```
+console.log('Total:', status.total);
+console.log('Completed:', status.completed);
+console.log('Pending:', status.pending);
+console.log('Last applied:', status.lastApplied?.name);
 
-### Drop Index
-
-Remove an index:
-
-```ts
-await ductape.database.dropIndex({
-  env: 'dev',
-  product: 'my-app',
-  database: 'main-db',
-  table: 'users',
-  indexName: 'idx_users_old',
-  ifExists: true,
-  concurrent: true,  // PostgreSQL: Drop without locking
-  cascade: false,    // Also drop dependent objects
+// List pending migrations
+status.pendingMigrations.forEach((m) => {
+  console.log('Pending:', m.name);
 });
 ```
 
-### Index via Migration
+## Rolling Back Migrations
 
-Create indexes as part of migrations:
-
-```ts
-import { addIndexMigration } from '@ductape/sdk';
-
-// Simple index migration
-const emailIndex = addIndexMigration(
-  'add_users_email_index',
-  'users',
-  'idx_users_email',
-  ['email'],
-  true // unique
-);
-
-// Composite index migration
-const orderIndex = addIndexMigration(
-  'add_orders_composite_index',
-  'orders',
-  'idx_orders_customer_date',
-  ['customer_id', 'created_at']
-);
-
-// Run the migrations
-await ductape.database.runMigration(emailIndex, config);
-await ductape.database.runMigration(orderIndex, config);
-```
-
-### Indexes with Table Creation
-
-Add indexes when creating tables:
+### Rollback Last Migration
 
 ```ts
-await ductape.database.createTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
-  {
-    name: 'orders',
-    columns: [
-      SchemaHelpers.id(),
-      SchemaHelpers.foreignKey('customer_id', 'users'),
-      SchemaHelpers.string('status', 50),
-      SchemaHelpers.decimal('total', 10, 2),
-      ...SchemaHelpers.timestamps(),
-    ],
-    indexes: [
-      {
-        name: 'idx_orders_customer',
-        table: 'orders',
-        columns: [{ name: 'customer_id' }],
-      },
-      {
-        name: 'idx_orders_status',
-        table: 'orders',
-        columns: [{ name: 'status' }],
-      },
-      {
-        name: 'idx_orders_created',
-        table: 'orders',
-        columns: [{ name: 'created_at', order: 'DESC' }],
-      },
-    ],
-  }
-);
+const engine = new MigrationEngine(db.getAdapter());
+await engine.down(lastMigration);
 ```
 
-### When to Create Indexes
+### Rollback to Specific Point
 
-| Column Type | Index Recommended |
-|-------------|-------------------|
-| Primary key | Automatic |
-| Foreign key | Yes |
-| Columns in WHERE clauses | Yes |
-| Columns in ORDER BY | Consider |
-| Columns in JOIN conditions | Yes |
-| Low cardinality (few unique values) | Usually no |
-| Frequently updated columns | Consider trade-offs |
+```ts
+// Get history and find the target
+const history = await engine.getHistory();
+const targetIndex = history.findIndex(h => h.tag === 'target_migration_tag');
 
-### Index Best Practices
+// Rollback each migration after the target
+for (let i = history.length - 1; i > targetIndex; i--) {
+  await engine.down(history[i].migration);
+}
+```
 
-1. **Index foreign keys** - Always index columns used in JOINs
-2. **Consider query patterns** - Index columns frequently used in WHERE clauses
-3. **Composite index order** - Put most selective column first
-4. **Don't over-index** - Each index slows down INSERT/UPDATE/DELETE
-5. **Monitor index usage** - Remove unused indexes
-6. **Use partial indexes** - When queries filter on specific values
-7. **Rebuild periodically** - Indexes can become fragmented
+## Raw Operations
 
-### Database-Specific Notes
+For database-specific operations not covered by the standard API:
 
-#### PostgreSQL
-- Supports B-tree, Hash, GIN, GiST, SP-GiST, BRIN
-- Partial indexes for filtered queries
-- Expression indexes for computed values
-- Concurrent index creation: `CONCURRENTLY` option
-
-#### MySQL
-- Supports B-tree and Hash (engine-dependent)
-- Full-text indexes for text search
-- Spatial indexes for geometry
-- Prefix indexes for long strings
-
-#### MongoDB
-- Single field, compound, multikey indexes
-- Text indexes for text search
-- 2dsphere for geospatial
-- TTL indexes for auto-expiration
-
-## Migration Parameters
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `migration` | string | Migration tag in format `database_tag:migration_tag` |
-| `env` | string | Environment (dev, staging, prd) |
-| `product` | string | Product tag |
-| `database` | string | Database tag |
+```ts
+const rawMigration = migration('custom_operation')
+  .raw('postgresql', 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+  .raw('postgresql', 'CREATE INDEX CONCURRENTLY idx_users_email ON users(email)')
+  .build();
+```
 
 ## Best Practices
 
-### 1. Always Define Down Migrations
+### 1. Keep Migrations Small
+
+Create separate migrations for each logical change:
 
 ```ts
-// Good: Has rollback
-const migration = createMigration(
-  'add_column',
-  [addColumn('users', { name: 'phone', type: ColumnType.STRING })],
-  [dropColumn('users', 'phone')] // Down migration
-);
+// Good: Separate migrations
+await db.schema.create('users', { ... });
+await db.schema.create('posts', { ... });
+await db.schema.addField('users', 'avatar_url', 'string');
+
+// Avoid: One giant migration with everything
 ```
 
-### 2. Use Unique Migration Tags
+### 2. Test in Development First
+
+Always run migrations in development before production:
 
 ```ts
-import { generateMigrationTag } from '@ductape/sdk';
+// Development
+await db.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+await db.schema.create('new_table', { ... });
 
-const tag = generateMigrationTag('add_users_table');
-// "1234567890_add_users_table"
+// After testing, apply to production
+await db.connect({ env: 'prd', product: 'my-app', database: 'main-db' });
+await db.schema.create('new_table', { ... });
 ```
 
-### 3. Test Migrations in Dev First
+### 3. Use Descriptive Names
 
-Always test migrations in development before applying to production.
+```ts
+migration('add_phone_and_address_to_users')
+migration('create_order_fulfillment_tables')
+migration('add_composite_index_on_orders')
+```
 
-### 4. Keep Migrations Small
+### 4. Include Both Up and Down
 
-Create separate migrations for each logical change.
+The simplified API automatically generates rollback operations, but verify they're correct for complex changes:
 
-### 5. Never Modify Applied Migrations
+```ts
+const result = await db.schema.addField('users', 'phone', 'string');
 
-Once applied, create new migrations instead of modifying existing ones.
+// Verify the down migration
+console.log(result.migration.down);
+// Should include: { type: 'dropField', collection: 'users', field: 'phone' }
+```
+
+### 5. Handle Data Migrations Separately
+
+For data migrations, use the query API:
+
+```ts
+// Schema migration
+await db.schema.addField('users', 'full_name', 'string');
+
+// Data migration (separate operation)
+await db.update({
+  table: 'users',
+  data: {
+    full_name: { $CONCAT: ['first_name', ' ', 'last_name'] }
+  },
+  where: { full_name: null },
+});
+
+// Clean up old columns
+await db.schema.dropField('users', 'first_name');
+await db.schema.dropField('users', 'last_name');
+```
+
+## Migration Helpers
+
+The `MigrationHelpers` class provides utilities for common operations:
+
+```ts
+import { MigrationHelpers } from '@ductape/sdk';
+
+// Generate a unique migration tag
+const tag = MigrationHelpers.generateTag('create_users');
+// "20240115_143052_create_users"
+
+// Validate a migration
+const isValid = MigrationHelpers.validate(migration);
+
+// Calculate migration checksum
+const checksum = MigrationHelpers.checksum(migration);
+```
+
+## Troubleshooting
+
+### Migration Already Applied
+
+```ts
+try {
+  await db.schema.create('users', { ... });
+} catch (error) {
+  if (error.message.includes('already exists')) {
+    console.log('Migration already applied, skipping');
+  }
+}
+```
+
+### Failed Migration
+
+If a migration fails partway through:
+
+1. Check the migration history to see what was applied
+2. Manually fix the database state if needed
+3. Mark the migration as failed or remove it from history
+4. Re-run the migration
+
+### Different Environments Out of Sync
+
+```ts
+// Get status for each environment
+for (const env of ['dev', 'staging', 'prd']) {
+  await db.connect({ env, product: 'my-app', database: 'main-db' });
+  const status = await engine.getStatus({ definedMigrations: allMigrations });
+  console.log(`${env}: ${status.completed}/${status.total} migrations applied`);
+}
+```
 
 ## Next Steps
 
-- [Direct Queries](./direct-queries) - Raw SQL for complex schema operations
-- [Best Practices](./best-practices) - Production migration patterns
+- [Table Management](./table-management) - Detailed schema operations
+- [Indexing](./indexing) - Performance optimization
+- [Best Practices](./best-practices) - Production patterns
 
 ## See Also
 
-* [Database Overview](./overview)
 * [Getting Started](./getting-started)
+* [Querying Data](./querying)
+* [Writing Data](./writing-data)

@@ -104,7 +104,7 @@ Environments are referenced when running actions, features, and other operations
 
 ```typescript
 // Run action in production
-await ductape.action.run({
+await ductape.actions.run({
   env: 'prd',
   product: 'my-product',
   app: 'stripe',
@@ -113,10 +113,10 @@ await ductape.action.run({
 });
 
 // Run feature in development
-await ductape.feature.run({
+await ductape.features.run({
   env: 'dev',
   product: 'my-product',
-  tag: 'process-payment',
+  feature_tag: 'process-payment',
   input: { userId: '123' },
 });
 ```

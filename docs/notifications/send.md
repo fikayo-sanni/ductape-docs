@@ -4,12 +4,12 @@ sidebar_position: 3
 
 # Sending Notifications
 
-Send push notifications, emails, SMS, or webhook callbacks using `ductape.notification.send()`.
+Send push notifications, emails, SMS, or webhook callbacks using `ductape.notifications.send()`.
 
 ## Quick Example
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'welcome_user',
@@ -31,7 +31,7 @@ Ductape supports multiple notification channels. You can send one or multiple at
 ### Email
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'order_confirmation',
@@ -49,7 +49,7 @@ await ductape.notification.send({
 ### Push Notification
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'new_message',
@@ -68,7 +68,7 @@ await ductape.notification.send({
 ### SMS
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'otp_code',
@@ -85,7 +85,7 @@ await ductape.notification.send({
 ### Webhook Callback
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'payment_received',
@@ -102,7 +102,7 @@ await ductape.notification.send({
 ## Sending Multiple Channels at Once
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'order_shipped',
@@ -132,7 +132,7 @@ await ductape.notification.send({
 Inject user-specific data from sessions using `$Session{key}{field}`:
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'welcome_user',
@@ -161,7 +161,7 @@ await ductape.notification.send({
 | `session` | Session object for dynamic value injection |
 
 ```ts
-await ductape.notification.send({
+await ductape.notifications.send({
   env: 'prd',
   product: 'my-app',
   event: 'daily_digest',

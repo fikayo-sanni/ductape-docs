@@ -61,7 +61,22 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Features - Workflow Engine
+    // Workflows - Durable Multi-Step Processes
+    {
+      type: 'category',
+      label: 'Workflows',
+      collapsed: true,
+      items: [
+        'workflows/overview',
+        'workflows/getting-started',
+        'workflows/building-workflows',
+        'workflows/step-types',
+        'workflows/execution',
+        'workflows/examples',
+      ],
+    },
+
+    // Features - Workflow Engine (Legacy)
     {
       type: 'category',
       label: 'Features',
@@ -190,42 +205,16 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Healthchecks
-    {
-      type: 'category',
-      label: 'Healthchecks',
-      collapsed: true,
-      items: [
-        'apps/healthchecks',
-      ],
-    },
-
-    // Resilience - Quotas & Fallbacks
+    // Resilience - Healthchecks, Quotas & Fallbacks
     {
       type: 'category',
       label: 'Resilience',
       collapsed: true,
       items: [
-        {
-          type: 'category',
-          label: 'Quotas',
-          items: [
-            'quotas/overview',
-            'quotas/input',
-            'quotas/output',
-            'quotas/use',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Fallbacks',
-          items: [
-            'fallbacks/overview',
-            'fallbacks/input',
-            'fallbacks/output',
-            'fallbacks/use',
-          ],
-        },
+        'resilience/overview',
+        'resilience/healthchecks',
+        'resilience/quotas',
+        'resilience/fallbacks',
       ],
     },
 

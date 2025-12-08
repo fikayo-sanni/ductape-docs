@@ -1,0 +1,8 @@
+{
+  "label": "Resilience",
+  "position": 17,
+  "link": {
+    "type": "generated-index",
+    "description": "Build resilient integrations with healthchecks, quotas, and fallbacks"
+  }
+}

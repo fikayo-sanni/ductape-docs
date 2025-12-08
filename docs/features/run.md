@@ -4,12 +4,12 @@ sidebar_position: 4
 
 # Running Features
 
-Execute your workflow features using `ductape.feature.run()`.
+Execute your workflow features using `ductape.features.run()`.
 
 ## Quick Example
 
 ```ts
-const result = await ductape.feature.run({
+const result = await ductape.features.run({
   env: 'prd',
   product: 'my-app',
   feature_tag: 'process_order',
@@ -36,7 +36,7 @@ Features are pre-defined workflows that chain multiple operations together. When
 ### Simple feature with input
 
 ```ts
-await ductape.feature.run({
+await ductape.features.run({
   env: 'prd',
   product: 'ecommerce',
   feature_tag: 'checkout_flow',
@@ -51,7 +51,7 @@ await ductape.feature.run({
 ### Feature with no input
 
 ```ts
-await ductape.feature.run({
+await ductape.features.run({
   env: 'dev',
   product: 'analytics',
   feature_tag: 'generate_daily_report',
@@ -64,7 +64,7 @@ await ductape.feature.run({
 Use `$Session{key}{field}` to inject user-specific values:
 
 ```ts
-await ductape.feature.run({
+await ductape.features.run({
   env: 'prd',
   product: 'marketplace',
   feature_tag: 'create_listing',
@@ -86,7 +86,7 @@ await ductape.feature.run({
 Cache results to avoid re-running expensive operations:
 
 ```ts
-await ductape.feature.run({
+await ductape.features.run({
   env: 'prd',
   product: 'dashboard',
   feature_tag: 'get_user_stats',

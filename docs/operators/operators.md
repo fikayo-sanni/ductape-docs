@@ -90,7 +90,7 @@ Use operators when you need to:
 ### Example 1: User Registration with Formatting
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   tag: 'register-user',
   name: 'User Registration',
   input: {
@@ -179,7 +179,7 @@ await ductape.feature.create({
 ### Example 5: Using Secrets and App Auth in Workflows
 
 ```typescript
-await ductape.feature.create({
+await ductape.features.create({
   tag: 'call-external-api',
   name: 'Call External API with Authentication',
   input: {

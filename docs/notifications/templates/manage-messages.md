@@ -31,7 +31,7 @@ Notification messages are reusable templates that define how you communicate wit
 To create a notification message, use the `create` function from the `product.notifications.messages` interface:
 
 ```typescript
-const message = await ductape.notification.message.create({
+const message = await ductape.notifications.message.create({
   name: "New Notification",
   tag: "notify-users:new-message",
   description: "Notify customer of great things",
@@ -46,7 +46,7 @@ const message = await ductape.notification.message.create({
 To update an existing notification message, use the `update` function:
 
 ```typescript
-const updatedMessage = await ductape.notification.message.update("notify-users:new-message", {
+const updatedMessage = await ductape.notifications.message.update("notify-users:new-message", {
   push_notification,
   callback,
   email,
@@ -60,14 +60,14 @@ You can update any of the fields or channels as needed.
 To get all messages in a notification category, use the `fetchAll` function:
 
 ```typescript
-const messages = await ductape.notification.message.fetchAll("notify-users");
+const messages = await ductape.notifications.message.fetchAll("notify-users");
 ```
 
 ## Fetching a Single Notification Message
 To get a specific message by its tag, use the `fetch` function:
 
 ```typescript
-const message = await ductape.notification.message.fetch("notify-users:new-message");
+const message = await ductape.notifications.message.fetch("notify-users:new-message");
 ```
 
 **Key Points:**
