@@ -127,6 +127,38 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
+    // Vector Databases
+    {
+      type: 'category',
+      label: 'Vectors',
+      collapsed: true,
+      items: [
+        'vectors/overview',
+        'vectors/getting-started',
+        'vectors/querying',
+        'vectors/agent-integration',
+        'vectors/best-practices',
+      ],
+    },
+
+    // AI Agents
+    {
+      type: 'category',
+      label: 'Agents',
+      collapsed: true,
+      items: [
+        'agents/overview',
+        'agents/getting-started',
+        'agents/models',
+        'agents/tools',
+        'agents/memory',
+        'agents/human-in-loop',
+        'agents/resilience',
+        'agents/multi-agent',
+        'agents/examples',
+      ],
+    },
+
     // Notifications
     {
       type: 'category',
@@ -172,15 +204,6 @@ const sidebars: SidebarsConfig = {
         'storage/files',
         'storage/use',
         'storage/read-files',
-        {
-          type: 'category',
-          label: 'Providers',
-          items: [
-            'storage/providers/aws',
-            'storage/providers/gcp',
-            'storage/providers/azure',
-          ],
-        },
       ],
     },
 

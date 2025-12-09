@@ -1,0 +1,729 @@
+---
+sidebar_position: 6
+---
+
+# Agent Examples
+
+Real-world examples of agents for common use cases.
+
+## Customer Support Agent
+
+A support agent that can look up orders, process returns, and handle common inquiries:
+
+```typescript
+const supportAgent = await ductape.agents.define({
+  product: 'ecommerce',
+  tag: 'customer-support',
+  name: 'Customer Support Agent',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.5,
+  },
+  systemPrompt: `You are a customer support agent for an e-commerce store.
+
+Your responsibilities:
+- Help customers with order inquiries
+- Process returns and refunds (with approval)
+- Answer product questions
+- Escalate complex issues
+
+Guidelines:
+- Be polite, professional, and empathetic
+- Always verify order details before making changes
+- Explain policies clearly
+- If you can't help, offer to escalate`,
+
+  tools: [
+    {
+      tag: 'lookup-order',
+      description: 'Look up order details by order number or customer email',
+      parameters: {
+        orderNumber: { type: 'string', description: 'Order number (e.g., ORD-12345)' },
+        email: { type: 'string', description: 'Customer email address' },
+      },
+      handler: async (ctx, params) => {
+        const orders = await ctx.database.query({
+          database: 'orders-db',
+          event: 'find-orders',
+          params: {
+            orderNumber: params.orderNumber,
+            email: params.email,
+          },
+        });
+
+        if (!orders || orders.length === 0) {
+          return { found: false, message: 'No orders found' };
+        }
+
+        return {
+          found: true,
+          orders: orders.map((o) => ({
+            number: o.orderNumber,
+            status: o.status,
+            total: o.total,
+            items: o.items,
+            shippingAddress: o.shippingAddress,
+            trackingNumber: o.trackingNumber,
+            createdAt: o.createdAt,
+          })),
+        };
+      },
+    },
+    {
+      tag: 'check-tracking',
+      description: 'Get real-time tracking information for a shipment',
+      parameters: {
+        trackingNumber: {
+          type: 'string',
+          description: 'Shipping tracking number',
+          required: true,
+        },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'shipping-api',
+          event: 'track-package',
+          input: { body: { tracking: params.trackingNumber } },
+        });
+      },
+    },
+    {
+      tag: 'initiate-return',
+      description: 'Start a return process for an order item',
+      requiresConfirmation: true,
+      parameters: {
+        orderNumber: { type: 'string', required: true },
+        itemId: { type: 'string', required: true },
+        reason: {
+          type: 'string',
+          required: true,
+          enum: ['defective', 'wrong_item', 'not_as_described', 'changed_mind', 'other'],
+        },
+        notes: { type: 'string' },
+      },
+      handler: async (ctx, params) => {
+        const returnRequest = await ctx.database.insert({
+          database: 'returns-db',
+          event: 'create-return',
+          data: {
+            orderNumber: params.orderNumber,
+            itemId: params.itemId,
+            reason: params.reason,
+            notes: params.notes,
+            status: 'pending',
+            createdAt: new Date(),
+          },
+        });
+
+        await ctx.notification.email({
+          notification: 'transactional',
+          event: 'return-initiated',
+          recipients: [ctx.input.customerEmail],
+          template: {
+            returnId: returnRequest.id,
+            orderNumber: params.orderNumber,
+          },
+        });
+
+        return {
+          success: true,
+          returnId: returnRequest.id,
+          message: 'Return initiated. Customer will receive email with instructions.',
+        };
+      },
+    },
+    {
+      tag: 'search-faq',
+      description: 'Search the FAQ knowledge base',
+      parameters: {
+        query: { type: 'string', required: true },
+      },
+      handler: async (ctx, params) => {
+        const results = await ctx.recall({
+          query: params.query,
+          topK: 3,
+          filter: { type: 'faq' },
+          minScore: 0.7,
+        });
+
+        return {
+          results: results.matches.map((m) => ({
+            question: m.metadata?.question,
+            answer: m.metadata?.answer,
+            relevance: m.score,
+          })),
+        };
+      },
+    },
+  ],
+
+  memory: {
+    shortTerm: { maxMessages: 30 },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'support-memory',
+      retrieveTopK: 3,
+      autoStore: true,
+    },
+  },
+
+  humanInLoop: {
+    enabled: true,
+    alwaysRequireApproval: ['initiate-return'],
+    approvalTimeout: 300000,
+  },
+
+  termination: {
+    maxIterations: 15,
+    timeout: 180000,
+  },
+});
+```
+
+---
+
+## Data Analysis Agent
+
+An agent that can query databases and generate insights:
+
+```typescript
+const dataAgent = await ductape.agents.define({
+  product: 'analytics',
+  tag: 'data-analyst',
+  name: 'Data Analysis Agent',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.3,
+  },
+  systemPrompt: `You are a data analysis assistant.
+
+You can:
+- Query databases to answer business questions
+- Calculate metrics and statistics
+- Generate insights from data
+- Create summaries and reports
+
+Guidelines:
+- Always explain your methodology
+- Show your calculations
+- Highlight key insights
+- Suggest follow-up analyses`,
+
+  tools: [
+    {
+      tag: 'query-sales',
+      description: 'Query sales data with filters',
+      parameters: {
+        startDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+        endDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+        groupBy: {
+          type: 'string',
+          enum: ['day', 'week', 'month', 'product', 'region'],
+        },
+        filters: {
+          type: 'object',
+          properties: {
+            product: { type: 'string' },
+            region: { type: 'string' },
+            minAmount: { type: 'number' },
+          },
+        },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'analytics-db',
+          event: 'sales-report',
+          params: {
+            startDate: params.startDate,
+            endDate: params.endDate,
+            groupBy: params.groupBy,
+            ...params.filters,
+          },
+        });
+      },
+    },
+    {
+      tag: 'query-customers',
+      description: 'Query customer data and segments',
+      parameters: {
+        segment: {
+          type: 'string',
+          enum: ['all', 'new', 'returning', 'churned', 'high_value'],
+        },
+        startDate: { type: 'string' },
+        endDate: { type: 'string' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'analytics-db',
+          event: 'customer-segments',
+          params,
+        });
+      },
+    },
+    {
+      tag: 'calculate-metrics',
+      description: 'Calculate business metrics',
+      parameters: {
+        metric: {
+          type: 'string',
+          required: true,
+          enum: ['revenue', 'aov', 'conversion_rate', 'ltv', 'churn_rate', 'retention'],
+        },
+        period: { type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year'] },
+        compareWith: { type: 'string', description: 'Previous period for comparison' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'analytics-db',
+          event: 'calculate-metric',
+          params,
+        });
+      },
+    },
+    {
+      tag: 'run-sql',
+      description: 'Run a custom SQL query (read-only)',
+      parameters: {
+        query: { type: 'string', required: true, description: 'SQL query to execute' },
+      },
+      handler: async (ctx, params) => {
+        // Validate query is read-only
+        const lowerQuery = params.query.toLowerCase();
+        if (lowerQuery.includes('insert') || lowerQuery.includes('update') ||
+            lowerQuery.includes('delete') || lowerQuery.includes('drop')) {
+          return { error: 'Only SELECT queries are allowed' };
+        }
+
+        return ctx.database.execute({
+          database: 'analytics-db',
+          event: 'raw-query',
+          input: { query: params.query },
+        });
+      },
+    },
+  ],
+
+  termination: {
+    maxIterations: 20,
+    maxTokens: 30000,
+  },
+});
+```
+
+---
+
+## Code Review Agent
+
+An agent that reviews code and provides feedback:
+
+```typescript
+const codeReviewAgent = await ductape.agents.define({
+  product: 'devtools',
+  tag: 'code-reviewer',
+  name: 'Code Review Agent',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.2,
+  },
+  systemPrompt: `You are a senior software engineer performing code reviews.
+
+Review criteria:
+- Code quality and readability
+- Potential bugs and edge cases
+- Performance considerations
+- Security vulnerabilities
+- Best practices and patterns
+- Test coverage suggestions
+
+Provide constructive feedback with specific line references and suggestions.`,
+
+  tools: [
+    {
+      tag: 'get-pr-files',
+      description: 'Get the files changed in a pull request',
+      parameters: {
+        prNumber: { type: 'number', required: true },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'github',
+          event: 'get-pr-files',
+          input: { body: { pr: params.prNumber } },
+        });
+      },
+    },
+    {
+      tag: 'get-file-content',
+      description: 'Get the content of a specific file',
+      parameters: {
+        path: { type: 'string', required: true },
+        ref: { type: 'string', description: 'Git ref (branch/commit)' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'github',
+          event: 'get-file',
+          input: { body: { path: params.path, ref: params.ref } },
+        });
+      },
+    },
+    {
+      tag: 'add-review-comment',
+      description: 'Add a review comment to a specific line',
+      parameters: {
+        prNumber: { type: 'number', required: true },
+        path: { type: 'string', required: true },
+        line: { type: 'number', required: true },
+        body: { type: 'string', required: true },
+        side: { type: 'string', enum: ['LEFT', 'RIGHT'], default: 'RIGHT' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'github',
+          event: 'create-review-comment',
+          input: { body: params },
+        });
+      },
+    },
+    {
+      tag: 'submit-review',
+      description: 'Submit the code review',
+      requiresConfirmation: true,
+      parameters: {
+        prNumber: { type: 'number', required: true },
+        event: {
+          type: 'string',
+          required: true,
+          enum: ['APPROVE', 'REQUEST_CHANGES', 'COMMENT'],
+        },
+        body: { type: 'string', required: true },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'github',
+          event: 'submit-review',
+          input: { body: params },
+        });
+      },
+    },
+  ],
+
+  humanInLoop: {
+    enabled: true,
+    alwaysRequireApproval: ['submit-review'],
+  },
+});
+```
+
+---
+
+## Research Agent
+
+An agent that can search and synthesize information:
+
+```typescript
+const researchAgent = await ductape.agents.define({
+  product: 'research',
+  tag: 'research-assistant',
+  name: 'Research Assistant',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.4,
+  },
+  systemPrompt: `You are a research assistant helping users find and synthesize information.
+
+Your approach:
+1. Understand the research question
+2. Search for relevant information
+3. Evaluate source quality
+4. Synthesize findings
+5. Present with citations
+
+Always cite your sources and note any limitations in the available information.`,
+
+  tools: [
+    {
+      tag: 'search-knowledge-base',
+      description: 'Search the internal knowledge base',
+      parameters: {
+        query: { type: 'string', required: true },
+        category: { type: 'string' },
+        limit: { type: 'number', default: 10 },
+      },
+      handler: async (ctx, params) => {
+        const results = await ctx.recall({
+          query: params.query,
+          topK: params.limit || 10,
+          filter: params.category ? { category: params.category } : undefined,
+          minScore: 0.6,
+        });
+
+        return {
+          results: results.matches.map((m) => ({
+            title: m.metadata?.title,
+            content: m.metadata?.content,
+            source: m.metadata?.source,
+            date: m.metadata?.date,
+            relevance: m.score,
+          })),
+        };
+      },
+    },
+    {
+      tag: 'search-web',
+      description: 'Search the web for information',
+      parameters: {
+        query: { type: 'string', required: true },
+        site: { type: 'string', description: 'Limit search to specific site' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'search-api',
+          event: 'web-search',
+          input: {
+            body: {
+              q: params.query,
+              site: params.site,
+            },
+          },
+        });
+      },
+    },
+    {
+      tag: 'fetch-url',
+      description: 'Fetch and extract content from a URL',
+      parameters: {
+        url: { type: 'string', required: true },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'scraping-api',
+          event: 'extract-content',
+          input: { body: { url: params.url } },
+        });
+      },
+    },
+    {
+      tag: 'save-finding',
+      description: 'Save a research finding for later reference',
+      parameters: {
+        title: { type: 'string', required: true },
+        content: { type: 'string', required: true },
+        source: { type: 'string', required: true },
+        tags: { type: 'array', items: { type: 'string' } },
+      },
+      handler: async (ctx, params) => {
+        await ctx.remember({
+          content: `${params.title}: ${params.content}`,
+          metadata: {
+            type: 'research_finding',
+            title: params.title,
+            content: params.content,
+            source: params.source,
+            tags: params.tags,
+            sessionId: ctx.sessionId,
+            timestamp: new Date().toISOString(),
+          },
+        });
+
+        return { saved: true };
+      },
+    },
+  ],
+
+  memory: {
+    shortTerm: { maxMessages: 40 },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'research-memory',
+      retrieveTopK: 5,
+      autoStore: true,
+    },
+  },
+
+  termination: {
+    maxIterations: 30,
+    maxTokens: 50000,
+    timeout: 600000,  // 10 minutes
+  },
+});
+```
+
+---
+
+## Task Automation Agent
+
+An agent that automates workflows and integrations:
+
+```typescript
+const automationAgent = await ductape.agents.define({
+  product: 'automation',
+  tag: 'workflow-agent',
+  name: 'Workflow Automation Agent',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.3,
+  },
+  systemPrompt: `You are a workflow automation assistant.
+
+You can help users:
+- Create and run automated workflows
+- Connect different services
+- Schedule recurring tasks
+- Monitor workflow status
+
+Always confirm before executing workflows that modify data.`,
+
+  tools: [
+    {
+      tag: 'list-workflows',
+      description: 'List available workflows',
+      parameters: {
+        status: { type: 'string', enum: ['active', 'inactive', 'all'] },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'workflows-db',
+          event: 'list-workflows',
+          params: { status: params.status || 'all' },
+        });
+      },
+    },
+    {
+      tag: 'run-workflow',
+      description: 'Execute a workflow',
+      requiresConfirmation: true,
+      parameters: {
+        workflowTag: { type: 'string', required: true },
+        input: { type: 'object', description: 'Input parameters for the workflow' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.feature.run({
+          feature: params.workflowTag,
+          input: params.input,
+        });
+      },
+    },
+    {
+      tag: 'schedule-workflow',
+      description: 'Schedule a workflow to run at a specific time or interval',
+      requiresConfirmation: true,
+      parameters: {
+        workflowTag: { type: 'string', required: true },
+        schedule: { type: 'string', description: 'Cron expression or ISO date' },
+        input: { type: 'object' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.insert({
+          database: 'schedules-db',
+          event: 'create-schedule',
+          data: {
+            workflowTag: params.workflowTag,
+            schedule: params.schedule,
+            input: params.input,
+            status: 'active',
+            createdAt: new Date(),
+          },
+        });
+      },
+    },
+    {
+      tag: 'get-workflow-history',
+      description: 'Get execution history for a workflow',
+      parameters: {
+        workflowTag: { type: 'string', required: true },
+        limit: { type: 'number', default: 10 },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'workflows-db',
+          event: 'execution-history',
+          params: {
+            workflowTag: params.workflowTag,
+            limit: params.limit,
+          },
+        });
+      },
+    },
+    {
+      tag: 'send-notification',
+      description: 'Send a notification',
+      parameters: {
+        type: { type: 'string', required: true, enum: ['email', 'slack', 'sms'] },
+        recipient: { type: 'string', required: true },
+        message: { type: 'string', required: true },
+        subject: { type: 'string' },
+      },
+      handler: async (ctx, params) => {
+        if (params.type === 'email') {
+          await ctx.notification.email({
+            notification: 'automation',
+            event: 'custom-notification',
+            recipients: [params.recipient],
+            subject: { text: params.subject || 'Automation Notification' },
+            template: { message: params.message },
+          });
+        } else if (params.type === 'slack') {
+          await ctx.action.run({
+            app: 'slack',
+            event: 'send-message',
+            input: { body: { channel: params.recipient, text: params.message } },
+          });
+        }
+
+        return { sent: true };
+      },
+    },
+  ],
+
+  humanInLoop: {
+    enabled: true,
+    alwaysRequireApproval: ['run-workflow', 'schedule-workflow'],
+    approvalTimeout: 120000,
+  },
+});
+```
+
+---
+
+## Running Examples
+
+```typescript
+// Customer Support
+const supportResult = await ductape.agents.run({
+  product: 'ecommerce',
+  env: 'dev',
+  tag: 'customer-support',
+  input: 'I need to return an item from order ORD-12345',
+  sessionId: 'customer-session-abc',
+});
+
+// Data Analysis
+const analysisResult = await ductape.agents.run({
+  product: 'analytics',
+  env: 'dev',
+  tag: 'data-analyst',
+  input: 'What were our top 5 selling products last month?',
+});
+
+// Research
+const researchResult = await ductape.agents.run({
+  product: 'research',
+  env: 'dev',
+  tag: 'research-assistant',
+  input: 'Research the latest trends in AI agent architectures',
+});
+```
+
+## Next Steps
+
+- [Overview](./overview) - Agent fundamentals
+- [Tools](./tools) - Creating custom tools
+- [Memory](./memory) - Configure agent memory
+- [Human-in-the-Loop](./human-in-loop) - Add approval workflows

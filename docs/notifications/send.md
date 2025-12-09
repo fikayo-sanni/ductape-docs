@@ -4,223 +4,278 @@ sidebar_position: 3
 
 # Sending Notifications
 
-Send push notifications, emails, SMS, or webhook callbacks using `ductape.notifications.send()`.
+Send push notifications, emails, SMS, or webhook callbacks using dedicated methods on `ductape.notifications`.
 
-## Quick Example
-
-```ts
-await ductape.notifications.send({
-  env: 'prd',
-  product: 'my-app',
-  event: 'welcome_user',
-  input: {
-    slug: 'welcome',
-    email: {
-      to: ['john@example.com'],
-      subject: { en: 'Welcome to MyApp!' },
-      template: { en: '<h1>Hello John!</h1><p>Thanks for joining us.</p>' }
-    }
-  }
-});
-```
-
-## Notification Types
-
-Ductape supports multiple notification channels. You can send one or multiple at the same time:
-
-### Email
-
-```ts
-await ductape.notifications.send({
-  env: 'prd',
-  product: 'my-app',
-  event: 'order_confirmation',
-  input: {
-    slug: 'order_email',
-    email: {
-      to: ['customer@example.com'],
-      subject: { en: 'Your order is confirmed!' },
-      template: { en: '<h1>Order #12345</h1><p>Thank you for your purchase.</p>' }
-    }
-  }
-});
-```
+## Channel-Specific Methods
 
 ### Push Notification
 
 ```ts
-await ductape.notifications.send({
-  env: 'prd',
+const result = await ductape.notifications.push({
   product: 'my-app',
-  event: 'new_message',
+  env: 'prd',
+  notification: 'alerts:welcome',
   input: {
-    slug: 'push_message',
-    push_notification: {
-      title: { en: 'New Message' },
-      body: { en: 'You have a new message from Sarah' },
-      data: { messageId: 'msg_123', senderId: 'user_456' },
-      device_token: 'ExponentPushToken[xxxxx]'
-    }
-  }
+    device_tokens: ['device-token-1', 'device-token-2'],
+    title: { name: 'John' },
+    body: { message: 'Welcome to our app!' },
+    data: { action: 'open_home' },
+  },
 });
+
+console.log(result.success); // true
+console.log(result.messageId); // unique ID
+```
+
+### Email
+
+```ts
+const result = await ductape.notifications.email({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'emails:order-confirmation',
+  input: {
+    recipients: ['customer@example.com', 'admin@example.com'],
+    subject: { orderId: '12345' },
+    template: {
+      customerName: 'John Doe',
+      orderTotal: '$99.99',
+    },
+  },
+});
+
+console.log(result.success); // true
 ```
 
 ### SMS
 
 ```ts
-await ductape.notifications.send({
-  env: 'prd',
+const result = await ductape.notifications.sms({
   product: 'my-app',
-  event: 'otp_code',
+  env: 'prd',
+  notification: 'sms:verification',
   input: {
-    slug: 'sms_otp',
-    sms: {
-      phone: '+1234567890',
-      message: 'Your verification code is 123456'
-    }
-  }
+    recipients: ['+1234567890', '+0987654321'],
+    body: { code: '123456' },
+  },
 });
+
+console.log(result.success); // true
 ```
 
 ### Webhook Callback
 
 ```ts
-await ductape.notifications.send({
-  env: 'prd',
+const result = await ductape.notifications.callback({
   product: 'my-app',
-  event: 'payment_received',
+  env: 'prd',
+  notification: 'webhooks:order-created',
   input: {
-    slug: 'webhook_payment',
-    callback: {
-      body: { orderId: '12345', amount: 99.99, status: 'paid' },
-      headers: { 'X-Webhook-Secret': 'secret123' }
-    }
-  }
+    body: {
+      orderId: '12345',
+      status: 'created',
+      timestamp: Date.now(),
+    },
+    headers: {
+      'X-Custom-Header': 'value',
+    },
+  },
 });
+
+console.log(result.success); // true
 ```
 
-## Sending Multiple Channels at Once
+## Multi-Channel Send
+
+Send to multiple channels at once using `send()`:
 
 ```ts
-await ductape.notifications.send({
-  env: 'prd',
+const result = await ductape.notifications.send({
   product: 'my-app',
-  event: 'order_shipped',
-  input: {
-    slug: 'shipping_notification',
-    email: {
-      to: ['customer@example.com'],
-      subject: { en: 'Your order has shipped!' },
-      template: { en: '<p>Track your package: ABC123</p>' }
-    },
-    push_notification: {
-      title: { en: 'Order Shipped!' },
-      body: { en: 'Your order is on its way' },
-      data: { trackingNumber: 'ABC123' },
-      device_token: 'device_token_here'
-    },
-    sms: {
-      phone: '+1234567890',
-      message: 'Your order has shipped! Track: ABC123'
-    }
-  }
+  env: 'prd',
+  notification: 'alerts:order-shipped',
+  push_notification: {
+    device_tokens: ['token1'],
+    title: { status: 'Order Shipped!' },
+    body: { message: 'Your order is on its way' },
+    data: { trackingNumber: 'ABC123' },
+  },
+  email: {
+    recipients: ['customer@example.com'],
+    subject: { orderId: '12345' },
+    template: { trackingUrl: 'https://track.example.com/ABC123' },
+  },
+  sms: {
+    recipients: ['+1234567890'],
+    body: { tracking: 'ABC123' },
+  },
 });
+
+// Check results per channel
+console.log(result.success); // true if at least one succeeded
+console.log(result.channels.push?.success);
+console.log(result.channels.email?.success);
+console.log(result.channels.sms?.success);
 ```
+
+## Scheduling Notifications
+
+Schedule notifications for later using `dispatch()`:
+
+```ts
+const result = await ductape.notifications.dispatch({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'reminders:payment-due',
+  push_notification: {
+    device_tokens: ['token1'],
+    title: { name: 'Payment' },
+    body: { message: 'Your payment is due' },
+  },
+  schedule: {
+    start_at: Date.now() + 86400000, // 24 hours from now
+  },
+  retries: 3,
+});
+
+console.log(result.jobId); // unique job ID
+console.log(result.status); // 'queued'
+```
+
+### Schedule Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `start_at` | number/string | Timestamp when to send |
+| `cron` | string | Cron expression for recurring |
+| `every` | number | Interval in milliseconds |
+| `limit` | number | Max number of sends |
+| `endDate` | number/string | When to stop recurring |
+| `tz` | string | Timezone for scheduling |
 
 ## Using Session Data
 
-Inject user-specific data from sessions using `$Session{key}{field}`:
+Include session context for user-specific data:
 
 ```ts
-await ductape.notifications.send({
-  env: 'prd',
+await ductape.notifications.push({
   product: 'my-app',
-  event: 'welcome_user',
+  env: 'prd',
+  notification: 'alerts:personalized',
   input: {
-    slug: 'welcome',
-    push_notification: {
-      title: { en: 'Welcome!' },
-      body: { en: 'Hi $Session{user}{firstName}, thanks for joining!' },
-      data: { userId: '$Session{user}{id}' },
-      device_token: '$Session{user}{deviceToken}'
-    }
+    device_tokens: ['token1'],
+    title: { greeting: 'Hi there!' },
+    body: { message: 'Check out your personalized recommendations' },
   },
   session: {
     tag: 'user-session',
-    token: 'eyJhbGciOi...'
-  }
+    token: 'eyJhbGciOi...',
+  },
 });
 ```
 
 ## Optional Parameters
 
-| Parameter | What it does |
-|-----------|--------------|
-| `retries` | Number of retry attempts if sending fails |
-| `cache` | Cache tag to avoid duplicate sends |
-| `session` | Session object for dynamic value injection |
-
-```ts
-await ductape.notifications.send({
-  env: 'prd',
-  product: 'my-app',
-  event: 'daily_digest',
-  input: { slug: 'digest', /* ... */ },
-  retries: 3,
-  cache: 'daily-digest-user123'
-});
-```
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `session` | object | Session for authenticated requests |
+| `cache` | string | Cache tag to avoid duplicate sends |
 
 ---
 
 ## Reference
 
-### INotificationProcessorInput
+### IPushOptions
 
 ```ts
-interface INotificationProcessorInput {
-  env: string;
+interface IPushOptions {
   product: string;
-  event: string;
-  input: INotificationRequest;
-  retries?: number;
+  env: string;
+  notification: string;  // format: notification_tag:message_tag
+  input: {
+    device_tokens: string[];
+    title?: Record<string, unknown>;
+    body?: Record<string, unknown>;
+    data?: Record<string, unknown>;
+  };
+  session?: { tag: string; token: string };
   cache?: string;
-  session?: ISession;
 }
 ```
 
-### INotificationRequest
+### IEmailOptions
 
 ```ts
-interface INotificationRequest {
-  slug: string;
-  push_notification?: {
-    title: Record<string, string>;
-    body: Record<string, string>;
-    data: Record<string, unknown>;
-    device_token: string;
+interface IEmailOptions {
+  product: string;
+  env: string;
+  notification: string;
+  input: {
+    recipients: string[];
+    subject?: Record<string, unknown>;
+    template?: Record<string, unknown>;
   };
-  email?: {
-    to: string[];
-    subject: Record<string, string>;
-    template: Record<string, string>;
+  session?: { tag: string; token: string };
+  cache?: string;
+}
+```
+
+### ISmsOptions
+
+```ts
+interface ISmsOptions {
+  product: string;
+  env: string;
+  notification: string;
+  input: {
+    recipients: string[];
+    body?: Record<string, unknown>;
   };
-  sms?: Record<string, unknown>;
-  callback?: {
+  session?: { tag: string; token: string };
+  cache?: string;
+}
+```
+
+### ICallbackOptions
+
+```ts
+interface ICallbackOptions {
+  product: string;
+  env: string;
+  notification: string;
+  input: {
     query?: Record<string, unknown>;
+    headers?: Record<string, unknown>;
     params?: Record<string, unknown>;
     body?: Record<string, unknown>;
-    headers?: Record<string, unknown>;
   };
+  session?: { tag: string; token: string };
+  cache?: string;
 }
 ```
 
-### ISession
+### INotificationResult
 
 ```ts
-interface ISession {
-  tag: string;   // Session identifier
-  token: string; // Encrypted session token
+interface INotificationResult {
+  success: boolean;
+  channel: 'push' | 'email' | 'sms' | 'callback';
+  messageId?: string;
+  error?: string;
+}
+```
+
+### IMultiChannelNotificationResult
+
+```ts
+interface IMultiChannelNotificationResult {
+  success: boolean;  // true if at least one channel succeeded
+  channels: {
+    push?: INotificationResult;
+    email?: INotificationResult;
+    sms?: INotificationResult;
+    callback?: INotificationResult;
+  };
 }
 ```
 

@@ -4,77 +4,105 @@ sidebar_position: 1
 
 # Notifications
 
-Send notifications to users via push, email, SMS, or webhooks.
+Send notifications to users via push, email, SMS, or webhooks using `ductape.notifications`.
 
 ## Quick Example
 
 ```ts
-// Send an email notification
-await ductape.notifications.send({
-  env: 'prd',
+// Send a push notification
+await ductape.notifications.push({
   product: 'my-app',
-  event: 'welcome_email',
+  env: 'prd',
+  notification: 'alerts:welcome',
   input: {
-    to: 'john@example.com',
-    subject: 'Welcome!',
-    body: 'Thanks for signing up.'
-  }
+    device_tokens: ['device-token-1'],
+    title: { name: 'John' },
+    body: { message: 'Welcome to our app!' },
+  },
+});
+
+// Send an email
+await ductape.notifications.email({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'emails:order-confirmation',
+  input: {
+    recipients: ['john@example.com'],
+    subject: { orderId: '12345' },
+    template: { orderDetails: '...' },
+  },
+});
+
+// Send an SMS
+await ductape.notifications.sms({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'sms:verification',
+  input: {
+    recipients: ['+1234567890'],
+    body: { code: '123456' },
+  },
+});
+
+// Send a webhook callback
+await ductape.notifications.callback({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'webhooks:order-created',
+  input: {
+    body: { orderId: '12345', status: 'created' },
+  },
 });
 ```
 
-## Notification Types
+## Notification Methods
 
-| Type | What it does | Use cases |
-|------|--------------|-----------|
-| **Push** | Real-time device notifications | Alerts, updates, promotions |
-| **Email** | Messages to user inboxes | Account info, transactions |
-| **SMS** | Text messages to phones | OTPs, alerts, status updates |
-| **Webhook** | HTTP callbacks to external systems | Integrations, automation |
+| Method | Description | Use cases |
+|--------|-------------|-----------|
+| `push()` | Send push notifications via Firebase/Expo | Alerts, updates, promotions |
+| `email()` | Send emails via SMTP | Account info, transactions |
+| `sms()` | Send SMS via Twilio/Nexmo/Plivo | OTPs, alerts, status updates |
+| `callback()` | Send HTTP webhooks | Integrations, automation |
+| `send()` | Send to multiple channels at once | Multi-channel campaigns |
+| `dispatch()` | Schedule notifications for later | Delayed/scheduled sends |
 
-## Setting Up Notifications
+## Notification Tag Format
 
-### Push Notifications
+Notifications use a tag format of `notification_tag:message_tag`:
 
 ```ts
-await ductape.notifications.create({
-  name: 'Order Update',
-  tag: 'order-update',
-  type: 'push',
-  // ... provider config
-});
+notification: 'alerts:welcome'  // notification_tag: 'alerts', message_tag: 'welcome'
+notification: 'emails:order-confirmation'  // notification_tag: 'emails', message_tag: 'order-confirmation'
 ```
 
-### Email Notifications
+## Multi-Channel Notifications
+
+Send to multiple channels at once:
 
 ```ts
-await ductape.notifications.create({
-  name: 'Welcome Email',
-  tag: 'welcome-email',
-  type: 'email',
-  // ... provider config
+const result = await ductape.notifications.send({
+  product: 'my-app',
+  env: 'prd',
+  notification: 'alerts:order-placed',
+  push_notification: {
+    device_tokens: ['token1'],
+    title: { order: 'New Order' },
+    body: { message: 'Order #12345 placed' },
+  },
+  email: {
+    recipients: ['user@example.com'],
+    subject: { orderId: '12345' },
+    template: { orderDetails: '...' },
+  },
+  sms: {
+    recipients: ['+1234567890'],
+    body: { message: 'Order #12345 placed' },
+  },
 });
-```
 
-### SMS Notifications
-
-```ts
-await ductape.notifications.create({
-  name: 'OTP Code',
-  tag: 'otp-code',
-  type: 'sms',
-  // ... provider config
-});
-```
-
-### Webhooks
-
-```ts
-await ductape.notifications.create({
-  name: 'Order Webhook',
-  tag: 'order-webhook',
-  type: 'webhook',
-  // ... provider config
-});
+console.log(result.channels.push?.success);
+console.log(result.channels.email?.success);
+console.log(result.channels.sms?.success);
 ```
 
 ## Best Practices
@@ -84,6 +112,7 @@ await ductape.notifications.create({
 - Test in development before production
 - Respect user opt-in/opt-out preferences
 - Monitor delivery metrics
+- Use `dispatch()` for scheduled notifications
 
 ## See Also
 

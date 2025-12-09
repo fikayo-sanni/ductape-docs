@@ -1,0 +1,150 @@
+---
+sidebar_position: 1
+---
+
+# Vector Databases
+
+Vector databases store and query high-dimensional vectors for similarity search, enabling powerful AI and machine learning features like semantic search, recommendations, and retrieval-augmented generation (RAG).
+
+## When to Use Vector Databases
+
+Use **Vector Databases** when you need:
+
+- **Semantic Search** - Find similar content by meaning, not just keywords
+- **Recommendation Systems** - Suggest items based on similarity
+- **RAG (Retrieval-Augmented Generation)** - Give AI agents context from your data
+- **Duplicate Detection** - Find near-duplicate content
+- **Image/Audio Similarity** - Match media by content
+- **Anomaly Detection** - Find outliers in high-dimensional data
+
+---
+
+## Supported Providers
+
+| Provider | Type | Best For |
+|----------|------|----------|
+| **Pinecone** | Managed | Production workloads, scalability |
+| **Qdrant** | Self-hosted/Cloud | Flexibility, filtering |
+| **Weaviate** | Self-hosted/Cloud | Hybrid search, GraphQL |
+| **ChromaDB** | Embedded | Development, prototyping |
+
+---
+
+## Quick Example
+
+Here's how to set up and use a vector database:
+
+```typescript
+import Ductape, { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  user_id: 'your-user-id',
+  workspace_id: 'your-workspace-id',
+  private_key: 'your-private-key',
+});
+
+// Create a vector database configuration
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Document Embeddings',
+  tag: 'doc-embeddings',
+  dbType: VectorDBType.PINECONE,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'dev',
+      endpoint: 'https://dev-index.pinecone.io',
+      apiKey: 'your-dev-api-key',
+      index: 'documents-dev',
+      namespace: 'default',
+    },
+    {
+      slug: 'prd',
+      endpoint: 'https://prod-index.pinecone.io',
+      apiKey: 'your-prod-api-key',
+      index: 'documents-prod',
+      namespace: 'default',
+    },
+  ],
+});
+
+// Connect to the vector database
+await ductape.vector.connect({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'doc-embeddings',
+});
+
+// Insert vectors
+await ductape.vector.upsert({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'doc-embeddings',
+  vectors: [
+    {
+      id: 'doc-1',
+      values: [0.1, 0.2, 0.3, /* ... 1536 dimensions */],
+      metadata: { title: 'Introduction to ML', category: 'tutorial' },
+    },
+    {
+      id: 'doc-2',
+      values: [0.2, 0.3, 0.4, /* ... 1536 dimensions */],
+      metadata: { title: 'Advanced Deep Learning', category: 'advanced' },
+    },
+  ],
+});
+
+// Query for similar vectors
+const results = await ductape.vector.query({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'doc-embeddings',
+  vector: [0.15, 0.25, 0.35, /* ... query vector */],
+  topK: 5,
+  filter: { category: 'tutorial' },
+  includeMetadata: true,
+});
+
+console.log('Similar documents:', results.matches);
+```
+
+---
+
+## How It Works
+
+1. **Configure** - Register vector database with environment-specific credentials using `ductape.vector.create()`
+2. **Connect** - Connect to the vector database for your environment using `ductape.vector.connect()`
+3. **Upsert** - Store vectors with IDs and metadata using `ductape.vector.upsert()`
+4. **Query** - Find similar vectors using cosine, euclidean, or dot product similarity using `ductape.vector.query()`
+5. **Filter** - Narrow results with metadata filters
+
+```
+Embedding → Vector DB → [Store with metadata]
+                     ↓
+Query Vector → [Similarity Search] → Top-K Results
+```
+
+---
+
+## Distance Metrics
+
+| Metric | Description | Use Case |
+|--------|-------------|----------|
+| `cosine` | Angle between vectors (default) | Text embeddings, normalized vectors |
+| `euclidean` | Straight-line distance | Image features, spatial data |
+| `dotproduct` | Dot product similarity | When vectors are normalized |
+
+---
+
+## Next Steps
+
+- [Getting Started](./getting-started) - Set up your first vector database
+- [Querying](./querying) - Advanced query patterns
+- [Metadata Filtering](./filtering) - Filter results by metadata
+- [Using with Agents](./agent-integration) - Connect vectors to AI agents
+
+## See Also
+
+- [Agents](../agents/overview) - Build AI agents with vector memory
+- [Databases](../databases/getting-started) - Traditional database operations

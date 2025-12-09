@@ -1,0 +1,362 @@
+---
+sidebar_position: 2
+---
+
+# Getting Started with Vector Databases
+
+This guide walks you through setting up your first vector database in Ductape.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+1. A Ductape account and workspace
+2. A product created in your workspace
+3. Access to a vector database provider (Pinecone, Qdrant, Weaviate, or ChromaDB)
+4. The Ductape SDK installed in your project
+
+## Step 1: Install the SDK
+
+```bash
+npm install @ductape/sdk
+```
+
+## Step 2: Initialize the SDK
+
+```typescript
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  user_id: 'your-user-id',
+  workspace_id: 'your-workspace-id',
+  private_key: 'your-private-key',
+});
+```
+
+## Step 3: Create a Vector Database Configuration
+
+Register your vector database with environment-specific settings:
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Product Embeddings',
+  tag: 'product-vectors',
+  dbType: VectorDBType.PINECONE,
+  dimensions: 1536,  // Must match your embedding model
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'dev',
+      endpoint: 'https://dev-xxx.svc.pinecone.io',
+      apiKey: process.env.PINECONE_DEV_KEY,
+      index: 'products-dev',
+      namespace: 'default',
+    },
+    {
+      slug: 'prd',
+      endpoint: 'https://prod-xxx.svc.pinecone.io',
+      apiKey: process.env.PINECONE_PROD_KEY,
+      index: 'products-prod',
+      namespace: 'default',
+    },
+  ],
+});
+```
+
+### Configuration Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `product` | string | Yes | Product to associate the vector config with |
+| `name` | string | Yes | Human-readable display name |
+| `tag` | string | Yes | Unique identifier for the vector config |
+| `dbType` | VectorDBType | Yes | Provider: `PINECONE`, `QDRANT`, `WEAVIATE`, `MEMORY` |
+| `dimensions` | number | Yes | Vector dimensionality (e.g., 1536 for OpenAI ada-002) |
+| `metric` | DistanceMetric | No | Distance metric: `COSINE`, `EUCLIDEAN`, `DOT_PRODUCT` |
+| `envs` | array | Yes | Environment-specific configurations |
+
+### Environment Configuration
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `slug` | string | Yes | Environment identifier (e.g., `dev`, `staging`, `prd`) |
+| `endpoint` | string | Yes* | Vector database endpoint URL |
+| `apiKey` | string | Yes* | API key for authentication |
+| `region` | string | No | Cloud region (for some providers) |
+| `index` | string | Yes* | Index/collection name |
+| `namespace` | string | No | Namespace for data isolation |
+| `options` | object | No | Additional provider-specific options |
+
+*Required fields vary by provider
+
+## Step 4: Connect to the Vector Database
+
+Before performing operations, connect to the vector database:
+
+```typescript
+await ductape.vector.connect({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'product-vectors',
+});
+```
+
+## Step 5: Store Your First Vectors
+
+Insert vectors with metadata:
+
+```typescript
+await ductape.vector.upsert({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'product-vectors',
+  vectors: [
+    {
+      id: 'prod-001',
+      values: generateEmbedding('Wireless Bluetooth Headphones'),
+      metadata: {
+        name: 'Wireless Bluetooth Headphones',
+        category: 'electronics',
+        price: 79.99,
+      },
+    },
+    {
+      id: 'prod-002',
+      values: generateEmbedding('Running Shoes'),
+      metadata: {
+        name: 'Running Shoes',
+        category: 'sports',
+        price: 129.99,
+      },
+    },
+  ],
+});
+```
+
+## Step 6: Query for Similar Vectors
+
+Find vectors similar to a query:
+
+```typescript
+const results = await ductape.vector.query({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'product-vectors',
+  vector: generateEmbedding('audio equipment'),
+  topK: 5,
+  includeMetadata: true,
+});
+
+results.matches.forEach((match) => {
+  console.log(`${match.id}: ${match.score}`);
+  console.log(`  Name: ${match.metadata?.name}`);
+});
+```
+
+## Complete Example
+
+```typescript
+import Ductape, { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+async function main() {
+  const ductape = new Ductape({
+    user_id: 'your-user-id',
+    workspace_id: 'your-workspace-id',
+    private_key: 'your-private-key',
+  });
+
+  // 1. Create vector configuration
+  await ductape.vector.create({
+    product: 'my-product',
+    name: 'FAQ Embeddings',
+    tag: 'faq-vectors',
+    dbType: VectorDBType.QDRANT,
+    dimensions: 1536,
+    metric: DistanceMetric.COSINE,
+    envs: [
+      {
+        slug: 'dev',
+        endpoint: 'http://localhost:6333',
+        index: 'faqs',
+      },
+    ],
+  });
+
+  // 2. Connect to the vector database
+  await ductape.vector.connect({
+    product: 'my-product',
+    env: 'dev',
+    tag: 'faq-vectors',
+  });
+
+  // 3. Store FAQs
+  await ductape.vector.upsert({
+    product: 'my-product',
+    env: 'dev',
+    tag: 'faq-vectors',
+    vectors: [
+      {
+        id: 'faq-1',
+        values: await getEmbedding('How do I reset my password?'),
+        metadata: {
+          question: 'How do I reset my password?',
+          answer: 'Click "Forgot Password" on the login page...',
+          category: 'account',
+        },
+      },
+      {
+        id: 'faq-2',
+        values: await getEmbedding('What payment methods do you accept?'),
+        metadata: {
+          question: 'What payment methods do you accept?',
+          answer: 'We accept Visa, Mastercard, and PayPal...',
+          category: 'billing',
+        },
+      },
+    ],
+  });
+
+  // 4. Search for relevant FAQs
+  const userQuestion = 'I forgot my login credentials';
+  const results = await ductape.vector.query({
+    product: 'my-product',
+    env: 'dev',
+    tag: 'faq-vectors',
+    vector: await getEmbedding(userQuestion),
+    topK: 3,
+    includeMetadata: true,
+  });
+
+  console.log('Most relevant FAQs:');
+  results.matches.forEach((match, i) => {
+    console.log(`${i + 1}. ${match.metadata?.question} (${match.score.toFixed(3)})`);
+  });
+}
+
+// Helper function to generate embeddings (use your preferred provider)
+async function getEmbedding(text: string): Promise<number[]> {
+  // Use OpenAI, Cohere, or another embedding provider
+  // Return array of numbers matching your dimensions
+}
+
+main().catch(console.error);
+```
+
+## Provider-Specific Setup
+
+### Pinecone
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Pinecone Vectors',
+  tag: 'pinecone-db',
+  dbType: VectorDBType.PINECONE,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'prd',
+      endpoint: 'https://your-index-xxx.svc.pinecone.io',
+      apiKey: process.env.PINECONE_API_KEY,
+      index: 'your-index-name',
+      namespace: 'production',
+    },
+  ],
+});
+```
+
+### Qdrant
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Qdrant Vectors',
+  tag: 'qdrant-db',
+  dbType: VectorDBType.QDRANT,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'dev',
+      endpoint: 'http://localhost:6333',  // Local Qdrant
+      index: 'my-collection',
+    },
+    {
+      slug: 'prd',
+      endpoint: 'https://your-cluster.qdrant.io',
+      apiKey: process.env.QDRANT_API_KEY,
+      index: 'my-collection',
+    },
+  ],
+});
+```
+
+### Weaviate
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Weaviate Vectors',
+  tag: 'weaviate-db',
+  dbType: VectorDBType.WEAVIATE,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'prd',
+      endpoint: 'https://your-cluster.weaviate.network',
+      apiKey: process.env.WEAVIATE_API_KEY,
+      index: 'Documents',  // Class name in Weaviate
+    },
+  ],
+});
+```
+
+### In-Memory (Development/Testing)
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Memory Vectors',
+  tag: 'memory-db',
+  dbType: VectorDBType.MEMORY,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'dev',
+      index: 'test-collection',
+    },
+  ],
+});
+```
+
+## Common Embedding Dimensions
+
+| Model | Provider | Dimensions |
+|-------|----------|------------|
+| text-embedding-ada-002 | OpenAI | 1536 |
+| text-embedding-3-small | OpenAI | 1536 |
+| text-embedding-3-large | OpenAI | 3072 |
+| embed-english-v3.0 | Cohere | 1024 |
+| voyage-02 | Voyage AI | 1024 |
+| all-MiniLM-L6-v2 | Sentence Transformers | 384 |
+
+## Next Steps
+
+- [Querying](./querying) - Advanced query patterns and filters
+- [Metadata Filtering](./filtering) - Filter results by metadata
+- [Using with Agents](./agent-integration) - Connect vectors to AI agents
+- [Best Practices](./best-practices) - Production patterns

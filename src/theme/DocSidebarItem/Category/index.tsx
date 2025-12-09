@@ -33,6 +33,9 @@ import {
   Heart,
   Webhook,
   Activity,
+  GitBranch,
+  Boxes,
+  Bot,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -45,6 +48,9 @@ const iconMap: Record<string, LucideIcon> = {
   'Operators': Code2,
   'Actions': Zap,
   'Features': Workflow,
+  'Workflows': GitBranch,
+  'Vectors': Boxes,
+  'Agents': Bot,
   'Jobs': Box,
   'Sessions': KeyRound,
   'Notifications': Bell,

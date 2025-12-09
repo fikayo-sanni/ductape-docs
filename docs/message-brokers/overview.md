@@ -6,11 +6,86 @@ sidebar_position: 1
 
 Message brokers let you build event-driven applications by sending and receiving messages between services. Ductape supports multiple providers through a unified interface.
 
+## Quick Example
+
+```ts
+import { BrokersService } from '@ductape/sdk';
+
+const brokers = new BrokersService({
+  workspace_id: 'your-workspace-id',
+  public_key: 'your-public-key',
+  user_id: 'your-user-id',
+  token: 'your-token',
+  env_type: 'prd',
+});
+
+// Publish a message
+await brokers.publish({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  message: { orderId: '123', amount: 99.99 },
+});
+
+// Subscribe to messages
+await brokers.subscribe({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  callback: async (message) => {
+    console.log('Received:', message);
+  },
+});
+```
+
+## Using the Ductape Class
+
+You can also use brokers through the main Ductape class:
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  workspace_id: 'your-workspace-id',
+  public_key: 'your-public-key',
+  user_id: 'your-user-id',
+  token: 'your-token',
+  env_type: 'prd',
+});
+
+// Publish a message
+await ductape.events.publish({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  message: { orderId: '123', amount: 99.99 },
+});
+
+// Subscribe to messages
+await ductape.events.subscribe({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  callback: async (message) => {
+    console.log('Received:', message);
+  },
+});
+```
+
+---
+
 ## What You Can Do
 
 - **Publish messages** to topics for other services to consume
 - **Subscribe** to topics and process incoming messages
 - **Switch providers** per environment without changing your code
+- **Get broker and topic metadata** for introspection
+- **Track events** - View event history, status, and payloads
+- **Replay events** - Reprocess failed or successful events
+- **Idempotency** - Ensure messages are processed only once
+- **Dead Letter Queue** - Reprocess failed messages from DLQ
+
+---
 
 ## Supported Providers
 
@@ -22,6 +97,102 @@ Message brokers let you build event-driven applications by sending and receiving
 | **AWS SQS** | `AWS_SQS` | Serverless managed queues |
 | **Google Pub/Sub** | `GOOGLE_PUBSUB` | Google Cloud integration |
 | **NATS** | `NATS` | Lightweight, high-performance messaging |
+
+---
+
+## Publishing Messages
+
+Send messages to a topic:
+
+```ts
+const result = await brokers.publish({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  message: {
+    orderId: '12345',
+    customerId: 'cust_789',
+    total: 99.99,
+    createdAt: new Date().toISOString()
+  }
+});
+
+// Returns
+{
+  success: true,
+  process_id: 'unique-process-id'
+}
+```
+
+---
+
+## Subscribing to Messages
+
+Listen for messages on a topic:
+
+```ts
+const result = await brokers.subscribe({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  callback: async (message) => {
+    console.log('Received order:', message);
+    await processNewOrder(message);
+  }
+});
+
+// Returns
+{
+  success: true,
+  process_id: 'unique-process-id'
+}
+```
+
+---
+
+## Fetching Broker Information
+
+### Get All Brokers
+
+```ts
+const brokersList = await brokers.getBrokers('my-product');
+
+for (const broker of brokersList) {
+  console.log('Broker:', broker.tag, broker.name);
+}
+```
+
+### Get a Specific Broker
+
+```ts
+const broker = await brokers.getBroker('my-product', 'order-events');
+
+if (broker) {
+  console.log('Broker name:', broker.name);
+  console.log('Environments:', broker.envs);
+}
+```
+
+### Get All Topics for a Broker
+
+```ts
+const topics = await brokers.getTopics('my-product', 'order-events');
+
+for (const topic of topics) {
+  console.log('Topic:', topic.tag, topic.name);
+}
+```
+
+### Get a Specific Topic
+
+```ts
+const topic = await brokers.getTopic('my-product', 'order-events:new-orders');
+
+if (topic) {
+  console.log('Topic name:', topic.name);
+  console.log('Sample payload:', topic.sample);
+}
+```
 
 ---
 
@@ -200,64 +371,6 @@ const topics = await ductape.broker.topic.fetchAll('order-events');
 
 ---
 
-## Publishing Messages
-
-Send messages to a topic using `ductape.broker.publish()`:
-
-```typescript
-await ductape.event.publish({
-  env: 'prd',
-  product: 'my-product',
-  event: 'order-events:new-orders',
-  message: {
-    orderId: '12345',
-    customerId: 'cust_789',
-    total: 99.99,
-    createdAt: new Date().toISOString()
-  }
-});
-```
-
-### With Session Context
-
-Include session data when publishing user-related events:
-
-```typescript
-await ductape.event.publish({
-  env: 'prd',
-  product: 'my-product',
-  event: 'order-events:new-orders',
-  message: {
-    orderId: '12345',
-    action: 'created'
-  },
-  session: {
-    tag: 'user-session',
-    token: 'eyJhbGciOi...'
-  }
-});
-```
-
----
-
-## Subscribing to Messages
-
-Listen for messages on a topic using `ductape.broker.subscribe()`:
-
-```typescript
-await ductape.event.subscribe({
-  env: 'prd',
-  product: 'my-product',
-  event: 'order-events:new-orders',
-  callback: async (message) => {
-    console.log('Received order:', message);
-    await processNewOrder(message);
-  }
-});
-```
-
----
-
 ## Event Format
 
 Events use the format `brokerTag:topicTag`:
@@ -269,6 +382,197 @@ Events use the format `brokerTag:topicTag`:
 
 ---
 
+## Event Tracking
+
+Ductape automatically tracks all broker events, allowing you to monitor message flow, debug issues, and replay failed events. Event payloads are encrypted using your product's private key for security.
+
+### Get Events
+
+Fetch broker events with filtering and pagination:
+
+```ts
+const result = await brokers.getEvents({
+  product: 'my-product',
+  env: 'production',
+  brokerTag: 'order-events',
+  status: 'failed',        // Optional: 'success', 'failed', 'pending', 'duplicate', 'retrying'
+  category: 'consumer',    // Optional: 'consumer', 'producer', 'dead-letter', 'message', 'error'
+  topic: 'new-orders',     // Optional: filter by topic
+  startDate: new Date('2024-01-01'),  // Optional
+  endDate: new Date(),     // Optional
+  page: 1,
+  limit: 20,
+});
+
+for (const event of result.events) {
+  console.log('Event:', event.id, event.status);
+  console.log('Request data:', event.request_data);
+  console.log('Response data:', event.response_data);
+}
+```
+
+### Get Single Event
+
+```ts
+const event = await brokers.getEvent({
+  product: 'my-product',
+  eventId: 'event-123',
+});
+
+if (event) {
+  console.log('Status:', event.status);
+  console.log('Topic:', event.topic);
+  console.log('Timestamp:', event.timestamp);
+  console.log('Payload:', event.request_data);
+}
+```
+
+### Event Statistics
+
+Get aggregated statistics for a broker:
+
+```ts
+const stats = await brokers.getEventStats({
+  product: 'my-product',
+  env: 'production',
+  brokerTag: 'order-events',
+});
+
+console.log('Total events:', stats.total_events);
+console.log('Success:', stats.success_count);
+console.log('Failed:', stats.failed_count);
+console.log('Pending:', stats.pending_count);
+console.log('Duplicates:', stats.duplicate_count);
+console.log('Dead letter:', stats.dead_letter_count);
+console.log('By topic:', stats.events_by_topic);
+```
+
+---
+
+## Replay Events
+
+Reprocess a failed or successful event:
+
+```ts
+const result = await brokers.replayEvent({
+  product: 'my-product',
+  env: 'production',
+  eventId: 'event-123',
+  force: true,  // Replay even if already successful
+});
+
+if (result.success) {
+  console.log('New event ID:', result.new_event_id);
+  console.log('Process ID:', result.process_id);
+} else {
+  console.log('Error:', result.error);
+}
+```
+
+---
+
+## Dead Letter Queue
+
+Reprocess messages that have been moved to the Dead Letter Queue:
+
+```ts
+const result = await brokers.reprocessDLQ({
+  product: 'my-product',
+  env: 'production',
+  brokerTag: 'order-events',
+  topicTag: 'new-orders',  // Optional: specific topic
+  messageIds: ['msg-1', 'msg-2'],  // Optional: specific messages
+  limit: 100,  // Max messages to reprocess
+});
+
+console.log('Reprocessed:', result.reprocessed_count);
+console.log('Failed:', result.failed_count);
+console.log('Event IDs:', result.event_ids);
+if (result.errors) {
+  console.log('Errors:', result.errors);
+}
+```
+
+---
+
+## Idempotent Publishing
+
+Ensure messages are processed only once using idempotency keys:
+
+```ts
+// Check if already processed
+const check = await brokers.checkIdempotency({
+  product: 'my-product',
+  env: 'production',
+  idempotencyKey: 'order-123-payment',
+});
+
+if (check.exists) {
+  console.log('Already processed, event ID:', check.event_id);
+}
+
+// Or use publishIdempotent for automatic handling
+const result = await brokers.publishIdempotent({
+  product: 'my-product',
+  env: 'production',
+  event: 'order-events:new-orders',
+  message: { orderId: '123', amount: 99.99 },
+  idempotencyKey: 'order-123-created',
+  idempotencyTtl: 86400,  // 24 hours (optional)
+});
+
+if (result.success) {
+  console.log('Published with process ID:', result.process_id);
+  if (result.error === 'Already processed (idempotent)') {
+    console.log('Message was already processed');
+  }
+}
+```
+
+---
+
+## API Reference
+
+### BrokersService Methods
+
+| Method | Description |
+|--------|-------------|
+| `publish(options)` | Publish a message to a topic |
+| `subscribe(options)` | Subscribe to a topic with a callback |
+| `publishIdempotent(options)` | Publish with idempotency guarantee |
+| `getBrokers(productTag)` | Get all brokers for a product |
+| `getBroker(productTag, brokerTag)` | Get a specific broker |
+| `getTopics(productTag, brokerTag)` | Get all topics for a broker |
+| `getTopic(productTag, event)` | Get a specific topic |
+| `getEvents(options)` | Get broker events with filtering |
+| `getEvent(options)` | Get a single event by ID |
+| `getEventStats(options)` | Get event statistics for a broker |
+| `replayEvent(options)` | Replay a broker event |
+| `reprocessDLQ(options)` | Reprocess Dead Letter Queue messages |
+| `checkIdempotency(options)` | Check if idempotency key exists |
+
+### Error Handling
+
+```ts
+import { BrokerError } from '@ductape/sdk';
+
+try {
+  await brokers.publish({ ... });
+} catch (error) {
+  if (error instanceof BrokerError) {
+    console.log('Error code:', error.code);
+    console.log('Message:', error.message);
+    // Codes: BROKER_NOT_FOUND, BROKER_ENV_NOT_FOUND, TOPIC_NOT_FOUND,
+    //        BROWSER_NOT_SUPPORTED, BROKER_SERVICE_LOAD_FAILED,
+    //        PUBLISH_FAILED, SUBSCRIBE_FAILED, GET_EVENTS_FAILED,
+    //        GET_EVENT_FAILED, REPLAY_EVENT_FAILED, REPROCESS_DLQ_FAILED,
+    //        CHECK_IDEMPOTENCY_FAILED, PUBLISH_IDEMPOTENT_FAILED
+  }
+}
+```
+
+---
+
 ## Best Practices
 
 1. **Use environment-specific configs** - Different credentials and endpoints per environment
@@ -276,8 +580,11 @@ Events use the format `brokerTag:topicTag`:
 3. **Handle failures gracefully** - Implement retry logic in subscribe callbacks
 4. **Use descriptive tags** - Clear naming makes debugging easier
 5. **Secure credentials** - Store sensitive values in environment variables
+6. **Use idempotency keys** - Prevent duplicate processing for critical operations
+7. **Monitor event stats** - Regularly check failed/pending event counts
+8. **Reprocess DLQ promptly** - Don't let dead letter messages accumulate
 
 ## See Also
 
-- [Features](../features/overview) - Use message brokers in workflows
+- [Workflows](../workflows/overview) - Use message brokers in workflows
 - [Jobs](../jobs/overview) - Schedule recurring publish operations

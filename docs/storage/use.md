@@ -9,96 +9,133 @@ Upload files to your configured storage providers using `ductape.storage.upload(
 ## Quick Example
 
 ```ts
-// Read a local file and upload it
-const { buffer, fileName, mimeType } = await ductape.storage.read('path/to/file.txt');
-
-await ductape.storage.upload({
-  env: 'prd',
+// Upload a file
+const result = await ductape.storage.upload({
   product: 'my-app',
-  event: 'upload_file',
-  input: {
-    buffer,
-    fileName,
-    mimeType
-  }
+  env: 'prd',
+  storage: 'main-storage',
+  fileName: 'documents/report.pdf',
+  buffer: fileBuffer,
+  mimeType: 'application/pdf',
 });
+
+console.log('File URL:', result.url);
 ```
 
 ## How It Works
 
-1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
-2. **product** - Your product's unique identifier
-3. **event** - The storage event tag to trigger
-4. **input** - File data (buffer, fileName, mimeType)
+1. **product** - Your product's unique identifier
+2. **env** - Which environment to run in (`dev`, `staging`, `prd`)
+3. **storage** - The storage configuration tag
+4. **fileName** - Destination path for the file
+5. **buffer** - File content as Buffer or string
+6. **mimeType** - Optional MIME type
 
 ## Examples
 
 ### Upload a file
 
 ```ts
-const { buffer, fileName, mimeType } = await ductape.storage.read('invoice.pdf');
+import { readFileSync } from 'fs';
+
+const fileBuffer = readFileSync('invoice.pdf');
 
 const result = await ductape.storage.upload({
-  env: 'prd',
   product: 'billing',
-  event: 'upload_invoice',
-  input: {
-    buffer,
-    fileName,
-    mimeType
-  }
+  env: 'prd',
+  storage: 'invoices-storage',
+  fileName: 'invoices/invoice-001.pdf',
+  buffer: fileBuffer,
+  mimeType: 'application/pdf',
+});
+
+console.log('Uploaded to:', result.url);
+```
+
+### Download a file
+
+```ts
+const result = await ductape.storage.download({
+  product: 'billing',
+  env: 'prd',
+  storage: 'invoices-storage',
+  fileName: 'invoices/invoice-001.pdf',
+});
+
+console.log('Content type:', result.contentType);
+console.log('Size:', result.size);
+// result.data contains the file buffer
+```
+
+### Delete a file
+
+```ts
+const result = await ductape.storage.delete({
+  product: 'billing',
+  env: 'prd',
+  storage: 'invoices-storage',
+  fileName: 'invoices/old-invoice.pdf',
+});
+
+console.log('Deleted:', result.success);
+```
+
+### List files
+
+```ts
+const result = await ductape.storage.list({
+  product: 'billing',
+  env: 'prd',
+  storage: 'invoices-storage',
+  prefix: 'invoices/',
+  limit: 100,
+});
+
+result.files.forEach(file => {
+  console.log(`${file.name} - ${file.size} bytes`);
 });
 ```
 
-### Upload with session context
+### Generate signed URL
 
 ```ts
-await ductape.storage.upload({
+// For downloads (read access)
+const readUrl = await ductape.storage.getSignedUrl({
+  product: 'billing',
   env: 'prd',
-  product: 'profiles',
-  event: 'upload_avatar',
-  input: {
-    buffer,
-    fileName,
-    mimeType
-  },
-  session: {
-    tag: 'user-session',
-    token: 'eyJhbGciOi...'
-  }
+  storage: 'invoices-storage',
+  fileName: 'invoices/invoice-001.pdf',
+  expiresIn: 3600, // 1 hour
+  action: 'read',
+});
+
+// For uploads (write access)
+const writeUrl = await ductape.storage.getSignedUrl({
+  product: 'billing',
+  env: 'prd',
+  storage: 'invoices-storage',
+  fileName: 'uploads/new-file.pdf',
+  expiresIn: 600, // 10 minutes
+  action: 'write',
 });
 ```
 
-### Upload with retries
+### Dispatch as background job
 
 ```ts
-await ductape.storage.upload({
+const result = await ductape.storage.dispatch({
+  product: 'reports',
   env: 'prd',
-  product: 'documents',
-  event: 'upload_document',
-  input: {
-    buffer,
-    fileName,
-    mimeType
-  },
-  retries: 3
+  storage: 'reports-storage',
+  operation: 'upload',
+  fileName: 'reports/monthly.pdf',
+  buffer: reportBuffer,
+  mimeType: 'application/pdf',
+  startAt: Date.now() + 60000, // Delay 1 minute
 });
-```
 
-### Upload with caching
-
-```ts
-await ductape.storage.upload({
-  env: 'prd',
-  product: 'assets',
-  event: 'upload_image',
-  input: {
-    buffer,
-    fileName,
-    mimeType
-  },
-  cache: 'image-upload-cache'
-});
+console.log('Job ID:', result.jobId);
+console.log('Status:', result.status); // 'queued'
 ```
 
 ## Organizing Files in Folders
@@ -126,14 +163,12 @@ fileName: 'users/123/documents/invoice.pdf'
 ```ts
 const userId = 'user_12345';
 await ductape.storage.upload({
-  env: 'prd',
   product: 'profiles',
-  event: 'upload_avatar',
-  input: {
-    buffer,
-    fileName: `users/${userId}/avatar.jpg`,  // Stored in: users/user_12345/avatar.jpg
-    mimeType: 'image/jpeg'
-  }
+  env: 'prd',
+  storage: 'avatars-storage',
+  fileName: `users/${userId}/avatar.jpg`,
+  buffer: imageBuffer,
+  mimeType: 'image/jpeg',
 });
 ```
 
@@ -145,14 +180,12 @@ const month = String(now.getMonth() + 1).padStart(2, '0');
 const day = String(now.getDate()).padStart(2, '0');
 
 await ductape.storage.upload({
-  env: 'prd',
   product: 'documents',
-  event: 'upload_invoice',
-  input: {
-    buffer,
-    fileName: `invoices/${year}/${month}/${day}/invoice-${invoiceId}.pdf`,
-    mimeType: 'application/pdf'
-  }
+  env: 'prd',
+  storage: 'invoices-storage',
+  fileName: `invoices/${year}/${month}/${day}/invoice-${invoiceId}.pdf`,
+  buffer: pdfBuffer,
+  mimeType: 'application/pdf',
 });
 ```
 
@@ -160,28 +193,12 @@ await ductape.storage.upload({
 ```ts
 const fileType = mimeType.startsWith('image/') ? 'images' : 'documents';
 await ductape.storage.upload({
-  env: 'prd',
   product: 'media',
-  event: 'upload_file',
-  input: {
-    buffer,
-    fileName: `${fileType}/${category}/${fileName}`,
-    mimeType
-  }
-});
-```
-
-**Environment separation** (if using same bucket across environments)
-```ts
-await ductape.storage.upload({
   env: 'prd',
-  product: 'assets',
-  event: 'upload_asset',
-  input: {
-    buffer,
-    fileName: `${env}/uploads/${fileName}`,  // prd/uploads/file.jpg
-    mimeType
-  }
+  storage: 'media-storage',
+  fileName: `${fileType}/${category}/${originalFileName}`,
+  buffer: fileBuffer,
+  mimeType,
 });
 ```
 
@@ -193,52 +210,108 @@ await ductape.storage.upload({
 4. **No special characters** - Use alphanumeric characters, hyphens, and underscores in folder names
 5. **Forward slashes only** - Always use `/` for path separators (works across all providers)
 
-## Optional Parameters
-
-| Parameter | What it does |
-|-----------|--------------|
-| `session` | Attach user session context to the request |
-| `cache` | Cache tag to store results for reuse |
-| `retries` | Number of retry attempts on failure |
-
 ---
 
 ## Reference
 
-### IStorageProcessorInput
+### IUploadOptions
 
 ```ts
-interface IStorageProcessorInput {
-  env: string;
+interface IUploadOptions {
   product: string;
-  event: string;
-  input: IStorageRequest;
-  session?: ISession;
-  cache?: string;
-  retries?: number;
+  env: string;
+  storage: string;
+  fileName: string;
+  buffer: Buffer | string;
+  mimeType?: string;
 }
 ```
 
-### IStorageRequest
+### IDownloadOptions
 
 ```ts
-interface IStorageRequest {
-  buffer: string;      // Base64-encoded file content
-  fileName: string;    // Name of the file
-  mimeType?: string;   // MIME type (optional, inferred if omitted)
+interface IDownloadOptions {
+  product: string;
+  env: string;
+  storage: string;
+  fileName: string;
 }
 ```
 
-### ISession
+### IDeleteOptions
 
 ```ts
-interface ISession {
-  tag: string;   // Session identifier
-  token: string; // Session token (e.g., JWT)
+interface IDeleteOptions {
+  product: string;
+  env: string;
+  storage: string;
+  fileName: string;
+}
+```
+
+### IListFilesOptions
+
+```ts
+interface IListFilesOptions {
+  product: string;
+  env: string;
+  storage: string;
+  prefix?: string;
+  limit?: number;
+  continuationToken?: string;
+}
+```
+
+### ISignedUrlOptions
+
+```ts
+interface ISignedUrlOptions {
+  product: string;
+  env: string;
+  storage: string;
+  fileName: string;
+  expiresIn?: number;  // seconds, default: 3600
+  action?: 'read' | 'write';
+}
+```
+
+### IStorageResult
+
+```ts
+interface IStorageResult {
+  success: boolean;
+  url: string;
+  fileName: string;
+  mimeType?: string;
+}
+```
+
+### IDownloadResult
+
+```ts
+interface IDownloadResult {
+  data: Buffer;
+  contentType: string;
+  size: number;
+}
+```
+
+### IListFilesResult
+
+```ts
+interface IListFilesResult {
+  files: Array<{
+    name: string;
+    size: number;
+    lastModified: Date;
+  }>;
+  continuationToken?: string;
+  hasMore: boolean;
 }
 ```
 
 ## See Also
 
+* [Storage Overview](./overview)
 * [Reading Files](./read-files)
 * [Sessions](../sessions/overview)
