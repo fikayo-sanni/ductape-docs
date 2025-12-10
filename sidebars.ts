@@ -76,19 +76,6 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Features - Workflow Engine (Legacy)
-    {
-      type: 'category',
-      label: 'Features',
-      collapsed: true,
-      items: [
-        'features/overview',
-        'features/inputs',
-        'features/output',
-        'features/run',
-      ],
-    },
-
     // Databases
     {
       type: 'category',

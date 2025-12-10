@@ -1897,7 +1897,13 @@ article .cardContainer_node_modules-\@docusaurus-theme-classic-lib-theme-DocCard
   }
 
   article {
-    padding: 1rem 1rem 2rem;
+    padding: 1rem 0.25rem 2rem;
+  }
+
+  /* Reduce main content card padding on mobile - left/right reduced by 75% */
+  main[class*='docMainContainer'] > div > div.row {
+    margin-left: 0.375rem;
+    margin-right: 0.375rem;
   }
 
   h1 {
