@@ -127,42 +127,54 @@ const result = await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'stripe-payments',
-  event: 'create-charge',
+  action: 'create-charge',
   input: {
-    body: {
-      amount: 2000,
-      currency: 'usd',
-      source: 'tok_visa',
-    },
-  },
+    amount: 2000,
+    currency: 'usd',
+    source: 'tok_visa'
+  }
 });
 
 console.log('Charge created:', result);
 ```
 
-### Input Types
+### Flat Input Format
 
-Actions accept different types of input depending on the endpoint:
-
-| Input Type | Description | Example |
-|------------|-------------|---------|
-| `body` | Request body data | `{ email: 'user@example.com' }` |
-| `query` | URL query parameters | `{ limit: 10, page: 1 }` |
-| `params` | Route parameters | `{ userId: '123' }` |
-| `headers` | Custom HTTP headers | `{ 'X-Custom': 'value' }` |
+The SDK uses a **flat input format** where fields are automatically resolved to the correct location (body, params, query, or headers) based on the action's schema:
 
 ```ts
-// Example with multiple input types
+// Fields are auto-resolved based on the action schema
+input: {
+  amount: 2000,        // auto-resolves to body.amount
+  currency: 'usd',     // auto-resolves to body.currency
+  userId: '123'        // auto-resolves to params.userId
+}
+```
+
+### Using Prefixes for Conflicts
+
+If a key exists in multiple locations, use prefix syntax:
+
+| Prefix | Target Location | Example |
+|--------|-----------------|---------|
+| `body:` | Request body | `'body:id': 'item_456'` |
+| `params:` | Route parameters | `'params:id': 'user_123'` |
+| `query:` | Query parameters | `'query:limit': 10` |
+| `headers:` | HTTP headers | `'headers:X-Custom': 'value'` |
+
+```ts
+// Example with mixed input using prefixes where needed
 await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'my-api',
-  event: 'get-user-orders',
+  action: 'get-user-orders',
   input: {
-    params: { userId: '123' },           // /users/123/orders
-    query: { status: 'pending', limit: 5 }, // ?status=pending&limit=5
-    headers: { 'X-Request-ID': 'abc' },
-  },
+    userId: '123',                          // auto-resolved to params
+    status: 'pending',                       // auto-resolved to query
+    limit: 5,                                // auto-resolved to query
+    'headers:X-Request-ID': 'abc'            // explicit header
+  }
 });
 ```
 
@@ -218,13 +230,11 @@ async function main() {
     env: 'dev',
     product: 'my-product',
     app: 'my-api',
-    event: 'create-user',
+    action: 'create-user',
     input: {
-      body: {
-        name: 'John Doe',
-        email: 'john@example.com',
-      },
-    },
+      name: 'John Doe',
+      email: 'john@example.com'
+    }
   });
 
   console.log('User created:', result);

@@ -1,8 +1,8 @@
 {
-  "label": "Jobs",
+  "label": "Scheduling Jobs",
   "position": 8,
   "link": {
     "type": "generated-index",
-    "description": "Scheduling Jobs with Ductape"
+    "description": "Schedule background tasks, recurring operations, and automated workflows with Ductape's job scheduling system."
   }
 }

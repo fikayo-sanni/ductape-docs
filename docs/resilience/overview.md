@@ -17,14 +17,12 @@ Resilience in Ductape helps you build fault-tolerant integrations by:
 ## Quick Start
 
 ```ts
-import { ResilienceService } from '@ductape/sdk';
+import Ductape from '@ductape/sdk';
 
-const resilience = new ResilienceService({
+const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
+  private_key: 'your-private-key',
   user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
 });
 ```
 
@@ -33,6 +31,9 @@ const resilience = new ResilienceService({
 Define resilience configurations using a fluent, type-safe API:
 
 ```ts
+
+const { resilience } = ductape;
+
 // Define a healthcheck
 const healthcheck = await resilience.healthcheck.define({
   product: 'my-product',

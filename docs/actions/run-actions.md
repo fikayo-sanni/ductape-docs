@@ -31,12 +31,10 @@ const result = await ductape.actions.run({
   env: 'dev',
   product: 'my-product',
   app: 'stripe-app',
-  event: 'create_customer',
+  action: 'create_customer',
   input: {
-    body: {
-      email: 'john@example.com',
-      name: 'John Doe'
-    }
+    email: 'john@example.com',
+    name: 'John Doe'
   }
 });
 
@@ -45,11 +43,46 @@ console.log(result); // { id: 'cus_xxx', email: 'john@example.com', ... }
 
 ## How It Works
 
-1. **env** - Which environment to run in (`dev`, `staging`, `prd`)
+1. **env** - Which environment to run in (`dev`, `stg`, `prd`)
 2. **product** - Your product's unique identifier
 3. **app** - The connected app's access tag (e.g., `stripe-app`, `twilio-app`)
 4. **event** - The action you want to trigger (e.g., `create_customer`, `send_sms`)
-5. **input** - The data to send (body, query params, headers, route params)
+5. **input** - The data to send (automatically resolved to body, query, params, or headers based on the action's schema)
+
+## Flat Input Format
+
+The SDK uses a **flat input format** that automatically resolves your fields to the correct location (body, params, query, or headers) based on the action's schema definition.
+
+```ts
+// Simple and clean - fields are auto-resolved
+input: {
+  email: 'john@example.com',    // auto-resolves to body.email
+  name: 'John Doe',             // auto-resolves to body.name
+  userId: '123'                 // auto-resolves to params.userId
+}
+```
+
+### Handling Conflicts with Prefixes
+
+If the same key exists in multiple locations (e.g., `id` in both params and body), use prefix syntax to specify the exact location:
+
+```ts
+input: {
+  'params:id': 'user_123',      // explicitly goes to params.id
+  'body:id': 'item_456',        // explicitly goes to body.id
+  'query:id': 'search_789',     // explicitly goes to query.id
+  'headers:X-Request-ID': 'req_abc'  // explicitly goes to headers
+}
+```
+
+### Available Prefixes
+
+| Prefix | Target Location | Example |
+|--------|-----------------|---------|
+| `body:` | Request body | `'body:amount': 1000` |
+| `params:` | Route parameters | `'params:userId': '123'` |
+| `query:` | Query parameters | `'query:limit': 10` |
+| `headers:` | HTTP headers | `'headers:Authorization': 'Bearer ...'` |
 
 ## More Examples
 
@@ -60,13 +93,11 @@ await ductape.actions.run({
   env: 'prd',
   product: 'payments',
   app: 'stripe',
-  event: 'create_payment_intent',
+  action: 'create_payment_intent',
   input: {
-    body: {
-      amount: 2000,
-      currency: 'usd',
-      customer: 'cus_123'
-    }
+    amount: 2000,
+    currency: 'usd',
+    customer: 'cus_123'
   }
 });
 ```
@@ -78,12 +109,10 @@ await ductape.actions.run({
   env: 'dev',
   product: 'crm',
   app: 'hubspot',
-  event: 'search_contacts',
+  action: 'search_contacts',
   input: {
-    query: {
-      email: 'jane@example.com',
-      limit: 10
-    }
+    email: 'jane@example.com',
+    limit: 10
   }
 });
 ```
@@ -95,11 +124,9 @@ await ductape.actions.run({
   env: 'dev',
   product: 'inventory',
   app: 'shopify',
-  event: 'get_product',
+  action: 'get_product',
   input: {
-    params: {
-      productId: '12345'
-    }
+    productId: '12345'
   }
 });
 ```
@@ -111,14 +138,65 @@ await ductape.actions.run({
   env: 'prd',
   product: 'api-gateway',
   app: 'internal-api',
-  event: 'fetch_user',
+  action: 'fetch_user',
   input: {
-    headers: {
-      'X-Request-ID': 'req_abc123'
-    },
-    params: { userId: '456' }
+    userId: '456',
+    'headers:X-Request-ID': 'req_abc123'
   }
 });
+```
+
+### Mixed input with explicit prefixes
+
+When you have fields that could conflict, use prefixes for clarity:
+
+```ts
+await ductape.actions.run({
+  env: 'prd',
+  product: 'orders',
+  app: 'order-service',
+  action: 'update_order',
+  input: {
+    'params:orderId': 'order_123',   // Route: /orders/:orderId
+    status: 'shipped',                // Body field
+    tracking_number: 'TRK456',        // Body field
+    'headers:X-Idempotency-Key': 'unique_key_789'
+  }
+});
+```
+
+### With shared authentication
+
+Use `actions.auth()` to set credentials once and reuse them across multiple action calls:
+
+```ts
+// Set auth credentials once for an app/env
+ductape.actions.auth({
+  product: 'my-product',
+  app: 'stripe',
+  env: 'prd',
+  credentials: {
+    'headers:Authorization': '$Secret{STRIPE_API_KEY}',
+  }
+});
+
+// Now all stripe actions automatically include the Authorization header
+await ductape.actions.run({
+  env: 'prd',
+  product: 'my-product',
+  app: 'stripe',
+  action: 'create_charge',
+  input: { amount: 1000, currency: 'usd' }
+});
+
+await ductape.actions.run({
+  env: 'prd',
+  product: 'my-product',
+  app: 'stripe',
+  action: 'list_customers',
+  input: { limit: 10 }
+});
+// Both calls automatically include the Authorization header
 ```
 
 ### With session tracking
@@ -130,14 +208,11 @@ await ductape.actions.run({
   env: 'prd',
   product: 'dashboard',
   app: 'analytics',
-  event: 'get_user_stats',
+  action: 'get_user_stats',
   input: {
-    params: { userId: '$Session{user}{id}' }
+    userId: '$Session{user}{id}'
   },
-  session: {
-    tag: 'user-session',
-    token: 'eyJhbGciOi...'
-  }
+  session:'user-session:eyJhbGciOi...'
 });
 ```
 
@@ -148,9 +223,9 @@ await ductape.actions.run({
   env: 'prd',
   product: 'catalog',
   app: 'products-api',
-  event: 'list_products',
+  action: 'list_products',
   input: {
-    query: { category: 'electronics' }
+    category: 'electronics'
   },
   cache: 'products-list',  // Cache the response
   retries: 3               // Retry up to 3 times on failure
@@ -167,6 +242,33 @@ await ductape.actions.run({
 
 ---
 
+## Shared Authentication
+
+### actions.auth()
+
+Set authentication credentials for a product/app/env combination. These credentials are automatically merged into all subsequent action calls.
+
+```ts
+ductape.actions.auth({
+  product: string,      // Product tag
+  app: string,          // App tag
+  env: string,          // Environment (dev, staging, prd)
+  credentials: {        // Credentials in flat input format
+    'headers:Authorization': 'Bearer xxx',
+    'headers:X-API-Key': 'key_xxx',
+    // ... any other credentials
+  }
+});
+```
+
+**Key behaviors:**
+- Credentials are stored in memory for the SDK instance
+- User input takes precedence over shared credentials (can override)
+- Use prefix syntax for headers: `'headers:Authorization'`
+- Works with `$Secret{}` placeholders for secure credential injection
+
+---
+
 ## Reference
 
 ### IActionProcessorInput
@@ -176,15 +278,31 @@ interface IActionProcessorInput {
   env: string;
   product: string;
   app: string;
-  event: string;
-  input: IActionRequest;
+  action: string;
+  input: IFlatInput | IActionRequest;  // Flat or structured format
   cache?: string;
   retries?: number;
-  session?: ISession;
+  session?: string;
 }
 ```
 
-### IActionRequest
+### IFlatInput (Recommended)
+
+```ts
+// Flat input - auto-resolved from action schema
+type IFlatInput = Record<string, unknown>;
+
+// Example
+const input: IFlatInput = {
+  amount: 1000,              // auto-resolves to body.amount
+  currency: 'usd',           // auto-resolves to body.currency
+  'params:id': 'user_123'    // explicit: goes to params.id
+};
+```
+
+### IActionRequest (Structured Format)
+
+The structured format is still supported for backwards compatibility:
 
 ```ts
 interface IActionRequest {
@@ -192,15 +310,6 @@ interface IActionRequest {
   params?: Record<string, unknown>;  // Route parameters
   body?: Record<string, unknown>;    // Request body
   headers?: Record<string, unknown>; // HTTP headers
-}
-```
-
-### ISession
-
-```ts
-interface ISession {
-  tag: string;   // Session identifier
-  token: string; // Encrypted session token (e.g., JWT)
 }
 ```
 

@@ -51,7 +51,7 @@ Ductape provides multiple ways to reference data within your workflows:
 | **Constant** | `$Constant{app}{key}` | Access app constants | `$Constant{config}{currency}` |
 | **Session** | `$Session{tag}{field}` | Get session data | `$Session{user}{name}` |
 | **Response** | `$Response{field}` | Access current action response | `$Response{id}` |
-| **Token** | `$Token{key}` | Access workspace secrets | `$Token{api_key}` |
+| **Token** | `$Secret{key}` | Access workspace secrets | `$Secret{api_key}` |
 | **Auth** | `$Auth{field}` | Access app authentication data | `$Auth{access_token}` |
 | **Default** | `$Default` | Provide default/fallback values | `$Default` |
 | **Size** | `$Size{reference}` | Get size of object (number of keys) | `$Size{$Input{user}}` |
@@ -156,7 +156,7 @@ await ductape.features.create({
 ```typescript
 {
   // Access workspace secrets and app authentication
-  apiKey: '$Token{stripe_api_key}',                 // Workspace secret
+  apiKey: '$Secret{stripe_api_key}',                 // Workspace secret
   appToken: '$Auth{access_token}',                   // App authentication
 
   // Check object size and array/string length
@@ -194,7 +194,7 @@ await ductape.features.create({
       input: {
         url: '$Input{endpoint}',
         headers: {
-          'Authorization': '$Concat(["Bearer ", $Token{api_secret}], "")',     // Workspace secret
+          'Authorization': '$Concat(["Bearer ", $Secret{api_secret}], "")',     // Workspace secret
           'X-App-Token': '$Auth{access_token}',                                 // App authentication
         },
         body: '$Input{data}',

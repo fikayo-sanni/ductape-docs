@@ -133,7 +133,7 @@ try {
 
   await ductape.database.update({
     table: 'accounts',
-    data: { balance: { $inc: 100 } },
+    data: { balance: { $INC: 100 } },
     where: { id: targetId },
     transaction,
   });

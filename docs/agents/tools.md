@@ -191,11 +191,9 @@ handler: async (ctx, params) => {
     app: 'stripe',
     event: 'create-charge',
     input: {
-      body: {
-        amount: params.amount * 100,
-        currency: 'usd',
-        customer: params.customerId,
-      },
+      amount: params.amount * 100,
+      currency: 'usd',
+      customer: params.customerId
     },
     retries: 3,
     timeout: 10000,
@@ -204,6 +202,8 @@ handler: async (ctx, params) => {
   return { chargeId: response.id, status: response.status };
 }
 ```
+
+The `input` uses **flat format** - fields are automatically resolved to body, params, query, or headers based on the action's schema. For explicit placement, use prefixes like `'headers:X-Custom': 'value'`.
 
 ### Databases
 

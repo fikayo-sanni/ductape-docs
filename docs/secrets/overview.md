@@ -13,7 +13,7 @@ Secrets allow you to securely store and manage sensitive data like API keys, tok
 - **Scoped Access**: Restrict secrets to specific apps or services
 - **Environment-specific**: Limit secrets to specific environments (dev, staging, production)
 - **Expiration**: Set optional expiry dates for automatic token rotation reminders
-- **Reference Syntax**: Use `$Token{key}` syntax to reference secrets in your configurations
+- **Reference Syntax**: Use `$Secret{key}` syntax to reference secrets in your configurations
 
 ## Use Cases
 
@@ -28,7 +28,7 @@ Secrets allow you to securely store and manage sensitive data like API keys, tok
 1. **Encryption**: When you create a secret, the value is encrypted client-side using your workspace's private key
 2. **Storage**: Only the encrypted value is sent to and stored on Ductape servers
 3. **Retrieval**: When you fetch a secret, the encrypted value is returned and decrypted client-side
-4. **Reference**: Use `$Token{secret_key}` to reference secrets in action configurations, environment variables, and authentication setups
+4. **Reference**: Use `$Secret{secret_key}` to reference secrets in action configurations, environment variables, and authentication setups
 
 ## Security Model
 

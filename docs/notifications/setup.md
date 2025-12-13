@@ -62,114 +62,131 @@ const push_notifications = {
 
 ### Email Notifications
 
-Ductape supports **5 email providers: SMTP, SendGrid, Mailgun, Postmark, and AWS SES**. Configure them by setting the appropriate fields based on your chosen provider.
+Ductape supports **5 email providers: SMTP, SendGrid, Mailgun, Postmark, and Brevo**. Configure them by setting the `provider` field and providing the corresponding provider configuration.
 
-#### Common Fields
-| Field          | Type          | Required | Description         |
-| :------------- | :------------ | :------- | :------------------ |
-| `provider`     | `EmailProvider` | Yes    | Email service provider. |
-| `sender_email` | `string`      | Yes      | From email address. |
+#### Configuration Structure
+| Field      | Type            | Required | Description                                    |
+| :--------- | :-------------- | :------- | :--------------------------------------------- |
+| `provider` | `EmailProvider` | Yes      | Email service provider (smtp, sendgrid, etc.). |
+| `smtp`     | `object`        | When provider is 'smtp' | SMTP configuration.                |
+| `sendgrid` | `object`        | When provider is 'sendgrid' | SendGrid configuration.         |
+| `mailgun`  | `object`        | When provider is 'mailgun' | Mailgun configuration.           |
+| `postmark` | `object`        | When provider is 'postmark' | Postmark configuration.         |
+| `brevo`    | `object`        | When provider is 'brevo' | Brevo configuration.               |
 
 #### SMTP Configuration
-| Field          | Type      | Required | Description         |
-| :------------- | :-------- | :------- | :------------------ |
-| `host`         | `string`  | Yes      | SMTP server host.   |
-| `port`         | `string`  | Yes      | SMTP port.          |
-| `auth.user`    | `string`  | Yes      | SMTP auth username. |
-| `auth.pass`    | `string`  | Yes      | SMTP auth password. |
-| `secure`       | `boolean` | Optional | Use SSL/TLS.        |
-| `tls`          | `object`  | Optional | TLS configuration.  |
+| Field                | Type      | Required | Description         |
+| :------------------- | :-------- | :------- | :------------------ |
+| `smtp.host`          | `string`  | Yes      | SMTP server host.   |
+| `smtp.port`          | `string`  | Yes      | SMTP port.          |
+| `smtp.sender_email`  | `string`  | Yes      | From email address. |
+| `smtp.auth.user`     | `string`  | Yes      | SMTP auth username. |
+| `smtp.auth.pass`     | `string`  | Yes      | SMTP auth password. |
+| `smtp.secure`        | `boolean` | Optional | Use SSL/TLS.        |
+| `smtp.tls`           | `object`  | Optional | TLS configuration.  |
 
 **SMTP Example**
 ```typescript
 const emails = {
   provider: 'smtp',
-  sender_email: 'noreply@ductape.app',
-  host: 'smtp.elasticemail.com',
-  port: '2524',
-  auth: {
-    user: 'fikayo@ductape.app',
-    pass: '***'
-  },
-  secure: false,
-  tls: {
-    rejectUnauthorized: false
+  smtp: {
+    host: 'smtp.elasticemail.com',
+    port: '2524',
+    sender_email: 'noreply@ductape.app',
+    auth: {
+      user: 'fikayo@ductape.app',
+      pass: '***'
+    },
+    secure: false,
+    tls: {
+      rejectUnauthorized: false
+    }
   }
 };
 ```
 
 #### SendGrid Configuration
-| Field     | Type     | Required | Description        |
-| :-------- | :------- | :------- | :----------------- |
-| `apiKey`  | `string` | Yes      | SendGrid API key.  |
+| Field                   | Type     | Required | Description           |
+| :---------------------- | :------- | :------- | :-------------------- |
+| `sendgrid.apiKey`       | `string` | Yes      | SendGrid API key.     |
+| `sendgrid.sender_email` | `string` | Yes      | From email address.   |
 
 **SendGrid Example**
 ```typescript
 const emails = {
   provider: 'sendgrid',
-  sender_email: 'noreply@ductape.app',
-  apiKey: 'SG.xxxxxxxxxxxxxxxxxxxxx'
+  sendgrid: {
+    apiKey: 'SG.xxxxxxxxxxxxxxxxxxxxx',
+    sender_email: 'noreply@ductape.app'
+  }
 };
 ```
 
 #### Mailgun Configuration
-| Field    | Type     | Required | Description                                    |
-| :------- | :------- | :------- | :--------------------------------------------- |
-| `apiKey` | `string` | Yes      | Mailgun API key.                               |
-| `domain` | `string` | Yes      | Mailgun domain.                                |
-| `url`    | `string` | Optional | API base URL (for EU region, use https://api.eu.mailgun.net). |
+| Field                  | Type     | Required | Description                     |
+| :--------------------- | :------- | :------- | :------------------------------ |
+| `mailgun.apiKey`       | `string` | Yes      | Mailgun API key.                |
+| `mailgun.domain`       | `string` | Yes      | Mailgun domain.                 |
+| `mailgun.sender_email` | `string` | Yes      | From email address.             |
+| `mailgun.region`       | `string` | Optional | 'us' or 'eu' (default: 'us').   |
 
 **Mailgun Example**
 ```typescript
 const emails = {
   provider: 'mailgun',
-  sender_email: 'noreply@ductape.app',
-  apiKey: 'key-xxxxxxxxxxxxxxxxxxxxx',
-  domain: 'mg.ductape.app',
-  url: 'https://api.eu.mailgun.net' // Optional - for EU region
+  mailgun: {
+    apiKey: 'key-xxxxxxxxxxxxxxxxxxxxx',
+    domain: 'mg.ductape.app',
+    sender_email: 'noreply@ductape.app',
+    region: 'eu' // Optional - for EU region
+  }
 };
 ```
 
 #### Postmark Configuration
-| Field         | Type     | Required | Description          |
-| :------------ | :------- | :------- | :------------------- |
-| `serverToken` | `string` | Yes      | Postmark server token. |
+| Field                   | Type     | Required | Description            |
+| :---------------------- | :------- | :------- | :--------------------- |
+| `postmark.serverToken`  | `string` | Yes      | Postmark server token. |
+| `postmark.sender_email` | `string` | Yes      | From email address.    |
 
 **Postmark Example**
 ```typescript
 const emails = {
   provider: 'postmark',
-  sender_email: 'noreply@ductape.app',
-  serverToken: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+  postmark: {
+    serverToken: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    sender_email: 'noreply@ductape.app'
+  }
 };
 ```
 
-#### AWS SES Configuration
-| Field             | Type     | Required | Description            |
-| :---------------- | :------- | :------- | :--------------------- |
-| `region`          | `string` | Yes      | AWS region.            |
-| `accessKeyId`     | `string` | Yes      | AWS access key ID.     |
-| `secretAccessKey` | `string` | Yes      | AWS secret access key. |
+#### Brevo Configuration
+| Field                | Type     | Required | Description                            |
+| :------------------- | :------- | :------- | :------------------------------------- |
+| `brevo.apiKey`       | `string` | Yes      | Brevo API key.                         |
+| `brevo.sender_email` | `string` | Yes      | From email address.                    |
+| `brevo.sender_name`  | `string` | Optional | Sender display name.                   |
 
-**AWS SES Example**
+**Brevo Example**
 ```typescript
 const emails = {
-  provider: 'aws_ses',
-  sender_email: 'noreply@ductape.app',
-  region: 'us-east-1',
-  accessKeyId: 'AKIAXXXXXXXXXX',
-  secretAccessKey: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+  provider: 'brevo',
+  brevo: {
+    apiKey: 'xkeysib-xxxxxxxxxxxxxxxxxxxxx',
+    sender_email: 'noreply@ductape.app',
+    sender_name: 'Ductape Notifications'
+  }
 };
 ```
 
 #### EmailProvider Enum Values
-| Enum Value  | Description                    |
-| :---------- | :----------------------------- |
-| `smtp`      | Traditional SMTP email server  |
-| `sendgrid`  | SendGrid email service         |
-| `mailgun`   | Mailgun email service          |
-| `postmark`  | Postmark email service         |
-| `aws_ses`   | Amazon Simple Email Service    |
+| Enum Value | Description                          |
+| :--------- | :----------------------------------- |
+| `smtp`     | Traditional SMTP email server        |
+| `sendgrid` | SendGrid email service               |
+| `mailgun`  | Mailgun email service                |
+| `postmark` | Postmark email service               |
+| `brevo`    | Brevo (formerly Sendinblue) service  |
 
 ### Callback Notifications
 | Field          | Type          | Required | Description                                       |

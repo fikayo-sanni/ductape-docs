@@ -253,6 +253,10 @@ await ductape.sessions.create({
 | `list(options)` | List active sessions |
 | `define(options)` | Define a session schema (code-first) |
 | `register(product, session)` | Register a defined session |
+| `fetchUsers(options)` | Get paginated session users |
+| `fetchUserDetails(options)` | Get detailed user info with session history |
+| `fetchActivityLogs(options)` | Get paginated session activity logs |
+| `fetchDashboard(options)` | Get comprehensive dashboard metrics |
 
 ### Error Handling
 
@@ -279,3 +283,4 @@ try {
 * [Refreshing Sessions](./refreshing)
 * [Decrypting Sessions](./decrypting)
 * [Fetching Session Users](./fetching-users)
+* [Activity Logs & Dashboard](./activity-dashboard)

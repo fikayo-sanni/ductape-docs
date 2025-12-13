@@ -4,16 +4,16 @@ sidebar_position: 3
 
 # Using Secrets
 
-Learn how to reference your workspace secrets in Ductape configurations using the `$Token{}` syntax.
+Learn how to reference your workspace secrets in Ductape configurations using the `$Secret{}` syntax.
 
-## The $Token{} Syntax
+## The $Secret{} Syntax
 
-Ductape provides a special syntax to reference secrets in your configurations without exposing the actual values. When you use `$Token{key}`, Ductape automatically resolves and decrypts the secret at runtime.
+Ductape provides a special syntax to reference secrets in your configurations without exposing the actual values. When you use `$Secret{key}`, Ductape automatically resolves and decrypts the secret at runtime.
 
 ### Basic Usage
 
 ```
-$Token{SECRET_KEY}
+$Secret{SECRET_KEY}
 ```
 
 Replace `SECRET_KEY` with the key of your secret (the exact key you used when creating the secret).
@@ -36,7 +36,7 @@ await ductape.product.apps.add({
         {
           auth_tag: 'api_key_auth',
           data: {
-            api_key: '$Token{STRIPE_API_KEY}'  // Secret reference
+            api_key: '$Secret{STRIPE_API_KEY}'  // Secret reference
           }
         }
       ]
@@ -57,7 +57,7 @@ await ductape.product.apps.add({
       app_env_slug: 'prd',
       product_env_slug: 'prd',
       variables: [
-        { key: 'SENDGRID_KEY', value: '$Token{SENDGRID_API_KEY}' },
+        { key: 'SENDGRID_KEY', value: '$Secret{SENDGRID_API_KEY}' },
         { key: 'FROM_EMAIL', value: 'noreply@example.com' }
       ],
       auth: []
@@ -78,8 +78,8 @@ const result = await ductape.actions.run({
   event: 'fetch_data',
   input: {
     headers: {
-      'X-API-Key': '$Token{CUSTOM_API_KEY}',
-      'X-Webhook-Secret': '$Token{WEBHOOK_SIGNING_SECRET}'
+      'X-API-Key': '$Secret{CUSTOM_API_KEY}',
+      'X-Webhook-Secret': '$Secret{WEBHOOK_SIGNING_SECRET}'
     },
     body: {
       data: 'payload'
@@ -96,7 +96,7 @@ Secure your webhooks with secret references:
 await ductape.product.webhooks.create({
   name: 'GitHub Webhook',
   tag: 'github_webhook',
-  signing_secret: '$Token{GITHUB_WEBHOOK_SECRET}',
+  signing_secret: '$Secret{GITHUB_WEBHOOK_SECRET}',
   // ... other configuration
 });
 ```
@@ -108,19 +108,19 @@ In the Ductape Workbench, you can quickly copy the token reference syntax:
 1. Navigate to **Workspace Settings** > **Secrets**
 2. Find the secret you want to reference
 3. Click the **copy icon** next to the secret name
-4. The `$Token{SECRET_KEY}` syntax is copied to your clipboard
+4. The `$Secret{SECRET_KEY}` syntax is copied to your clipboard
 5. Paste it wherever you need to use the secret
 
 ## Runtime Resolution
 
-When Ductape processes a configuration containing `$Token{}` references:
+When Ductape processes a configuration containing `$Secret{}` references:
 
-1. **Detection**: The system identifies all `$Token{}` patterns
+1. **Detection**: The system identifies all `$Secret{}` patterns
 2. **Validation**: Checks if the referenced secrets exist and are accessible
 3. **Scope Check**: Verifies the secret's scope includes the current app
 4. **Environment Check**: Confirms the secret is available in the current environment
 5. **Decryption**: Retrieves and decrypts the secret value
-6. **Substitution**: Replaces the `$Token{}` reference with the actual value
+6. **Substitution**: Replaces the `$Secret{}` reference with the actual value
 
 ## Scope and Environment Restrictions
 
@@ -132,7 +132,7 @@ Secrets respect their scope and environment restrictions at runtime:
 // Secret created with limited scope
 await ductape.secrets.create({
   key: 'STRIPE_KEY',
-  value: 'sk_live_xxx',
+  value: 'Bearer sk_live_xxx',
   scope: ['payment_app']  // Only accessible by payment_app
 });
 
@@ -141,7 +141,7 @@ await ductape.actions.run({
   app: 'payment_app',
   // ...
   input: {
-    headers: { 'Authorization': 'Bearer $Token{STRIPE_KEY}' }
+    headers: { 'Authorization': '$Secret{STRIPE_KEY}' }
   }
 });
 
@@ -150,7 +150,7 @@ await ductape.actions.run({
   app: 'analytics_app',
   // ...
   input: {
-    headers: { 'Authorization': 'Bearer $Token{STRIPE_KEY}' }  // Error!
+    headers: { 'Authorization': '$Secret{STRIPE_KEY}' }  // Error!
   }
 });
 ```
@@ -176,7 +176,7 @@ await ductape.actions.run({
   env: 'dev',
   // ...
   input: {
-    body: { db_url: '$Token{PROD_DATABASE_URL}' }  // Error!
+    body: { db_url: '$Secret{PROD_DATABASE_URL}' }  // Error!
   }
 });
 ```
@@ -193,19 +193,19 @@ await ductape.product.apps.add({
       app_env_slug: 'prd',
       product_env_slug: 'prd',
       variables: [
-        { key: 'DB_HOST', value: '$Token{DATABASE_HOST}' },
-        { key: 'DB_USER', value: '$Token{DATABASE_USER}' },
-        { key: 'DB_PASS', value: '$Token{DATABASE_PASSWORD}' },
-        { key: 'REDIS_URL', value: '$Token{REDIS_CONNECTION_STRING}' },
-        { key: 'S3_KEY', value: '$Token{AWS_ACCESS_KEY}' },
-        { key: 'S3_SECRET', value: '$Token{AWS_SECRET_KEY}' }
+        { key: 'DB_HOST', value: '$Secret{DATABASE_HOST}' },
+        { key: 'DB_USER', value: '$Secret{DATABASE_USER}' },
+        { key: 'DB_PASS', value: '$Secret{DATABASE_PASSWORD}' },
+        { key: 'REDIS_URL', value: '$Secret{REDIS_CONNECTION_STRING}' },
+        { key: 'S3_KEY', value: '$Secret{AWS_ACCESS_KEY}' },
+        { key: 'S3_SECRET', value: '$Secret{AWS_SECRET_KEY}' }
       ],
       auth: [
         {
           auth_tag: 'oauth',
           data: {
-            client_id: '$Token{OAUTH_CLIENT_ID}',
-            client_secret: '$Token{OAUTH_CLIENT_SECRET}'
+            client_id: '$Secret{OAUTH_CLIENT_ID}',
+            client_secret: '$Secret{OAUTH_CLIENT_SECRET}'
           }
         }
       ]

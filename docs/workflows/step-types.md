@@ -49,8 +49,8 @@ const user = await ctx.step('create-user', async () => {
 // With rollback
 const charge = await ctx.step(
   'charge',
-  async () => ctx.action.run({ app: 'stripe', event: 'charge', input: {} }),
-  async (result) => ctx.action.run({ app: 'stripe', event: 'refund', input: { body: { id: result.id } } })
+  async () => ctx.action.run({ app: 'stripe', event: 'charge', input: { amount: 1000 } }),
+  async (result) => ctx.action.run({ app: 'stripe', event: 'refund', input: { chargeId: result.id } })
 );
 
 // With options
@@ -74,16 +74,32 @@ Call external APIs through connected apps.
 const result = await ctx.action.run<T>({
   app: string,
   event: string,
-  input: {
-    body?: Record<string, unknown>,
-    headers?: Record<string, string>,
-    query?: Record<string, string>,
-    params?: Record<string, string>,
-  },
+  input: Record<string, unknown>,  // Flat input format
   retries?: number,
   timeout?: number,
 }): Promise<T>;
 ```
+
+### Flat Input Format
+
+Fields are automatically resolved to the correct location (body, params, query, or headers) based on the action's schema:
+
+```typescript
+input: {
+  amount: 1000,       // auto-resolves to body.amount
+  currency: 'usd',    // auto-resolves to body.currency
+  userId: '123'       // auto-resolves to params.userId
+}
+```
+
+For conflicting keys, use prefix syntax:
+
+| Prefix | Target Location | Example |
+|--------|-----------------|---------|
+| `body:` | Request body | `'body:id': 'item_456'` |
+| `params:` | Route parameters | `'params:id': 'user_123'` |
+| `query:` | Query parameters | `'query:limit': 10` |
+| `headers:` | HTTP headers | `'headers:X-Custom': 'value'` |
 
 ### Example
 
@@ -92,8 +108,9 @@ const charge = await ctx.action.run({
   app: 'stripe',
   event: 'create-charge',
   input: {
-    body: { amount: 1000, currency: 'usd' },
-    headers: { 'Idempotency-Key': ctx.workflow_id },
+    amount: 1000,
+    currency: 'usd',
+    'headers:Idempotency-Key': ctx.workflow_id
   },
   retries: 3,
   timeout: 10000,

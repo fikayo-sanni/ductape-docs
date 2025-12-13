@@ -85,6 +85,8 @@ const sidebars: SidebarsConfig = {
         'databases/getting-started',
         'databases/querying',
         'databases/writing-data',
+        'databases/pre-save-operations',
+        'databases/triggers',
         'databases/aggregations',
         'databases/transactions',
         'databases/migrations',
@@ -204,14 +206,17 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Jobs
+    // Scheduling Jobs
     {
       type: 'category',
       label: 'Jobs',
       collapsed: true,
       items: [
-        'jobs/overview',
-        'jobs/use',
+        'jobs/scheduling-jobs',
+        'jobs/cron-expressions',
+        'jobs/job-management',
+        'jobs/retry-strategies',
+        'jobs/examples',
       ],
     },
 
@@ -237,6 +242,7 @@ const sidebars: SidebarsConfig = {
         'sessions/overview',
         'sessions/use',
         'sessions/fetching-users',
+        'sessions/activity-dashboard',
         'sessions/decrypting',
         'sessions/refreshing',
       ],
@@ -251,6 +257,7 @@ const sidebars: SidebarsConfig = {
         'caching/overview',
         'caching/setup',
         'caching/values',
+        'caching/managing-values',
       ],
     },
 

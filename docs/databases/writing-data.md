@@ -98,28 +98,148 @@ console.log('Updated count:', result.count);
 console.log('Updated records:', result.data);
 ```
 
-### Update with Increment/Decrement
+### Update Operators
 
-Use special operators for numeric updates:
+Ductape provides special operators for atomic update operations. These operators work across all supported databases (PostgreSQL, MySQL, MariaDB, MongoDB, DynamoDB, Cassandra).
+
+#### Numeric Operators
 
 ```ts
-// Increment a value
+// $INC - Increment a numeric value
 await ductape.database.update({
   table: 'products',
   data: {
-    stock: { $inc: 10 }, // Add 10 to stock
-    updated_at: new Date(),
+    stock: { $INC: 10 }, // Add 10 to stock
+    views: { $INC: 1 },  // Increment view count
   },
   where: { id: productId },
 });
 
-// Decrement a value
+// $DEC - Decrement a numeric value
 await ductape.database.update({
   table: 'products',
   data: {
-    stock: { $dec: 5 }, // Subtract 5 from stock
+    stock: { $DEC: 5 }, // Subtract 5 from stock
   },
   where: { id: productId },
+});
+
+// $MUL - Multiply a numeric value
+await ductape.database.update({
+  table: 'products',
+  data: {
+    price: { $MUL: 1.1 }, // Increase price by 10%
+  },
+  where: { category: 'electronics' },
+});
+
+// $MIN - Set to minimum (only update if new value is less than current)
+await ductape.database.update({
+  table: 'products',
+  data: {
+    lowest_price: { $MIN: currentPrice }, // Track lowest price seen
+  },
+  where: { id: productId },
+});
+
+// $MAX - Set to maximum (only update if new value is greater than current)
+await ductape.database.update({
+  table: 'products',
+  data: {
+    highest_price: { $MAX: currentPrice }, // Track highest price seen
+  },
+  where: { id: productId },
+});
+```
+
+#### Field Operators
+
+```ts
+// $SET - Explicitly set a value (useful when you need to distinguish from regular updates)
+await ductape.database.update({
+  table: 'users',
+  data: {
+    settings: { $SET: { theme: 'dark', language: 'en' } },
+  },
+  where: { id: userId },
+});
+
+// $UNSET - Remove/null a field
+await ductape.database.update({
+  table: 'users',
+  data: {
+    temporary_token: { $UNSET: true }, // Set to NULL / remove field
+  },
+  where: { id: userId },
+});
+```
+
+#### Array Operators
+
+These operators work with array/list columns. Behavior varies by database:
+- **PostgreSQL**: Works with native array types
+- **MySQL/MariaDB**: Works with JSON arrays
+- **MongoDB**: Native array support
+- **DynamoDB**: Works with List and Set types
+- **Cassandra**: Works with list and set types
+
+```ts
+// $PUSH - Add an element to an array
+await ductape.database.update({
+  table: 'users',
+  data: {
+    tags: { $PUSH: 'premium' }, // Add 'premium' to tags array
+  },
+  where: { id: userId },
+});
+
+// $PULL - Remove an element from an array
+await ductape.database.update({
+  table: 'users',
+  data: {
+    tags: { $PULL: 'trial' }, // Remove 'trial' from tags array
+  },
+  where: { id: userId },
+});
+
+// $ADDTOSET - Add element only if it doesn't exist (unique add)
+await ductape.database.update({
+  table: 'users',
+  data: {
+    roles: { $ADDTOSET: 'editor' }, // Add 'editor' only if not present
+  },
+  where: { id: userId },
+});
+```
+
+#### Operator Reference
+
+| Operator | Description | Supported Databases |
+|----------|-------------|---------------------|
+| `$INC` | Increment numeric value | All |
+| `$DEC` | Decrement numeric value | All |
+| `$MUL` | Multiply numeric value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$MIN` | Set to minimum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$MAX` | Set to maximum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$SET` | Explicitly set a value | All |
+| `$UNSET` | Remove/null a field | All |
+| `$PUSH` | Add element to array | All |
+| `$PULL` | Remove element from array | All (except DynamoDB) |
+| `$ADDTOSET` | Add unique element to array | All |
+
+#### Combining Multiple Operators
+
+```ts
+await ductape.database.update({
+  table: 'game_stats',
+  data: {
+    score: { $INC: 100 },           // Increment score
+    high_score: { $MAX: newScore }, // Update high score if higher
+    games_played: { $INC: 1 },      // Increment game count
+    achievements: { $ADDTOSET: 'first_win' }, // Add achievement
+    updated_at: new Date(),         // Regular field update
+  },
+  where: { player_id: playerId },
 });
 ```
 
