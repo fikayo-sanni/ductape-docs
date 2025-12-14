@@ -3,7 +3,7 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     'intro',
-    'getting-started/quickstart',
+    'getting-started',
     'import',
 
     // Products - Core Backend Systems
@@ -26,7 +26,6 @@ const sidebars: SidebarsConfig = {
       label: 'Apps',
       collapsed: true,
       items: [
-        'apps/getting-started',
         'apps/create-app',
         'apps/import-actions',
         'apps/authentication',
@@ -55,6 +54,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'actions/overview',
+        'actions/auth-configuration',
         'actions/run-actions',
         'actions/managing-actions',
         'actions/validation',

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Running Actions
@@ -165,38 +165,67 @@ await ductape.actions.run({
 });
 ```
 
-### With shared authentication
+### With shared configuration
 
-Use `actions.auth()` to set credentials once and reuse them across multiple action calls:
+Use `actions.config()` to set credentials once and reuse them across multiple action calls.
+
+**Recommended pattern:** Define your app config once and spread it:
 
 ```ts
-// Set auth credentials once for an app/env
-ductape.actions.auth({
-  product: 'my-product',
-  app: 'stripe',
-  env: 'prd',
+// Define app configurations
+const stripeConfig = { product: 'my-product', app: 'stripe', env: 'prd' };
+const twilioConfig = { product: 'my-product', app: 'twilio', env: 'prd' };
+
+// Set credentials using the config
+ductape.actions.config({
+  ...stripeConfig,
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
   }
 });
 
-// Now all stripe actions automatically include the Authorization header
+ductape.actions.config({
+  ...twilioConfig,
+  credentials: {
+    'headers:Authorization': '$Secret{TWILIO_AUTH_TOKEN}',
+  }
+});
+
+// Now use the same config for all action calls
 await ductape.actions.run({
-  env: 'prd',
-  product: 'my-product',
-  app: 'stripe',
+  ...stripeConfig,
   action: 'create_charge',
   input: { amount: 1000, currency: 'usd' }
 });
 
 await ductape.actions.run({
-  env: 'prd',
-  product: 'my-product',
-  app: 'stripe',
+  ...stripeConfig,
   action: 'list_customers',
   input: { limit: 10 }
 });
-// Both calls automatically include the Authorization header
+
+await ductape.actions.run({
+  ...twilioConfig,
+  action: 'send_sms',
+  input: { to: '+1234567890', body: 'Hello!' }
+});
+```
+
+This pattern keeps your code DRY and makes it easy to switch environments:
+
+```ts
+// Environment-based configs
+const stripe = {
+  dev: { product: 'my-product', app: 'stripe', env: 'dev' },
+  prd: { product: 'my-product', app: 'stripe', env: 'prd' },
+};
+
+// Use the appropriate config
+const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
+ductape.actions.config({
+  ...stripe[env],
+  credentials: { 'headers:Authorization': '$Secret{STRIPE_API_KEY}' }
+});
 ```
 
 ### With session tracking
@@ -242,14 +271,14 @@ await ductape.actions.run({
 
 ---
 
-## Shared Authentication
+## Shared Configuration
 
-### actions.auth()
+### actions.config()
 
-Set authentication credentials for a product/app/env combination. These credentials are automatically merged into all subsequent action calls.
+Set shared credentials for a product/app/env combination. These credentials are automatically merged into all subsequent action calls.
 
 ```ts
-ductape.actions.auth({
+ductape.actions.config({
   product: string,      // Product tag
   app: string,          // App tag
   env: string,          // Environment (dev, staging, prd)

@@ -2,11 +2,9 @@
 sidebar_position: 1
 slug: /
 ---
-# What is Ductape?
+# Why Ductape?
 
 Ductape is a framework for defining backend logic such as database operations, API calls, message queues, notifications, and jobs as reusable, environment-agnostic components. Write your logic once, configure it for any environment, and run it anywhere without rewriting for each provider or deployment.
-
-## Why Ductape?
 
 Traditional backend development often means duplicating logic across services, environments, and providers. Ductape solves this by letting you:
 - **Write Once, Run Anywhere:** Define your backend logic once and reuse it across development, staging, and production.
