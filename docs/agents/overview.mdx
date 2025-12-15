@@ -1,0 +1,379 @@
+---
+sidebar_position: 1
+sidebar_label: Overview
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Agents
+
+Agents are autonomous AI systems that can reason, plan, and execute multi-step tasks using tools. Unlike simple LLM calls, agents maintain context, use tools to interact with external systems, and make decisions about what actions to take.
+
+## When to Use Agents
+
+Use **Agents** when you need:
+
+- **Multi-step reasoning** - Tasks that require planning and multiple actions
+- **Tool usage** - AI that can call APIs, query databases, or interact with systems
+- **Autonomous decisions** - Systems that decide what to do next based on context
+- **Human oversight** - AI with approval gates for sensitive operations
+- **Persistent memory** - Conversations that remember past interactions
+
+---
+
+## Quick Example
+
+Here's a simple customer support agent:
+
+```typescript
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  user_id: 'your-user-id',
+  workspace_id: 'your-workspace-id',
+  private_key: 'your-private-key',
+});
+
+// Define the agent
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'support-agent',
+  name: 'Customer Support Agent',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.7,
+  },
+  systemPrompt: `You are a helpful customer support agent.
+You have access to tools to look up orders and customer information.
+Always be polite and helpful.`,
+  tools: [
+    {
+      tag: 'lookup-order',
+      description: 'Look up order details by order ID',
+      parameters: {
+        orderId: {
+          type: 'string',
+          description: 'The order ID to look up',
+          required: true,
+        },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'orders-db',
+          event: 'find-order',
+          params: { id: params.orderId },
+        });
+      },
+    },
+    {
+      tag: 'get-customer',
+      description: 'Get customer information',
+      parameters: {
+        customerId: {
+          type: 'string',
+          description: 'The customer ID',
+          required: true,
+        },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'customers-db',
+          event: 'find-customer',
+          params: { id: params.customerId },
+        });
+      },
+    },
+  ],
+});
+
+// Run the agent
+const result = await ductape.agents.run({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'support-agent',
+  input: 'Can you check the status of order ORD-12345?',
+});
+
+console.log('Response:', result.output);
+console.log('Tools used:', result.toolCalls.length);
+```
+
+---
+
+## How Agents Work
+
+Agents follow a **ReAct** (Reason + Act) pattern:
+
+```
+User Input → OBSERVE → THINK → ACT → EVALUATE → Output
+                ↑                        ↓
+                └────────────────────────┘
+                     (loop until done)
+```
+
+1. **OBSERVE** - Gather context from input, memory, and tools
+2. **THINK** - LLM reasons about what to do next
+3. **ACT** - Execute tool calls or generate response
+4. **EVALUATE** - Check if task is complete or needs more steps
+
+### Agent Loop
+
+```typescript
+while (!done) {
+  // 1. Build context
+  const context = buildContext(input, memory, toolResults);
+
+  // 2. Call LLM
+  const response = await llm.generate(context, tools);
+
+  // 3. Execute tools if requested
+  if (response.toolCalls) {
+    for (const call of response.toolCalls) {
+      const result = await executeTool(call);
+      toolResults.push(result);
+    }
+  }
+
+  // 4. Check termination conditions
+  done = response.stopReason === 'end_turn' ||
+         iterations >= maxIterations ||
+         tokenUsage >= maxTokens;
+}
+```
+
+---
+
+## Core Components
+
+### Model Configuration
+
+```typescript
+model: {
+  provider: 'anthropic',       // LLM provider
+  model: 'claude-sonnet-4-20250514',  // Model name
+  temperature: 0.7,            // Creativity (0-2)
+  maxTokens: 4096,             // Max response tokens
+  topP: 0.9,                   // Nucleus sampling
+  stopSequences: ['DONE'],     // Custom stop sequences
+  timeout: 30000,              // Request timeout (ms)
+}
+```
+
+### Supported Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| `anthropic` | Claude 3.5 Sonnet, Claude 3 Opus/Sonnet/Haiku | Supported |
+| `openai` | GPT-4, GPT-4 Turbo, GPT-3.5 Turbo | Supported |
+| `google` | Gemini Pro, Gemini Ultra | Coming Soon |
+| `cohere` | Command R, Command R+ | Coming Soon |
+
+### Tools
+
+Tools are functions the agent can call:
+
+```typescript
+tools: [
+  {
+    tag: 'search-products',
+    name: 'Search Products',  // Optional display name
+    description: 'Search for products by name or category',
+    parameters: {
+      query: {
+        type: 'string',
+        description: 'Search query',
+        required: true,
+      },
+      category: {
+        type: 'string',
+        description: 'Product category',
+        enum: ['electronics', 'clothing', 'home'],
+      },
+      limit: {
+        type: 'number',
+        description: 'Max results',
+        default: 10,
+      },
+    },
+    requiresConfirmation: false,  // Needs human approval?
+    timeout: 5000,                // Tool timeout (ms)
+    retries: 2,                   // Retry on failure
+    handler: async (ctx, params) => {
+      // Tool implementation
+      return results;
+    },
+  },
+]
+```
+
+### Memory
+
+Configure short-term and long-term memory:
+
+```typescript
+memory: {
+  shortTerm: {
+    maxMessages: 50,              // Conversation history limit
+    truncationStrategy: 'summarize',  // 'fifo' | 'sliding_window' | 'summarize'
+    includeToolResults: true,     // Include tool outputs in history
+  },
+  longTerm: {
+    enabled: true,
+    vectorStore: 'agent-memory',  // Vector config tag
+    retrieveTopK: 5,              // Memories to retrieve
+    minSimilarity: 0.7,           // Minimum relevance
+    autoStore: true,              // Auto-store interactions
+    namespace: 'support-agent',   // Memory isolation
+  },
+}
+```
+
+### Termination
+
+Control when the agent stops:
+
+```typescript
+termination: {
+  maxIterations: 25,    // Max reasoning loops
+  maxTokens: 50000,     // Max total tokens
+  timeout: 300000,      // Max execution time (5 min)
+  allowManualStop: true,  // Allow external stop signal
+}
+```
+
+### Human-in-the-Loop
+
+Add approval gates for sensitive operations:
+
+```typescript
+humanInLoop: {
+  enabled: true,
+  alwaysRequireApproval: ['refund-order', 'delete-account'],
+  approvalTimeout: 300000,  // 5 minutes
+  approvalWebhook: 'https://your-app.com/approve',
+}
+```
+
+### Streaming
+
+Stream agent events in real-time:
+
+```typescript
+streaming: {
+  enabled: true,
+  events: ['thinking_start', 'message_delta', 'tool_start', 'tool_end'],
+  webhook: 'https://your-app.com/stream',
+}
+```
+
+---
+
+## Agent Lifecycle
+
+### 1. Define
+
+Create an agent definition:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'my-agent',
+  name: 'My Agent',
+  model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
+  systemPrompt: 'You are a helpful assistant.',
+  tools: [...],
+});
+```
+
+### 2. Register (Optional)
+
+Register with a product for persistence:
+
+```typescript
+await ductape.agents.register('my-product', agent);
+```
+
+### 3. Run
+
+Execute the agent:
+
+```typescript
+const result = await ductape.agents.run({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'my-agent',
+  input: 'User message',
+  sessionId: 'session-123',  // For memory continuity
+});
+```
+
+### 4. Control
+
+Send signals to running agents:
+
+```typescript
+// Stop execution
+await ductape.agents.signal({
+  executionId: result.executionId,
+  signal: 'stop',
+});
+
+// Approve tool call
+await ductape.agents.signal({
+  executionId: result.executionId,
+  signal: 'approve',
+  payload: { requestId: 'req-123' },
+});
+```
+
+---
+
+## Execution Results
+
+```typescript
+const result = await ductape.agents.run({...});
+
+console.log(result.status);         // 'completed' | 'failed' | 'stopped'
+console.log(result.output);         // Final response text
+console.log(result.iterations);     // Number of reasoning loops
+console.log(result.toolCalls);      // List of tool calls made
+console.log(result.tokenUsage);     // Token usage breakdown
+console.log(result.executionTime);  // Total time (ms)
+console.log(result.conversationHistory);  // Full conversation
+```
+
+---
+
+## Platform Integration
+
+Agents can access all Ductape components through the tool context:
+
+| Component | Access | Description |
+|-----------|--------|-------------|
+| Actions | `ctx.action.run()` | Call external APIs |
+| Databases | `ctx.database.query()` | Database operations |
+| Graphs | `ctx.graph.query()` | Graph database queries |
+| Storage | `ctx.storage.upload()` | File operations |
+| Notifications | `ctx.notification.email()` | Send notifications |
+| Publishing | `ctx.publish.send()` | Message broker publishing |
+| Vectors | `ctx.recall()` / `ctx.remember()` | Vector memory |
+| Features | `ctx.feature.run()` | Run features |
+
+---
+
+## Next Steps
+
+- [Getting Started](./getting-started) - Build your first agent
+- [Tools](./tools) - Creating and managing tools
+- [Memory](./memory) - Configure agent memory
+- [Human-in-the-Loop](./human-in-loop) - Add approval gates
+- [Examples](./examples) - Real-world agent patterns
+
+## See Also
+
+- [Vectors](../vectors/overview) - Give agents long-term memory
+- [Workflows](../workflows/overview) - Combine agents with workflows
+- [Features](../features/overview) - Use agents within features

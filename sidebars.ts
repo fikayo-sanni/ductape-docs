@@ -1,10 +1,27 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
+// Preview features that need the PreviewBanner component
+// Add this to the overview doc of each preview category:
+// import PreviewBanner from '@site/src/components/PreviewBanner';
+// Then add <PreviewBanner /> at the top of the content
+
 const sidebars: SidebarsConfig = {
   tutorialSidebar: [
-    'intro',
-    'getting-started',
-    'import',
+    {
+      type: 'doc',
+      id: 'intro',
+      label: 'Why Ductape',
+    },
+    {
+      type: 'doc',
+      id: 'getting-started',
+      label: 'Getting Started',
+    },
+    {
+      type: 'doc',
+      id: 'import',
+      label: 'Adding an App',
+    },
 
     // Products - Core Backend Systems
     {
@@ -36,17 +53,6 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Operators
-    {
-      type: 'category',
-      label: 'Operators',
-      collapsed: true,
-      items: [
-        'operators/operators',
-        'operators/nesting',
-      ],
-    },
-
     // Actions - Working with Actions
     {
       type: 'category',
@@ -61,18 +67,15 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Workflows - Durable Multi-Step Processes
+    // Secrets
     {
       type: 'category',
-      label: 'Workflows',
+      label: 'Secrets',
       collapsed: true,
       items: [
-        'workflows/overview',
-        'workflows/getting-started',
-        'workflows/building-workflows',
-        'workflows/step-types',
-        'workflows/execution',
-        'workflows/examples',
+        'secrets/overview',
+        'secrets/managing-secrets',
+        'secrets/using-secrets',
       ],
     },
 
@@ -98,91 +101,6 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Graph Databases
-    {
-      type: 'category',
-      label: 'Graphs',
-      collapsed: true,
-      items: [
-        'graphs/getting-started',
-        'graphs/nodes',
-        'graphs/relationships',
-        'graphs/traversals',
-        'graphs/indexing',
-        'graphs/transactions',
-        'graphs/actions',
-        'graphs/best-practices',
-        'graphs/overview',
-      ],
-    },
-
-    // Vector Databases
-    {
-      type: 'category',
-      label: 'Vectors',
-      collapsed: true,
-      items: [
-        'vectors/overview',
-        'vectors/getting-started',
-        'vectors/querying',
-        'vectors/agent-integration',
-        'vectors/best-practices',
-      ],
-    },
-
-    // AI Agents
-    {
-      type: 'category',
-      label: 'Agents',
-      collapsed: true,
-      items: [
-        'agents/overview',
-        'agents/getting-started',
-        'agents/models',
-        'agents/tools',
-        'agents/memory',
-        'agents/human-in-loop',
-        'agents/resilience',
-        'agents/multi-agent',
-        'agents/examples',
-      ],
-    },
-
-    // Notifications
-    {
-      type: 'category',
-      label: 'Notifications',
-      collapsed: true,
-      items: [
-        'notifications/overview',
-        'notifications/setup',
-        'notifications/send',
-        {
-          type: 'category',
-          label: 'Templates',
-          items: [
-            'notifications/templates/manage-messages',
-            'notifications/templates/emails',
-            'notifications/templates/sms',
-            'notifications/templates/push-notifications',
-            'notifications/templates/callbacks',
-          ],
-        },
-      ],
-    },
-
-    // Webhooks
-    {
-      type: 'category',
-      label: 'Webhooks',
-      collapsed: true,
-      items: [
-        'apps/webhooks/webhooks',
-        'apps/webhooks/webhook-events',
-        'apps/webhooks/setup',
-      ],
-    },
-
     // Storage
     {
       type: 'category',
@@ -193,43 +111,6 @@ const sidebars: SidebarsConfig = {
         'storage/files',
         'storage/use',
         'storage/read-files',
-      ],
-    },
-
-    // Message Brokers
-    {
-      type: 'category',
-      label: 'Message Brokers',
-      collapsed: true,
-      items: [
-        'message-brokers/overview',
-      ],
-    },
-
-    // Scheduling Jobs
-    {
-      type: 'category',
-      label: 'Jobs',
-      collapsed: true,
-      items: [
-        'jobs/scheduling-jobs',
-        'jobs/cron-expressions',
-        'jobs/job-management',
-        'jobs/retry-strategies',
-        'jobs/examples',
-      ],
-    },
-
-    // Resilience - Healthchecks, Quotas & Fallbacks
-    {
-      type: 'category',
-      label: 'Resilience',
-      collapsed: true,
-      items: [
-        'resilience/overview',
-        'resilience/healthchecks',
-        'resilience/quotas',
-        'resilience/fallbacks',
       ],
     },
 
@@ -261,22 +142,160 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Secrets
+    // Notifications
     {
       type: 'category',
-      label: 'Secrets',
+      label: 'Notifications',
       collapsed: true,
       items: [
-        'secrets/overview',
-        'secrets/managing-secrets',
-        'secrets/using-secrets',
+        'notifications/overview',
+        'notifications/setup',
+        'notifications/send',
+        {
+          type: 'category',
+          label: 'Templates',
+          items: [
+            'notifications/templates/manage-messages',
+            'notifications/templates/emails',
+            'notifications/templates/sms',
+            'notifications/templates/push-notifications',
+            'notifications/templates/callbacks',
+          ],
+        },
       ],
     },
 
-    // Logs
+    // --- Preview Features Below ---
+
+    // Vectors (Preview)
     {
       type: 'category',
-      label: 'Logs',
+      label: 'Vectors (Preview)',
+      collapsed: true,
+      items: [
+        'vectors/overview',
+        'vectors/getting-started',
+        'vectors/querying',
+        'vectors/agent-integration',
+        'vectors/best-practices',
+      ],
+    },
+
+    // Agents (Preview)
+    {
+      type: 'category',
+      label: 'Agents (Preview)',
+      collapsed: true,
+      items: [
+        'agents/overview',
+        'agents/getting-started',
+        'agents/models',
+        'agents/tools',
+        'agents/memory',
+        'agents/human-in-loop',
+        'agents/resilience',
+        'agents/multi-agent',
+        'agents/examples',
+      ],
+    },
+
+    // Webhooks (Preview)
+    {
+      type: 'category',
+      label: 'Webhooks (Preview)',
+      collapsed: true,
+      items: [
+        'apps/webhooks/webhooks',
+        'apps/webhooks/webhook-events',
+        'apps/webhooks/setup',
+      ],
+    },
+
+    // Workflows (Preview)
+    {
+      type: 'category',
+      label: 'Workflows (Preview)',
+      collapsed: true,
+      items: [
+        'workflows/overview',
+        'workflows/getting-started',
+        'workflows/building-workflows',
+        'workflows/step-types',
+        'workflows/execution',
+        'workflows/examples',
+      ],
+    },
+
+    // Graphs (Preview)
+    {
+      type: 'category',
+      label: 'Graphs (Preview)',
+      collapsed: true,
+      items: [
+        'graphs/getting-started',
+        'graphs/nodes',
+        'graphs/relationships',
+        'graphs/traversals',
+        'graphs/indexing',
+        'graphs/transactions',
+        'graphs/actions',
+        'graphs/best-practices',
+        'graphs/overview',
+      ],
+    },
+
+    // Operators (Preview)
+    {
+      type: 'category',
+      label: 'Operators (Preview)',
+      collapsed: true,
+      items: [
+        'operators/operators',
+        'operators/nesting',
+      ],
+    },
+
+    // Message Brokers (Preview)
+    {
+      type: 'category',
+      label: 'Message Brokers (Preview)',
+      collapsed: true,
+      items: [
+        'message-brokers/overview',
+      ],
+    },
+
+    // Jobs (Preview)
+    {
+      type: 'category',
+      label: 'Jobs (Preview)',
+      collapsed: true,
+      items: [
+        'jobs/scheduling-jobs',
+        'jobs/cron-expressions',
+        'jobs/job-management',
+        'jobs/retry-strategies',
+        'jobs/examples',
+      ],
+    },
+
+    // Resilience (Preview)
+    {
+      type: 'category',
+      label: 'Resilience (Preview)',
+      collapsed: true,
+      items: [
+        'resilience/overview',
+        'resilience/healthchecks',
+        'resilience/quotas',
+        'resilience/fallbacks',
+      ],
+    },
+
+    // Logs (Preview)
+    {
+      type: 'category',
+      label: 'Logs (Preview)',
       collapsed: true,
       items: [
         'logs/manage-logs',

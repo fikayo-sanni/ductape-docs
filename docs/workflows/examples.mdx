@@ -1,0 +1,1219 @@
+---
+sidebar_position: 6
+sidebar_label: Examples
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Examples
+
+Real-world workflow patterns using the code-first API.
+
+## E-Commerce Order Fulfillment
+
+A complete order processing workflow with payment, inventory, and notifications:
+
+```typescript
+await ductape.workflows.define({
+  product: 'ecommerce',
+  tag: 'order-fulfillment',
+  name: 'Order Fulfillment',
+  description: 'Process customer orders from payment to delivery',
+
+  options: {
+    timeout: 600000, // 10 minutes
+    rollback_strategy: 'reverse_all',
+  },
+
+  signals: {
+    'cancel-order': { input: { reason: 'string' } },
+  },
+
+  handler: async (ctx) => {
+    ctx.log.info('Starting order fulfillment', { orderId: ctx.input.orderId });
+
+    // Step 1: Validate order and check inventory
+    const validation = await ctx.step('validate-order', async () => {
+      const inventory = await ctx.action.run({
+        app: 'inventory-api',
+        event: 'check-availability',
+        input: { body: { items: ctx.input.items } },
+      });
+
+      return {
+        available: inventory.allAvailable,
+        unavailableItems: inventory.unavailableItems || [],
+      };
+    });
+
+    if (!validation.available) {
+      return {
+        success: false,
+        reason: 'items_unavailable',
+        unavailableItems: validation.unavailableItems,
+      };
+    }
+
+    // Step 2: Calculate totals and apply discounts
+    const pricing = await ctx.step('calculate-pricing', async () => {
+      const subtotal = ctx.input.items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      let discount = 0;
+      if (ctx.input.couponCode) {
+        const coupon = await ctx.action.run({
+          app: 'promotions-api',
+          event: 'validate-coupon',
+          input: { body: { code: ctx.input.couponCode } },
+        });
+        if (coupon.valid) {
+          discount = coupon.discountAmount;
+        }
+      }
+
+      const tax = (subtotal - discount) * 0.08; // 8% tax
+      const total = subtotal - discount + tax;
+
+      return { subtotal, discount, tax, total };
+    });
+
+    // Step 3: Process payment (with rollback)
+    const payment = await ctx.step(
+      'process-payment',
+      async () => {
+        return ctx.action.run({
+          app: 'stripe',
+          event: 'create-charge',
+          input: {
+            body: {
+              amount: Math.round(pricing.total * 100), // cents
+              currency: 'usd',
+              customer: ctx.input.customerId,
+              metadata: { orderId: ctx.input.orderId },
+            },
+            headers: {
+              'Idempotency-Key': `order-${ctx.input.orderId}-payment`,
+            },
+          },
+          retries: 3,
+          timeout: 30000,
+        });
+      },
+      async (result) => {
+        // Rollback: Refund the charge
+        await ctx.action.run({
+          app: 'stripe',
+          event: 'create-refund',
+          input: {
+            body: { charge: result.id, reason: 'order_cancelled' },
+          },
+        });
+        ctx.log.info('Payment refunded', { chargeId: result.id });
+      }
+    );
+
+    // Checkpoint after payment
+    await ctx.checkpoint('payment-complete', {
+      chargeId: payment.id,
+      amount: pricing.total,
+    });
+
+    // Step 4: Reserve inventory (with rollback)
+    await ctx.step(
+      'reserve-inventory',
+      async () => {
+        return ctx.action.run({
+          app: 'inventory-api',
+          event: 'reserve-items',
+          input: {
+            body: {
+              orderId: ctx.input.orderId,
+              items: ctx.input.items,
+            },
+          },
+        });
+      },
+      async () => {
+        // Rollback: Release reserved items
+        await ctx.action.run({
+          app: 'inventory-api',
+          event: 'release-items',
+          input: { body: { orderId: ctx.input.orderId } },
+        });
+      }
+    );
+
+    // Step 5: Create order record
+    const order = await ctx.step('create-order-record', async () => {
+      return ctx.database.insert({
+        database: 'orders-db',
+        event: 'create-order',
+        data: {
+          order_id: ctx.input.orderId,
+          customer_id: ctx.input.customerId,
+          items: ctx.input.items,
+          subtotal: pricing.subtotal,
+          discount: pricing.discount,
+          tax: pricing.tax,
+          total: pricing.total,
+          payment_id: payment.id,
+          status: 'confirmed',
+          created_at: new Date().toISOString(),
+        },
+      });
+    });
+
+    // Step 6: Send confirmation email (non-critical)
+    await ctx.step(
+      'send-confirmation-email',
+      async () => {
+        await ctx.notification.email({
+          notification: 'transactional',
+          event: 'order-confirmed',
+          recipients: [ctx.input.email],
+          subject: { orderId: ctx.input.orderId },
+          template: {
+            orderId: ctx.input.orderId,
+            items: ctx.input.items,
+            total: pricing.total,
+            estimatedDelivery: '3-5 business days',
+          },
+        });
+      },
+      null,
+      { allow_fail: true }
+    );
+
+    // Step 7: Queue for warehouse fulfillment
+    await ctx.step('queue-fulfillment', async () => {
+      await ctx.publish.send({
+        broker: 'warehouse-events',
+        event: 'new-order',
+        input: {
+          message: {
+            orderId: ctx.input.orderId,
+            items: ctx.input.items,
+            shippingAddress: ctx.input.shippingAddress,
+            priority: ctx.input.isPrime ? 'high' : 'normal',
+          },
+        },
+      });
+    });
+
+    ctx.log.info('Order fulfilled successfully', {
+      orderId: ctx.input.orderId,
+      chargeId: payment.id,
+    });
+
+    return {
+      success: true,
+      orderId: ctx.input.orderId,
+      orderRecordId: order.id,
+      chargeId: payment.id,
+      total: pricing.total,
+    };
+  },
+});
+```
+
+---
+
+## User Onboarding
+
+Multi-step user registration with email verification:
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-app',
+  tag: 'user-onboarding',
+  name: 'User Onboarding',
+
+  signals: {
+    'email-verified': { input: { code: 'string' } },
+  },
+
+  handler: async (ctx) => {
+    // Step 1: Create user account
+    const user = await ctx.step(
+      'create-user',
+      async () => {
+        return ctx.database.insert({
+          database: 'users-db',
+          event: 'create-user',
+          data: {
+            email: ctx.input.email,
+            name: ctx.input.name,
+            password_hash: ctx.input.passwordHash,
+            status: 'pending_verification',
+            created_at: new Date().toISOString(),
+          },
+        });
+      },
+      async (result) => {
+        // Rollback: Delete user if onboarding fails
+        await ctx.database.delete({
+          database: 'users-db',
+          event: 'delete-user',
+          where: { id: result.id },
+        });
+      }
+    );
+
+    // Step 2: Generate verification code
+    const verificationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    ctx.setState('verificationCode', verificationCode);
+
+    // Step 3: Send verification email
+    await ctx.step('send-verification', async () => {
+      await ctx.notification.email({
+        notification: 'transactional',
+        event: 'email-verification',
+        recipients: [ctx.input.email],
+        subject: { appName: 'MyApp' },
+        template: {
+          name: ctx.input.name,
+          code: verificationCode,
+          expiresIn: '24 hours',
+        },
+      });
+    });
+
+    // Step 4: Wait for email verification
+    const verification = await ctx.waitForSignal('email-verified', {
+      timeout: '24h',
+    });
+
+    // Validate the code
+    if (verification.code !== ctx.getState('verificationCode')) {
+      await ctx.triggerRollback('Invalid verification code');
+      return { success: false, reason: 'invalid_code' };
+    }
+
+    // Step 5: Activate user account
+    await ctx.step('activate-user', async () => {
+      await ctx.database.update({
+        database: 'users-db',
+        event: 'update-user',
+        where: { id: user.id },
+        data: {
+          status: 'active',
+          verified_at: new Date().toISOString(),
+        },
+      });
+    });
+
+    // Step 6: Create user profile
+    await ctx.step('create-profile', async () => {
+      await ctx.database.insert({
+        database: 'profiles-db',
+        event: 'create-profile',
+        data: {
+          user_id: user.id,
+          display_name: ctx.input.name,
+          avatar_url: null,
+          bio: null,
+        },
+      });
+    });
+
+    // Step 7: Send welcome email (non-critical)
+    await ctx.step(
+      'send-welcome',
+      async () => {
+        await ctx.notification.email({
+          notification: 'transactional',
+          event: 'welcome',
+          recipients: [ctx.input.email],
+          template: {
+            name: ctx.input.name,
+            loginUrl: 'https://myapp.com/login',
+          },
+        });
+      },
+      null,
+      { allow_fail: true }
+    );
+
+    return {
+      success: true,
+      userId: user.id,
+      email: ctx.input.email,
+    };
+  },
+});
+```
+
+---
+
+## Document Processing Pipeline
+
+Process uploaded documents with OCR and classification:
+
+```typescript
+await ductape.workflows.define({
+  product: 'doc-processor',
+  tag: 'document-pipeline',
+  name: 'Document Processing Pipeline',
+
+  options: {
+    timeout: 300000, // 5 minutes for large documents
+  },
+
+  handler: async (ctx) => {
+    ctx.log.info('Processing document', {
+      documentId: ctx.input.documentId,
+      fileName: ctx.input.fileName,
+    });
+
+    // Step 1: Download the document
+    const document = await ctx.step('download-document', async () => {
+      return ctx.storage.download({
+        storage: 'uploads',
+        event: 'get-document',
+        input: { file_key: ctx.input.fileKey },
+      });
+    });
+
+    // Step 2: Run OCR extraction
+    const ocrResult = await ctx.step(
+      'extract-text',
+      async () => {
+        return ctx.action.run({
+          app: 'ocr-service',
+          event: 'extract',
+          input: {
+            body: {
+              content: document.content,
+              contentType: document.content_type,
+              options: { language: 'en', detectLayout: true },
+            },
+          },
+          timeout: 60000,
+        });
+      },
+      null,
+      { retries: 2 }
+    );
+
+    // Step 3: Classify document type
+    const classification = await ctx.step('classify-document', async () => {
+      return ctx.action.run({
+        app: 'ml-classifier',
+        event: 'classify',
+        input: {
+          body: {
+            text: ocrResult.text,
+            categories: ['invoice', 'receipt', 'contract', 'report', 'other'],
+          },
+        },
+      });
+    });
+
+    // Step 4: Extract structured data based on document type
+    const extractedData = await ctx.step('extract-data', async () => {
+      const extractionConfig = {
+        invoice: { fields: ['vendor', 'total', 'date', 'items'] },
+        receipt: { fields: ['store', 'total', 'date', 'items'] },
+        contract: { fields: ['parties', 'terms', 'date', 'signatures'] },
+        report: { fields: ['title', 'author', 'date', 'summary'] },
+        other: { fields: ['title', 'content'] },
+      };
+
+      return ctx.action.run({
+        app: 'data-extractor',
+        event: 'extract',
+        input: {
+          body: {
+            text: ocrResult.text,
+            documentType: classification.category,
+            fields: extractionConfig[classification.category],
+          },
+        },
+      });
+    });
+
+    // Step 5: Store processed document
+    const processedDoc = await ctx.step('store-result', async () => {
+      return ctx.database.insert({
+        database: 'documents-db',
+        event: 'store-processed',
+        data: {
+          original_file_key: ctx.input.fileKey,
+          file_name: ctx.input.fileName,
+          document_type: classification.category,
+          confidence: classification.confidence,
+          extracted_text: ocrResult.text,
+          extracted_data: extractedData,
+          processed_at: new Date().toISOString(),
+        },
+      });
+    });
+
+    // Step 6: Index for search
+    await ctx.step(
+      'index-document',
+      async () => {
+        await ctx.action.run({
+          app: 'search-api',
+          event: 'index',
+          input: {
+            body: {
+              id: processedDoc.id,
+              content: ocrResult.text,
+              metadata: {
+                type: classification.category,
+                fileName: ctx.input.fileName,
+                ...extractedData,
+              },
+            },
+          },
+        });
+      },
+      null,
+      { allow_fail: true }
+    );
+
+    // Step 7: Notify user
+    await ctx.step(
+      'notify-completion',
+      async () => {
+        await ctx.notification.push({
+          notification: 'app-notifications',
+          event: 'document-processed',
+          tokens: [ctx.input.deviceToken],
+          title: { fileName: ctx.input.fileName },
+          body: { documentType: classification.category },
+          data: { documentId: processedDoc.id },
+        });
+      },
+      null,
+      { allow_fail: true }
+    );
+
+    return {
+      success: true,
+      documentId: processedDoc.id,
+      documentType: classification.category,
+      confidence: classification.confidence,
+    };
+  },
+});
+```
+
+---
+
+## Subscription Billing
+
+Recurring subscription billing with retry logic:
+
+```typescript
+await ductape.workflows.define({
+  product: 'billing',
+  tag: 'subscription-billing',
+  name: 'Subscription Billing',
+
+  options: {
+    rollback_strategy: 'critical_only',
+  },
+
+  handler: async (ctx) => {
+    const { subscriptionId, customerId, amount } = ctx.input;
+
+    ctx.log.info('Processing subscription billing', { subscriptionId });
+
+    // Step 1: Get subscription details
+    const subscription = await ctx.step('get-subscription', async () => {
+      return ctx.database.query({
+        database: 'subscriptions-db',
+        event: 'get-subscription',
+        params: { id: subscriptionId },
+      });
+    });
+
+    if (!subscription || subscription.status !== 'active') {
+      return { success: false, reason: 'subscription_inactive' };
+    }
+
+    // Step 2: Get payment method
+    const paymentMethod = await ctx.step('get-payment-method', async () => {
+      return ctx.action.run({
+        app: 'stripe',
+        event: 'get-payment-method',
+        input: { params: { customerId } },
+      });
+    });
+
+    if (!paymentMethod.valid) {
+      // Notify about payment method issue
+      await ctx.step(
+        'notify-payment-issue',
+        async () => {
+          await ctx.notification.email({
+            notification: 'billing',
+            event: 'payment-method-invalid',
+            recipients: [subscription.email],
+            template: { updateUrl: 'https://app.com/billing' },
+          });
+        },
+        null,
+        { allow_fail: true }
+      );
+
+      return { success: false, reason: 'invalid_payment_method' };
+    }
+
+    // Step 3: Attempt payment (with retries)
+    let paymentAttempt = 0;
+    let paymentResult = null;
+    let lastError = null;
+
+    while (paymentAttempt < 3 && !paymentResult) {
+      paymentAttempt++;
+      ctx.setState('paymentAttempt', paymentAttempt);
+
+      try {
+        paymentResult = await ctx.step(`payment-attempt-${paymentAttempt}`, async () => {
+          return ctx.action.run({
+            app: 'stripe',
+            event: 'create-charge',
+            input: {
+              body: {
+                amount: amount * 100,
+                currency: 'usd',
+                customer: customerId,
+                payment_method: paymentMethod.id,
+                metadata: {
+                  subscriptionId,
+                  attempt: paymentAttempt,
+                },
+              },
+              headers: {
+                'Idempotency-Key': `sub-${subscriptionId}-${ctx.workflow_id}-${paymentAttempt}`,
+              },
+            },
+          });
+        });
+      } catch (error) {
+        lastError = error;
+        ctx.log.warn('Payment attempt failed', {
+          attempt: paymentAttempt,
+          error: error.message,
+        });
+
+        if (paymentAttempt < 3) {
+          // Wait before retry (exponential backoff)
+          await ctx.sleep(paymentAttempt * 2000);
+        }
+      }
+    }
+
+    if (!paymentResult) {
+      // All payment attempts failed
+      await ctx.step('mark-payment-failed', async () => {
+        await ctx.database.update({
+          database: 'subscriptions-db',
+          event: 'update-subscription',
+          where: { id: subscriptionId },
+          data: {
+            status: 'past_due',
+            failed_payments: (subscription.failed_payments || 0) + 1,
+            last_payment_error: lastError?.message,
+          },
+        });
+      });
+
+      await ctx.step(
+        'notify-payment-failed',
+        async () => {
+          await ctx.notification.email({
+            notification: 'billing',
+            event: 'payment-failed',
+            recipients: [subscription.email],
+            template: {
+              amount,
+              attempts: paymentAttempt,
+              updateUrl: 'https://app.com/billing',
+            },
+          });
+        },
+        null,
+        { allow_fail: true }
+      );
+
+      return {
+        success: false,
+        reason: 'payment_failed',
+        attempts: paymentAttempt,
+      };
+    }
+
+    // Step 4: Record successful payment (critical)
+    await ctx.step(
+      'record-payment',
+      async () => {
+        return ctx.database.insert({
+          database: 'payments-db',
+          event: 'create-payment',
+          data: {
+            subscription_id: subscriptionId,
+            customer_id: customerId,
+            charge_id: paymentResult.id,
+            amount,
+            status: 'succeeded',
+            created_at: new Date().toISOString(),
+          },
+        });
+      },
+      null,
+      { critical: true }
+    );
+
+    // Step 5: Update subscription
+    await ctx.step('update-subscription', async () => {
+      await ctx.database.update({
+        database: 'subscriptions-db',
+        event: 'update-subscription',
+        where: { id: subscriptionId },
+        data: {
+          last_payment_at: new Date().toISOString(),
+          next_billing_date: new Date(
+            Date.now() + 30 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          failed_payments: 0,
+        },
+      });
+    });
+
+    // Step 6: Generate invoice
+    await ctx.step('generate-invoice', async () => {
+      const invoice = await ctx.action.run({
+        app: 'invoice-service',
+        event: 'generate',
+        input: {
+          body: {
+            subscriptionId,
+            chargeId: paymentResult.id,
+            amount,
+          },
+        },
+      });
+
+      return invoice;
+    });
+
+    // Step 7: Send receipt (non-critical)
+    await ctx.step(
+      'send-receipt',
+      async () => {
+        await ctx.notification.email({
+          notification: 'billing',
+          event: 'payment-receipt',
+          recipients: [subscription.email],
+          template: {
+            amount,
+            chargeId: paymentResult.id,
+            date: new Date().toLocaleDateString(),
+          },
+        });
+      },
+      null,
+      { allow_fail: true }
+    );
+
+    return {
+      success: true,
+      chargeId: paymentResult.id,
+      amount,
+      nextBillingDate: new Date(
+        Date.now() + 30 * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    };
+  },
+});
+```
+
+---
+
+## Approval Workflow
+
+Multi-level approval process with escalation:
+
+```typescript
+await ductape.workflows.define({
+  product: 'hr-system',
+  tag: 'expense-approval',
+  name: 'Expense Approval',
+
+  signals: {
+    'manager-decision': { input: { approved: 'boolean', comments: 'string' } },
+    'director-decision': { input: { approved: 'boolean', comments: 'string' } },
+    'finance-decision': { input: { approved: 'boolean', comments: 'string' } },
+  },
+
+  queries: {
+    'getStatus': {
+      handler: (ctx) => ({
+        requestId: ctx.input.requestId,
+        amount: ctx.input.amount,
+        status: ctx.getState('status') || 'pending',
+        currentApprover: ctx.getState('currentApprover'),
+        approvals: ctx.getState('approvals') || [],
+      }),
+    },
+  },
+
+  handler: async (ctx) => {
+    const { requestId, employeeId, amount, description } = ctx.input;
+
+    ctx.setState('status', 'pending');
+    ctx.setState('approvals', []);
+
+    // Step 1: Create expense request
+    const request = await ctx.step('create-request', async () => {
+      return ctx.database.insert({
+        database: 'expenses-db',
+        event: 'create-request',
+        data: {
+          request_id: requestId,
+          employee_id: employeeId,
+          amount,
+          description,
+          status: 'pending_approval',
+          created_at: new Date().toISOString(),
+        },
+      });
+    });
+
+    // Step 2: Get approval chain
+    const approvalChain = await ctx.step('get-approval-chain', async () => {
+      // Determine required approvers based on amount
+      const chain = [];
+
+      chain.push({ level: 'manager', required: true });
+
+      if (amount > 1000) {
+        chain.push({ level: 'director', required: true });
+      }
+
+      if (amount > 5000) {
+        chain.push({ level: 'finance', required: true });
+      }
+
+      return chain;
+    });
+
+    ctx.setState('approvalChain', approvalChain);
+
+    // Step 3: Manager approval
+    ctx.setState('currentApprover', 'manager');
+
+    await ctx.step('notify-manager', async () => {
+      await ctx.notification.email({
+        notification: 'approvals',
+        event: 'approval-request',
+        recipients: [ctx.input.managerEmail],
+        template: {
+          employeeName: ctx.input.employeeName,
+          amount,
+          description,
+          approveUrl: `https://app.com/approve/${requestId}`,
+        },
+      });
+    });
+
+    const managerDecision = await ctx.waitForSignal('manager-decision', {
+      timeout: '48h',
+    });
+
+    ctx.setState('approvals', [
+      ...ctx.getState('approvals'),
+      {
+        level: 'manager',
+        approved: managerDecision.approved,
+        comments: managerDecision.comments,
+        timestamp: Date.now(),
+      },
+    ]);
+
+    if (!managerDecision.approved) {
+      await ctx.step('mark-rejected', async () => {
+        await ctx.database.update({
+          database: 'expenses-db',
+          event: 'update-request',
+          where: { request_id: requestId },
+          data: {
+            status: 'rejected',
+            rejected_by: 'manager',
+            rejection_reason: managerDecision.comments,
+          },
+        });
+      });
+
+      await ctx.step('notify-rejection', async () => {
+        await ctx.notification.email({
+          notification: 'approvals',
+          event: 'request-rejected',
+          recipients: [ctx.input.employeeEmail],
+          template: {
+            amount,
+            rejectedBy: 'Manager',
+            reason: managerDecision.comments,
+          },
+        });
+      });
+
+      return {
+        success: false,
+        status: 'rejected',
+        rejectedBy: 'manager',
+        reason: managerDecision.comments,
+      };
+    }
+
+    // Step 4: Director approval (if needed)
+    if (amount > 1000) {
+      ctx.setState('currentApprover', 'director');
+
+      await ctx.step('notify-director', async () => {
+        await ctx.notification.email({
+          notification: 'approvals',
+          event: 'approval-request',
+          recipients: [ctx.input.directorEmail],
+          template: {
+            employeeName: ctx.input.employeeName,
+            amount,
+            description,
+            managerApproved: true,
+            approveUrl: `https://app.com/approve/${requestId}`,
+          },
+        });
+      });
+
+      const directorDecision = await ctx.waitForSignal('director-decision', {
+        timeout: '48h',
+      });
+
+      ctx.setState('approvals', [
+        ...ctx.getState('approvals'),
+        {
+          level: 'director',
+          approved: directorDecision.approved,
+          comments: directorDecision.comments,
+          timestamp: Date.now(),
+        },
+      ]);
+
+      if (!directorDecision.approved) {
+        // Similar rejection handling...
+        return { success: false, status: 'rejected', rejectedBy: 'director' };
+      }
+    }
+
+    // Step 5: Finance approval (if needed)
+    if (amount > 5000) {
+      ctx.setState('currentApprover', 'finance');
+
+      await ctx.step('notify-finance', async () => {
+        await ctx.notification.email({
+          notification: 'approvals',
+          event: 'approval-request',
+          recipients: [ctx.input.financeEmail],
+          template: {
+            employeeName: ctx.input.employeeName,
+            amount,
+            description,
+            previousApprovals: ctx.getState('approvals'),
+            approveUrl: `https://app.com/approve/${requestId}`,
+          },
+        });
+      });
+
+      const financeDecision = await ctx.waitForSignal('finance-decision', {
+        timeout: '72h',
+      });
+
+      ctx.setState('approvals', [
+        ...ctx.getState('approvals'),
+        {
+          level: 'finance',
+          approved: financeDecision.approved,
+          comments: financeDecision.comments,
+          timestamp: Date.now(),
+        },
+      ]);
+
+      if (!financeDecision.approved) {
+        return { success: false, status: 'rejected', rejectedBy: 'finance' };
+      }
+    }
+
+    // Step 6: Mark as approved
+    ctx.setState('status', 'approved');
+
+    await ctx.step('mark-approved', async () => {
+      await ctx.database.update({
+        database: 'expenses-db',
+        event: 'update-request',
+        where: { request_id: requestId },
+        data: {
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          approvals: ctx.getState('approvals'),
+        },
+      });
+    });
+
+    // Step 7: Initiate reimbursement
+    await ctx.step('initiate-reimbursement', async () => {
+      await ctx.publish.send({
+        broker: 'payroll-events',
+        event: 'process-reimbursement',
+        input: {
+          message: {
+            requestId,
+            employeeId,
+            amount,
+            approvals: ctx.getState('approvals'),
+          },
+        },
+      });
+    });
+
+    // Step 8: Notify employee
+    await ctx.step('notify-approval', async () => {
+      await ctx.notification.email({
+        notification: 'approvals',
+        event: 'request-approved',
+        recipients: [ctx.input.employeeEmail],
+        template: {
+          amount,
+          description,
+          expectedPayment: 'Next payroll cycle',
+        },
+      });
+    });
+
+    return {
+      success: true,
+      status: 'approved',
+      approvals: ctx.getState('approvals'),
+    };
+  },
+});
+```
+
+---
+
+## Data Sync Workflow
+
+Synchronize data between systems with conflict resolution:
+
+```typescript
+await ductape.workflows.define({
+  product: 'integration',
+  tag: 'data-sync',
+  name: 'Data Synchronization',
+
+  options: {
+    timeout: 600000,
+    rollback_strategy: 'to_checkpoint',
+  },
+
+  handler: async (ctx) => {
+    const { sourceSystem, targetSystem, entityType, batchSize = 100 } = ctx.input;
+
+    ctx.log.info('Starting data sync', { sourceSystem, targetSystem, entityType });
+
+    // Step 1: Get last sync checkpoint
+    const lastSync = await ctx.step('get-last-sync', async () => {
+      const result = await ctx.database.query({
+        database: 'sync-db',
+        event: 'get-sync-state',
+        params: { source: sourceSystem, target: targetSystem, entity: entityType },
+      });
+      return result[0] || { lastSyncedAt: null, lastSyncedId: null };
+    });
+
+    // Step 2: Fetch changed records from source
+    const sourceRecords = await ctx.step('fetch-source-records', async () => {
+      return ctx.action.run({
+        app: sourceSystem,
+        event: 'get-records',
+        input: {
+          body: {
+            entityType,
+            modifiedAfter: lastSync.lastSyncedAt,
+            limit: batchSize,
+          },
+        },
+      });
+    });
+
+    if (sourceRecords.records.length === 0) {
+      ctx.log.info('No records to sync');
+      return { success: true, synced: 0, conflicts: 0 };
+    }
+
+    ctx.setState('totalRecords', sourceRecords.records.length);
+    ctx.setState('syncedRecords', 0);
+    ctx.setState('conflicts', []);
+
+    await ctx.checkpoint('records-fetched', {
+      count: sourceRecords.records.length,
+    });
+
+    // Step 3: Process each record
+    for (const record of sourceRecords.records) {
+      await ctx.step(`sync-record-${record.id}`, async () => {
+        // Check for existing record in target
+        const existing = await ctx.action.run({
+          app: targetSystem,
+          event: 'get-record',
+          input: { params: { id: record.id } },
+        });
+
+        if (existing && existing.modifiedAt > record.modifiedAt) {
+          // Conflict: target is newer
+          const conflicts = ctx.getState('conflicts') || [];
+          conflicts.push({
+            recordId: record.id,
+            sourceModified: record.modifiedAt,
+            targetModified: existing.modifiedAt,
+          });
+          ctx.setState('conflicts', conflicts);
+          ctx.log.warn('Sync conflict detected', { recordId: record.id });
+          return { skipped: true, reason: 'conflict' };
+        }
+
+        // Sync the record
+        if (existing) {
+          await ctx.action.run({
+            app: targetSystem,
+            event: 'update-record',
+            input: { body: record },
+          });
+        } else {
+          await ctx.action.run({
+            app: targetSystem,
+            event: 'create-record',
+            input: { body: record },
+          });
+        }
+
+        const synced = (ctx.getState('syncedRecords') || 0) + 1;
+        ctx.setState('syncedRecords', synced);
+
+        return { synced: true };
+      });
+    }
+
+    // Step 4: Update sync state
+    const lastRecord = sourceRecords.records[sourceRecords.records.length - 1];
+    await ctx.step('update-sync-state', async () => {
+      await ctx.database.update({
+        database: 'sync-db',
+        event: 'update-sync-state',
+        where: { source: sourceSystem, target: targetSystem, entity: entityType },
+        data: {
+          lastSyncedAt: new Date().toISOString(),
+          lastSyncedId: lastRecord.id,
+          recordsSynced: ctx.getState('syncedRecords'),
+          conflictsFound: ctx.getState('conflicts')?.length || 0,
+        },
+      });
+    });
+
+    // Step 5: Report conflicts if any
+    const conflicts = ctx.getState('conflicts') || [];
+    if (conflicts.length > 0) {
+      await ctx.step(
+        'report-conflicts',
+        async () => {
+          await ctx.notification.email({
+            notification: 'system-alerts',
+            event: 'sync-conflicts',
+            recipients: [ctx.input.adminEmail],
+            template: {
+              sourceSystem,
+              targetSystem,
+              entityType,
+              conflictCount: conflicts.length,
+              conflicts,
+            },
+          });
+        },
+        null,
+        { allow_fail: true }
+      );
+    }
+
+    return {
+      success: true,
+      synced: ctx.getState('syncedRecords'),
+      conflicts: conflicts.length,
+      hasMore: sourceRecords.hasMore,
+    };
+  },
+});
+```
+
+---
+
+## Tips for Building Workflows
+
+### 1. Design for Failure
+
+Always assume steps can fail. Define rollback handlers for critical operations:
+
+```typescript
+await ctx.step('critical-op', doWork, undoWork, { critical: true });
+```
+
+### 2. Use Checkpoints for Long Workflows
+
+Break long workflows into phases:
+
+```typescript
+await ctx.checkpoint('phase-1-complete');
+```
+
+### 3. Keep Steps Atomic
+
+Each step should do one thing well:
+
+```typescript
+// Good: Single responsibility
+await ctx.step('charge-card', chargeCard);
+await ctx.step('send-receipt', sendReceipt);
+
+// Bad: Multiple responsibilities
+await ctx.step('process-payment', async () => {
+  await chargeCard();
+  await sendReceipt();
+  await updateInventory();
+});
+```
+
+### 4. Use allow_fail for Non-Critical Steps
+
+```typescript
+await ctx.step('analytics', trackEvent, null, { allow_fail: true });
+```
+
+### 5. Implement Idempotency
+
+Use idempotency keys for external operations:
+
+```typescript
+await ctx.action.run({
+  app: 'stripe',
+  event: 'charge',
+  input: {
+    headers: { 'Idempotency-Key': `${ctx.workflow_id}-payment` },
+  },
+});
+```

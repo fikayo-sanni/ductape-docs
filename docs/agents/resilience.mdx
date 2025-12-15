@@ -1,0 +1,555 @@
+---
+sidebar_position: 7
+sidebar_label: Resilience
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Agent Resilience
+
+Build reliable AI agents by leveraging Ductape's existing resilience infrastructure. Agents can use product-level healthchecks, quotas, and fallbacks to create production-ready agents that gracefully handle failures, distribute load across providers, and maintain high availability.
+
+## Overview
+
+Agent resilience in Ductape works by **referencing existing** resilience configurations defined at the product level:
+
+| Pattern | Purpose | Use Case |
+|---------|---------|----------|
+| **Healthchecks** | Monitor provider availability | Detect outages, track latency |
+| **Quotas** | Weighted load distribution | Balance traffic across providers |
+| **Fallbacks** | Sequential failover | Automatic failover on errors |
+
+:::info Important
+Agents do not define their own healthchecks, quotas, or fallbacks. Instead, they reference configurations that already exist at the product level. This ensures consistency across your entire product and avoids duplication.
+:::
+
+---
+
+## Setting Up Resilience
+
+### Step 1: Define Resilience at the Product Level
+
+First, create your resilience configurations using the Ductape resilience API:
+
+```typescript
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({...});
+
+// Create a healthcheck
+await ductape.resilience.healthcheck.create('my-product', {
+  tag: 'anthropic-health',
+  name: 'Anthropic API Health',
+  probe: {
+    type: 'app',
+    app: 'anthropic-app',
+    event: 'health-check',
+  },
+  interval: 30000, // Check every 30 seconds
+  retries: 2,
+  envs: [
+    { slug: 'production' },
+    { slug: 'staging' },
+  ],
+  onFailure: {
+    notifications: [{
+      notification: 'alerts',
+      message: 'llm-provider-down',
+      channels: {
+        email: { recipients: ['oncall@company.com'] },
+      },
+    }],
+  },
+});
+
+// Create a quota for load balancing
+await ductape.resilience.quota.create('my-product', {
+  tag: 'llm-quota',
+  name: 'LLM Provider Quota',
+  input: {
+    prompt: { type: 'string', required: true },
+  },
+  options: [
+    {
+      provider: 'anthropic-primary',
+      app: 'anthropic-app',
+      event: 'generate',
+      quota: 70, // 70% of traffic
+      healthcheck: 'anthropic-health',
+      retries: 2,
+    },
+    {
+      provider: 'openai-secondary',
+      app: 'openai-app',
+      event: 'generate',
+      quota: 30, // 30% of traffic
+      healthcheck: 'openai-health',
+      retries: 2,
+    },
+  ],
+});
+
+// Create a fallback chain
+await ductape.resilience.fallback.create('my-product', {
+  tag: 'llm-fallback',
+  name: 'LLM Fallback Chain',
+  input: {
+    prompt: { type: 'string', required: true },
+  },
+  options: [
+    {
+      provider: 'anthropic-primary',
+      app: 'anthropic-app',
+      event: 'generate',
+      healthcheck: 'anthropic-health',
+      retries: 3,
+    },
+    {
+      provider: 'openai-fallback',
+      app: 'openai-app',
+      event: 'generate',
+      healthcheck: 'openai-health',
+      retries: 2,
+    },
+  ],
+});
+```
+
+### Step 2: Reference Resilience in Your Agent
+
+Now reference these configurations in your agent definition:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'resilient-agent',
+  name: 'Resilient Agent',
+  model: 'claude-model',
+  systemPrompt: 'You are a helpful assistant.',
+  tools: [...],
+
+  // Reference existing resilience configurations
+  resilience: {
+    defaults: {
+      healthcheck: 'anthropic-health', // Check health before operations
+      fallback: 'llm-fallback',        // Use fallback chain by default
+    },
+  },
+});
+```
+
+---
+
+## Using Resilience in Tools
+
+### Checking Health Status
+
+```typescript
+{
+  tag: 'smart-query',
+  description: 'Query with health-aware provider selection',
+  parameters: {...},
+  handler: async (ctx, params) => {
+    // Check provider health before making a decision
+    const healthStatus = await ctx.resilience.healthcheck.status();
+
+    if (healthStatus['anthropic-health']?.status === 'healthy') {
+      ctx.log.info('Using Anthropic provider');
+      // Use primary provider
+    } else if (healthStatus['openai-health']?.status === 'healthy') {
+      ctx.log.info('Falling back to OpenAI');
+      // Use fallback provider
+    } else {
+      throw new Error('All LLM providers are unavailable');
+    }
+
+    // ... perform the query
+  },
+}
+```
+
+### Running Through Quotas
+
+```typescript
+{
+  tag: 'analyze-text',
+  description: 'Analyze text using load-balanced LLM providers',
+  parameters: {
+    text: { type: 'string', description: 'Text to analyze', required: true },
+  },
+  handler: async (ctx, params) => {
+    // Run through quota - automatically selects provider based on weight
+    const result = await ctx.resilience.quota.run({
+      tag: 'llm-quota',
+      input: {
+        prompt: `Analyze the following text: ${params.text}`,
+      },
+    });
+
+    return result;
+  },
+}
+```
+
+### Running Through Fallbacks
+
+```typescript
+{
+  tag: 'generate-response',
+  description: 'Generate response with automatic failover',
+  parameters: {
+    prompt: { type: 'string', description: 'User prompt', required: true },
+  },
+  handler: async (ctx, params) => {
+    // Run through fallback chain - automatically fails over on errors
+    const result = await ctx.resilience.fallback.run({
+      tag: 'llm-fallback',
+      input: {
+        prompt: params.prompt,
+      },
+    });
+
+    return result;
+  },
+}
+```
+
+---
+
+## Tool-Level Resilience
+
+You can configure resilience at the individual tool level for fine-grained control:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'granular-agent',
+  name: 'Granular Resilience Agent',
+  model: 'default-model',
+  systemPrompt: 'You are a helpful assistant.',
+
+  tools: [
+    {
+      tag: 'critical-operation',
+      description: 'A critical operation that needs fallback protection',
+      parameters: {...},
+      handler: async (ctx, params) => {...},
+      // Tool-specific resilience (overrides defaults)
+      resilience: {
+        fallback: 'critical-fallback',
+        healthcheck: 'critical-service-health',
+      },
+    },
+    {
+      tag: 'load-balanced-operation',
+      description: 'An operation that should be load balanced',
+      parameters: {...},
+      handler: async (ctx, params) => {...},
+      resilience: {
+        quota: 'standard-quota',
+      },
+    },
+  ],
+
+  resilience: {
+    // Default resilience for tools without explicit config
+    defaults: {
+      healthcheck: 'default-health',
+      quota: 'default-quota',
+    },
+
+    // Override resilience for specific tools
+    toolOverrides: {
+      'special-tool': {
+        fallback: 'special-fallback',
+        healthcheck: 'special-health',
+      },
+    },
+  },
+});
+```
+
+---
+
+## Resilience Context API
+
+The `ctx.resilience` object in tool handlers provides these namespaces:
+
+### `ctx.resilience.quota`
+
+#### `quota.run<T>(options)`
+
+Run an operation through an existing quota for weighted load distribution.
+
+```typescript
+const result = await ctx.resilience.quota.run<ResponseType>({
+  tag: 'quota-tag',               // Tag of existing quota
+  input: { /* operation input */ },
+  session: { tag: 'session-tag', token: 'token' }, // Optional
+});
+```
+
+#### `quota.status(options)`
+
+Get current status and usage of an existing quota.
+
+```typescript
+const status = await ctx.resilience.quota.status({
+  tag: 'quota-tag',
+});
+
+// Returns:
+// {
+//   tag: 'quota-tag',
+//   totalQuota: 1000,
+//   usedQuota: 450,
+//   remainingQuota: 550,
+//   providers: [
+//     { name: 'primary', weight: 70, uses: 315, status: 'available' },
+//     { name: 'secondary', weight: 30, uses: 135, status: 'available' },
+//   ]
+// }
+```
+
+### `ctx.resilience.fallback`
+
+#### `fallback.run<T>(options)`
+
+Run an operation through an existing fallback chain for sequential failover.
+
+```typescript
+const result = await ctx.resilience.fallback.run<ResponseType>({
+  tag: 'fallback-tag',            // Tag of existing fallback
+  input: { /* operation input */ },
+  session: { tag: 'session-tag', token: 'token' }, // Optional
+});
+```
+
+### `ctx.resilience.healthcheck`
+
+#### `healthcheck.check(options)`
+
+Check the health status of a specific healthcheck.
+
+```typescript
+const health = await ctx.resilience.healthcheck.check({
+  tag: 'healthcheck-tag',         // Tag of existing healthcheck
+  env: 'production',              // Optional, defaults to current env
+});
+
+// Returns:
+// {
+//   tag: 'healthcheck-tag',
+//   status: 'healthy' | 'unhealthy' | 'degraded' | 'unknown',
+//   lastChecked: 1699900000000,
+//   lastAvailable: 1699900000000,
+//   lastLatency: 150,
+//   averageLatency: 145,
+//   error?: 'Connection timeout'
+// }
+```
+
+#### `healthcheck.status()`
+
+Get health status for all configured healthchecks referenced by the agent.
+
+```typescript
+const allHealth = await ctx.resilience.healthcheck.status();
+
+// Returns: Record<string, IAgentHealthcheckResult>
+// {
+//   'anthropic-health': { tag: '...', status: 'healthy', ... },
+//   'openai-health': { tag: '...', status: 'degraded', ... },
+// }
+```
+
+---
+
+## Complete Example
+
+Here's a production-ready agent using existing resilience configurations:
+
+```typescript
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({...});
+
+// Assume these resilience configs already exist at the product level:
+// - healthchecks: 'anthropic-health', 'openai-health'
+// - quotas: 'cost-optimized-quota'
+// - fallbacks: 'llm-fallback'
+
+const agent = await ductape.agents.define({
+  product: 'production-app',
+  tag: 'resilient-support-agent',
+  name: 'Resilient Support Agent',
+  model: 'claude-primary',
+  systemPrompt: `You are a customer support agent with access to multiple
+AI providers for reliability. Always provide helpful responses.`,
+
+  tools: [
+    {
+      tag: 'answer-question',
+      description: 'Answer customer questions using resilient LLM calls',
+      parameters: {
+        question: { type: 'string', description: 'Customer question', required: true },
+        context: { type: 'string', description: 'Additional context' },
+      },
+      handler: async (ctx, params) => {
+        // Check overall health first
+        const health = await ctx.resilience.healthcheck.status();
+        const healthyProviders = Object.values(health)
+          .filter(h => h.status === 'healthy').length;
+
+        ctx.log.info(`${healthyProviders} healthy providers available`);
+
+        // Use fallback for critical customer responses
+        const response = await ctx.resilience.fallback.run({
+          tag: 'llm-fallback',
+          input: {
+            prompt: `Context: ${params.context || 'None'}
+
+Question: ${params.question}
+
+Please provide a helpful, accurate response.`,
+          },
+        });
+
+        return response;
+      },
+    },
+    {
+      tag: 'summarize-ticket',
+      description: 'Summarize support tickets using load-balanced providers',
+      parameters: {
+        ticketId: { type: 'string', description: 'Ticket ID', required: true },
+      },
+      // Use quota for non-critical operations to optimize costs
+      resilience: {
+        quota: 'cost-optimized-quota',
+      },
+      handler: async (ctx, params) => {
+        const ticket = await ctx.database.query({
+          database: 'tickets-db',
+          event: 'get-ticket',
+          params: { id: params.ticketId },
+        });
+
+        return ctx.resilience.quota.run({
+          tag: 'cost-optimized-quota',
+          input: {
+            prompt: `Summarize this support ticket: ${JSON.stringify(ticket)}`,
+          },
+        });
+      },
+    },
+  ],
+
+  resilience: {
+    defaults: {
+      healthcheck: 'anthropic-health',
+      fallback: 'llm-fallback',
+    },
+  },
+
+  termination: {
+    maxIterations: 10,
+    timeout: '5m',
+  },
+});
+
+// Run the agent
+const result = await ductape.agents.run({
+  product: 'production-app',
+  env: 'production',
+  tag: 'resilient-support-agent',
+  input: {
+    question: 'How do I reset my password?',
+  },
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Define Resilience at the Product Level
+
+```typescript
+// Good: Define resilience configs once at product level
+await ductape.resilience.healthcheck.create('my-product', {
+  tag: 'api-health',
+  // ... config
+});
+
+// Then reference in multiple agents
+const agent1 = await ductape.agents.define({
+  resilience: { defaults: { healthcheck: 'api-health' } },
+  // ...
+});
+
+const agent2 = await ductape.agents.define({
+  resilience: { defaults: { healthcheck: 'api-health' } },
+  // ...
+});
+```
+
+### 2. Use Fallbacks for Critical Operations
+
+```typescript
+// Critical customer-facing operations should use fallbacks
+{
+  tag: 'process-payment',
+  resilience: { fallback: 'payment-fallback' },
+  handler: async (ctx, params) => {
+    return ctx.resilience.fallback.run({
+      tag: 'payment-fallback',
+      input: params,
+    });
+  },
+}
+```
+
+### 3. Use Quotas for Cost Optimization
+
+```typescript
+// Non-critical operations can use quotas to optimize costs
+{
+  tag: 'generate-suggestions',
+  resilience: { quota: 'cost-optimized' },
+  handler: async (ctx, params) => {
+    return ctx.resilience.quota.run({
+      tag: 'cost-optimized',
+      input: params,
+    });
+  },
+}
+```
+
+### 4. Check Health Before Critical Operations
+
+```typescript
+handler: async (ctx, params) => {
+  // Always check health for critical operations
+  const health = await ctx.resilience.healthcheck.check({
+    tag: 'primary-service',
+  });
+
+  if (health.status !== 'healthy') {
+    ctx.log.warn('Primary service degraded, using fallback');
+  }
+
+  // Continue with operation...
+}
+```
+
+---
+
+## Next Steps
+
+- [Resilience Overview](/docs/resilience/overview) - Learn how to define healthchecks, quotas, and fallbacks
+- [Agent Tools](/docs/agents/tools) - Learn more about building agent tools
+- [Human in the Loop](/docs/agents/human-in-loop) - Add approval gates
+- [Multi-Agent Systems](/docs/agents/multi-agent) - Orchestrate multiple agents

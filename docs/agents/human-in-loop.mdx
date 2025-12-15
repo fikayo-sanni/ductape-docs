@@ -1,0 +1,442 @@
+---
+sidebar_position: 5
+sidebar_label: Human-in-the-Loop
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Human-in-the-Loop
+
+Human-in-the-loop (HITL) allows you to add approval gates for sensitive agent operations. When enabled, the agent pauses execution and waits for human approval before proceeding with certain tool calls.
+
+## When to Use HITL
+
+Add human approval for:
+
+- **Financial operations** - Payments, refunds, transfers
+- **Destructive actions** - Deletions, cancellations
+- **Sensitive data access** - PII, confidential information
+- **External communications** - Sending emails, notifications
+- **High-impact decisions** - Account changes, permission modifications
+
+---
+
+## Basic Configuration
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'safe-agent',
+  name: 'Agent with Approvals',
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+  },
+  systemPrompt: 'You are a helpful assistant...',
+  tools: [...],
+  humanInLoop: {
+    enabled: true,
+    alwaysRequireApproval: ['process-refund', 'delete-account'],
+    approvalTimeout: 300000,  // 5 minutes
+  },
+});
+```
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | boolean | false | Enable HITL globally |
+| `alwaysRequireApproval` | string[] | [] | Tools that always need approval |
+| `approvalTimeout` | number | 300000 | Timeout in ms (default 5 min) |
+| `approvalWebhook` | string | - | URL to send approval requests |
+| `approvalBroker` | object | - | Message broker for approval events |
+
+---
+
+## Tool-Level Approvals
+
+Mark individual tools as requiring confirmation:
+
+```typescript
+tools: [
+  {
+    tag: 'process-refund',
+    description: 'Process a refund for an order',
+    requiresConfirmation: true,  // This tool needs approval
+    parameters: {
+      orderId: { type: 'string', required: true },
+      amount: { type: 'number', required: true },
+      reason: { type: 'string', required: true },
+    },
+    handler: async (ctx, params) => {
+      // Only executes after approval
+      return await processRefund(params);
+    },
+  },
+  {
+    tag: 'get-order',
+    description: 'Look up order information',
+    requiresConfirmation: false,  // No approval needed
+    parameters: {
+      orderId: { type: 'string', required: true },
+    },
+    handler: async (ctx, params) => {
+      return await getOrder(params.orderId);
+    },
+  },
+]
+```
+
+---
+
+## Approval Flow
+
+### 1. Agent Requests Tool Use
+
+When the agent wants to call a tool that requires approval:
+
+```
+Agent: "I need to process a refund of $50 for order ORD-123"
+        ↓
+[Tool: process-refund]
+[Params: { orderId: 'ORD-123', amount: 50, reason: 'Damaged item' }]
+        ↓
+[WAITING FOR APPROVAL]
+```
+
+### 2. Approval Request Sent
+
+The system sends an approval request containing:
+
+```typescript
+{
+  requestId: 'apr-abc123',
+  executionId: 'exec-xyz789',
+  agentTag: 'safe-agent',
+  tool: 'process-refund',
+  parameters: {
+    orderId: 'ORD-123',
+    amount: 50,
+    reason: 'Damaged item',
+  },
+  reason: 'Refund request requires approval',
+  timestamp: '2024-01-15T10:30:00Z',
+  timeout: '2024-01-15T10:35:00Z',
+}
+```
+
+### 3. Human Reviews and Responds
+
+Options for responding:
+
+- **Approve** - Proceed with the tool call
+- **Approve with modifications** - Proceed with changed parameters
+- **Reject** - Cancel the tool call
+
+### 4. Agent Continues or Handles Rejection
+
+```
+[APPROVED]
+        ↓
+Agent executes tool
+        ↓
+Agent: "I've processed the $50 refund for order ORD-123"
+
+-- OR --
+
+[REJECTED: "Amount exceeds refund limit"]
+        ↓
+Agent: "I wasn't able to process the refund. The approval was rejected
+        because the amount exceeds the refund limit. Would you like me
+        to escalate this to a supervisor?"
+```
+
+---
+
+## Handling Approvals
+
+### Via Signal API
+
+Send approval signals programmatically:
+
+```typescript
+// Approve the request
+await ductape.agents.signal({
+  executionId: 'exec-xyz789',
+  signal: 'approve',
+  payload: {
+    requestId: 'apr-abc123',
+  },
+});
+
+// Reject the request
+await ductape.agents.signal({
+  executionId: 'exec-xyz789',
+  signal: 'reject',
+  payload: {
+    requestId: 'apr-abc123',
+    reason: 'Amount exceeds policy limit',
+  },
+});
+
+// Approve with modifications
+await ductape.agents.signal({
+  executionId: 'exec-xyz789',
+  signal: 'approve',
+  payload: {
+    requestId: 'apr-abc123',
+    modifiedParams: {
+      amount: 25,  // Reduced amount
+    },
+  },
+});
+```
+
+### Via Webhook
+
+Configure a webhook to receive approval requests:
+
+```typescript
+humanInLoop: {
+  enabled: true,
+  approvalWebhook: 'https://your-app.com/api/approvals',
+}
+```
+
+Your webhook receives:
+
+```typescript
+// POST https://your-app.com/api/approvals
+{
+  type: 'approval_request',
+  requestId: 'apr-abc123',
+  executionId: 'exec-xyz789',
+  agentTag: 'safe-agent',
+  tool: 'process-refund',
+  parameters: {
+    orderId: 'ORD-123',
+    amount: 50,
+    reason: 'Damaged item',
+  },
+  timestamp: '2024-01-15T10:30:00Z',
+  expiresAt: '2024-01-15T10:35:00Z',
+  callbackUrl: 'https://ductape.api/approvals/apr-abc123/respond',
+}
+```
+
+Respond to the callback URL:
+
+```typescript
+// POST to callbackUrl
+{
+  approved: true,
+  // OR
+  approved: false,
+  reason: 'Rejection reason',
+  // OR with modifications
+  approved: true,
+  modifiedParams: { amount: 25 },
+}
+```
+
+### Via Message Broker
+
+Use a message broker for approval events:
+
+```typescript
+humanInLoop: {
+  enabled: true,
+  approvalBroker: {
+    broker: 'approval-events',
+    event: 'approval-requested',
+  },
+}
+```
+
+---
+
+## Building an Approval UI
+
+### Example: React Approval Component
+
+```typescript
+function ApprovalRequest({ request, onRespond }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleApprove = async () => {
+    setLoading(true);
+    await onRespond({ approved: true });
+  };
+
+  const handleReject = async (reason: string) => {
+    setLoading(true);
+    await onRespond({ approved: false, reason });
+  };
+
+  return (
+    <div className="approval-card">
+      <h3>Approval Required</h3>
+      <p>Agent wants to: <strong>{request.tool}</strong></p>
+
+      <div className="parameters">
+        <h4>Parameters:</h4>
+        <pre>{JSON.stringify(request.parameters, null, 2)}</pre>
+      </div>
+
+      <div className="actions">
+        <button onClick={handleApprove} disabled={loading}>
+          Approve
+        </button>
+        <button onClick={() => handleReject('Denied by operator')} disabled={loading}>
+          Reject
+        </button>
+      </div>
+
+      <p className="timeout">
+        Expires: {new Date(request.expiresAt).toLocaleTimeString()}
+      </p>
+    </div>
+  );
+}
+```
+
+### Example: API Endpoint
+
+```typescript
+// Express.js endpoint for handling approvals
+app.post('/api/approvals/:requestId/respond', async (req, res) => {
+  const { requestId } = req.params;
+  const { approved, reason, modifiedParams } = req.body;
+
+  // Find the pending execution
+  const execution = await findExecutionByApprovalRequest(requestId);
+
+  // Send signal to agent
+  await ductape.agents.signal({
+    executionId: execution.id,
+    signal: approved ? 'approve' : 'reject',
+    payload: {
+      requestId,
+      reason,
+      modifiedParams,
+    },
+  });
+
+  res.json({ success: true });
+});
+```
+
+---
+
+## Timeout Handling
+
+When an approval times out:
+
+1. The tool call is automatically rejected
+2. The agent receives a timeout notification
+3. The agent can decide how to proceed
+
+```typescript
+// The agent sees this in the tool result:
+{
+  error: 'approval_timeout',
+  message: 'Approval request timed out after 5 minutes',
+  tool: 'process-refund',
+  parameters: { orderId: 'ORD-123', amount: 50 },
+}
+
+// Agent can respond appropriately:
+"I wasn't able to process the refund because the approval request timed out.
+Would you like me to try again, or would you prefer to handle this manually?"
+```
+
+---
+
+## Best Practices
+
+### 1. Set Appropriate Timeouts
+
+```typescript
+// Quick decisions - notifications
+approvalTimeout: 60000  // 1 minute
+
+// Standard operations - refunds
+approvalTimeout: 300000  // 5 minutes
+
+// Complex decisions - account changes
+approvalTimeout: 1800000  // 30 minutes
+```
+
+### 2. Provide Context in Tool Descriptions
+
+```typescript
+{
+  tag: 'delete-user-data',
+  description: 'Permanently delete all user data. THIS CANNOT BE UNDONE.',
+  requiresConfirmation: true,
+  // ...
+}
+```
+
+### 3. Group Related Approvals
+
+Use tool-level vs. global approvals strategically:
+
+```typescript
+// Tool-level for specific sensitive operations
+tools: [
+  { tag: 'refund', requiresConfirmation: true },
+  { tag: 'delete', requiresConfirmation: true },
+  { tag: 'lookup', requiresConfirmation: false },
+]
+
+// Global list for categories
+humanInLoop: {
+  enabled: true,
+  alwaysRequireApproval: [
+    'refund',
+    'delete',
+    'send-email',
+    'modify-permissions',
+  ],
+}
+```
+
+### 4. Log All Approval Decisions
+
+```typescript
+// In your approval handler
+await logApprovalDecision({
+  requestId,
+  executionId,
+  tool: request.tool,
+  parameters: request.parameters,
+  decision: approved ? 'approved' : 'rejected',
+  reason,
+  approvedBy: currentUser.id,
+  timestamp: new Date(),
+});
+```
+
+### 5. Handle Edge Cases
+
+```typescript
+// What if the user disconnects?
+// - Use webhooks for async notification
+// - Store pending approvals in database
+// - Allow approval from different sessions
+
+// What if multiple approvals are needed?
+// - Queue them and process sequentially
+// - Show approval history in UI
+// - Allow batch approve/reject
+```
+
+## Next Steps
+
+- [Examples](./examples) - See HITL in real-world scenarios
+- [Tools](./tools) - Learn more about tool configuration
+- [Workflows](../workflows/overview) - Combine agents with approval workflows

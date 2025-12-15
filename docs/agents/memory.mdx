@@ -1,0 +1,515 @@
+---
+sidebar_position: 4
+sidebar_label: Memory
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Agent Memory
+
+Memory allows agents to maintain context across conversations and recall relevant information from past interactions.
+
+## Memory Types
+
+Ductape agents support two types of memory:
+
+| Type | Scope | Storage | Use Case |
+|------|-------|---------|----------|
+| **Short-Term** | Current conversation | In-memory | Context within a session |
+| **Long-Term** | All conversations | Vector database | Recall across sessions |
+
+---
+
+## Short-Term Memory
+
+Short-term memory maintains the conversation history within a single session.
+
+### Configuration
+
+```typescript
+const agent = await ductape.agents.define({
+  // ...
+  memory: {
+    shortTerm: {
+      maxMessages: 50,              // Max messages to keep
+      truncationStrategy: 'summarize',  // How to handle overflow
+      includeToolResults: true,     // Include tool outputs
+    },
+  },
+});
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxMessages` | number | 50 | Maximum messages to retain |
+| `truncationStrategy` | string | 'summarize' | How to handle overflow |
+| `includeToolResults` | boolean | true | Include tool outputs in history |
+| `summarizeAfter` | number | - | Summarize after N messages |
+
+### Truncation Strategies
+
+#### FIFO (First In, First Out)
+
+Removes oldest messages when limit is reached:
+
+```typescript
+memory: {
+  shortTerm: {
+    maxMessages: 20,
+    truncationStrategy: 'fifo',
+  },
+}
+```
+
+#### Sliding Window
+
+Keeps a percentage of recent messages:
+
+```typescript
+memory: {
+  shortTerm: {
+    maxMessages: 50,
+    truncationStrategy: 'sliding_window',  // Keeps ~80% of maxMessages
+  },
+}
+```
+
+#### Summarize (Recommended)
+
+Compresses older messages into summaries:
+
+```typescript
+memory: {
+  shortTerm: {
+    maxMessages: 50,
+    truncationStrategy: 'summarize',
+    summarizeAfter: 30,  // Start summarizing after 30 messages
+  },
+}
+```
+
+---
+
+## Long-Term Memory
+
+Long-term memory uses vector databases to store and retrieve information across sessions.
+
+### Setup
+
+1. **Create a vector database configuration:**
+
+```typescript
+import { VectorDBType, DistanceMetric } from '@ductape/sdk';
+
+await ductape.vector.create({
+  product: 'my-product',
+  name: 'Agent Memory Store',
+  tag: 'agent-memory',
+  dbType: VectorDBType.PINECONE,
+  dimensions: 1536,
+  metric: DistanceMetric.COSINE,
+  envs: [
+    {
+      slug: 'dev',
+      endpoint: 'https://dev-index.pinecone.io',
+      apiKey: process.env.PINECONE_API_KEY,
+      index: 'agent-memories',
+    },
+  ],
+});
+```
+
+2. **Configure the agent with long-term memory:**
+
+```typescript
+const agent = await ductape.agents.define({
+  // ...
+  memory: {
+    shortTerm: {
+      maxMessages: 50,
+      truncationStrategy: 'summarize',
+    },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'agent-memory',  // Reference to vector config
+      retrieveTopK: 5,
+      minSimilarity: 0.7,
+      autoStore: true,
+      namespace: 'support-agent',
+    },
+  },
+});
+```
+
+### Long-Term Memory Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | boolean | false | Enable long-term memory |
+| `vectorStore` | string | - | Tag of vector database config |
+| `retrieveTopK` | number | 5 | Number of memories to retrieve |
+| `minSimilarity` | number | 0.7 | Minimum similarity threshold (0-1) |
+| `autoStore` | boolean | false | Automatically store interactions |
+| `namespace` | string | - | Namespace for memory isolation |
+
+### How It Works
+
+1. **Before each response**, the agent queries the vector store for relevant memories
+2. **Retrieved memories** are added to the system prompt as context
+3. **After interactions** (if autoStore is enabled), important information is stored
+
+```
+User Input
+    ↓
+┌─────────────────────┐
+│  Query Vector DB    │  ← "What's relevant to this input?"
+│  for memories       │
+└─────────────────────┘
+    ↓
+┌─────────────────────┐
+│  Add memories to    │  ← Context injection
+│  system prompt      │
+└─────────────────────┘
+    ↓
+┌─────────────────────┐
+│  Generate response  │
+└─────────────────────┘
+    ↓
+┌─────────────────────┐
+│  Store important    │  ← If autoStore enabled
+│  information        │
+└─────────────────────┘
+```
+
+---
+
+## Memory Isolation
+
+### By Session
+
+Isolate memories per user or conversation:
+
+```typescript
+// Run with sessionId
+const result = await ductape.agents.run({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'support-agent',
+  input: 'Remember that I prefer email communication',
+  sessionId: 'user-123',  // Isolates memory to this user
+});
+
+// Later, same user
+const result2 = await ductape.agents.run({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'support-agent',
+  input: 'What are my preferences?',
+  sessionId: 'user-123',  // Will recall preferences
+});
+```
+
+### By Namespace
+
+Use namespaces for broader isolation:
+
+```typescript
+memory: {
+  longTerm: {
+    enabled: true,
+    vectorStore: 'agent-memory',
+    namespace: `org-${organizationId}`,  // Isolate by organization
+  },
+}
+```
+
+---
+
+## Manual Memory Operations
+
+### Store Information
+
+Use `ctx.remember()` in tool handlers:
+
+```typescript
+{
+  tag: 'save-preference',
+  description: 'Save a user preference',
+  parameters: {
+    preference: { type: 'string', required: true },
+    category: { type: 'string', required: true },
+  },
+  handler: async (ctx, params) => {
+    await ctx.remember({
+      content: params.preference,
+      metadata: {
+        type: 'preference',
+        category: params.category,
+        userId: ctx.sessionId,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    return { saved: true };
+  },
+}
+```
+
+### Retrieve Information
+
+Use `ctx.recall()` in tool handlers:
+
+```typescript
+{
+  tag: 'get-preferences',
+  description: 'Get user preferences',
+  parameters: {
+    category: { type: 'string' },
+  },
+  handler: async (ctx, params) => {
+    const memories = await ctx.recall({
+      query: `${params.category || 'user'} preferences`,
+      topK: 10,
+      filter: {
+        type: 'preference',
+        userId: ctx.sessionId,
+      },
+      minScore: 0.6,
+    });
+
+    return {
+      preferences: memories.matches.map((m) => ({
+        content: m.metadata?.content,
+        category: m.metadata?.category,
+        relevance: m.score,
+      })),
+    };
+  },
+}
+```
+
+---
+
+## Memory Patterns
+
+### Customer Context
+
+Remember customer information across interactions:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'customer-agent',
+  name: 'Customer Service Agent',
+  systemPrompt: `You are a customer service agent.
+Use your memory to provide personalized service.
+Remember important details about customers for future interactions.`,
+  memory: {
+    shortTerm: { maxMessages: 30 },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'customer-memory',
+      autoStore: true,
+    },
+  },
+  tools: [
+    {
+      tag: 'note-customer-issue',
+      description: 'Record a customer issue for future reference',
+      parameters: {
+        issue: { type: 'string', required: true },
+        resolution: { type: 'string' },
+        severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+      },
+      handler: async (ctx, params) => {
+        await ctx.remember({
+          content: `Customer issue: ${params.issue}. Resolution: ${params.resolution || 'Pending'}`,
+          metadata: {
+            type: 'customer_issue',
+            customerId: ctx.sessionId,
+            severity: params.severity,
+            resolved: !!params.resolution,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return { recorded: true };
+      },
+    },
+  ],
+});
+```
+
+### Knowledge Base Search
+
+Use memory as a searchable knowledge base:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'knowledge-agent',
+  name: 'Knowledge Base Agent',
+  systemPrompt: `You are a helpful assistant with access to a knowledge base.
+Search for relevant information before answering questions.`,
+  memory: {
+    shortTerm: { maxMessages: 20 },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'knowledge-base',
+      retrieveTopK: 5,
+      minSimilarity: 0.75,
+    },
+  },
+  tools: [
+    {
+      tag: 'search-knowledge',
+      description: 'Search the knowledge base for relevant information',
+      parameters: {
+        query: { type: 'string', required: true },
+        category: { type: 'string' },
+      },
+      handler: async (ctx, params) => {
+        const results = await ctx.recall({
+          query: params.query,
+          topK: 10,
+          filter: params.category ? { category: params.category } : undefined,
+          minScore: 0.7,
+        });
+
+        if (results.matches.length === 0) {
+          return { found: false, message: 'No relevant information found' };
+        }
+
+        return {
+          found: true,
+          results: results.matches.map((m) => ({
+            title: m.metadata?.title,
+            content: m.metadata?.content,
+            relevance: m.score,
+          })),
+        };
+      },
+    },
+  ],
+});
+```
+
+### Conversation Summaries
+
+Store conversation summaries for long-term context:
+
+```typescript
+const agent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'summary-agent',
+  name: 'Agent with Summaries',
+  systemPrompt: 'You are a helpful assistant that remembers past conversations.',
+  memory: {
+    shortTerm: {
+      maxMessages: 30,
+      truncationStrategy: 'summarize',
+    },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'conversation-summaries',
+      autoStore: true,
+    },
+  },
+  tools: [
+    {
+      tag: 'summarize-conversation',
+      description: 'Save a summary of the current conversation',
+      parameters: {
+        summary: { type: 'string', required: true },
+        topics: { type: 'array', items: { type: 'string' } },
+      },
+      handler: async (ctx, params) => {
+        await ctx.remember({
+          content: params.summary,
+          metadata: {
+            type: 'conversation_summary',
+            sessionId: ctx.sessionId,
+            topics: params.topics,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return { saved: true };
+      },
+    },
+  ],
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Choose Appropriate Similarity Thresholds
+
+```typescript
+// Strict - only very relevant memories
+minSimilarity: 0.85
+
+// Balanced - good relevance with some flexibility
+minSimilarity: 0.7
+
+// Lenient - cast a wider net
+minSimilarity: 0.5
+```
+
+### 2. Limit Retrieved Memories
+
+Too many memories can confuse the agent:
+
+```typescript
+// Good - focused context
+retrieveTopK: 3
+
+// Acceptable - broader context
+retrieveTopK: 5
+
+// Risky - may overwhelm
+retrieveTopK: 20
+```
+
+### 3. Use Meaningful Metadata
+
+```typescript
+await ctx.remember({
+  content: 'User prefers dark mode',
+  metadata: {
+    type: 'preference',           // Categorical
+    category: 'ui',               // Subcategory
+    userId: ctx.sessionId,        // Ownership
+    importance: 'high',           // Priority
+    timestamp: new Date().toISOString(),  // Time
+    source: 'explicit',           // How it was learned
+  },
+});
+```
+
+### 4. Clean Up Old Memories
+
+Periodically remove outdated information:
+
+```typescript
+// In a maintenance job
+await ductape.vector.deleteVectors({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'agent-memory',
+  filter: {
+    timestamp: { $lt: thirtyDaysAgo },
+    type: 'temporary',
+  },
+});
+```
+
+## Next Steps
+
+- [Human-in-the-Loop](./human-in-loop) - Add approval workflows
+- [Vectors](../vectors/overview) - Learn more about vector databases
+- [Examples](./examples) - See memory patterns in action

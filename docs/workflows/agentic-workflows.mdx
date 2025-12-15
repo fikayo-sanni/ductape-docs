@@ -1,0 +1,1173 @@
+---
+sidebar_position: 7
+sidebar_label: Agentic Workflows
+---
+
+import PreviewBanner from '@site/src/components/PreviewBanner';
+
+<PreviewBanner />
+
+# Agentic Workflows (RFC)
+
+:::caution
+This is a **Request for Comments (RFC)** document describing a proposed feature. Agentic Workflows are not yet implemented in Ductape. This document outlines the technical design and API for community feedback.
+:::
+
+Agentic Workflows extend Ductape's workflow engine to support AI-driven, autonomous multi-step processes where a Large Language Model (LLM) dynamically decides the next action based on observations and reasoning.
+
+---
+
+## Overview
+
+Traditional Ductape workflows are **deterministic** - steps execute in a predefined order. Agentic workflows are **dynamic** - an LLM observes the current state, reasons about what to do next, and selects from available tools until a goal is achieved.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AGENTIC WORKFLOW                         │
+│                                                             │
+│   ┌─────────┐    ┌─────────┐    ┌─────────┐               │
+│   │ Observe │───▶│  Think  │───▶│   Act   │               │
+│   └─────────┘    └─────────┘    └─────────┘               │
+│        ▲              │              │                      │
+│        │              │              │                      │
+│        │         ┌────▼────┐         │                      │
+│        │         │   LLM   │         │                      │
+│        │         │ (Claude)│         │                      │
+│        │         └────┬────┘         │                      │
+│        │              │              │                      │
+│        └──────────────┴──────────────┘                      │
+│                                                             │
+│   Tools: [action, database, graph, notification, ...]      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## When to Use Agentic Workflows
+
+Use **Agentic Workflows** when you need:
+
+- **Dynamic decision making** - The next step depends on LLM reasoning
+- **Natural language understanding** - Processing unstructured input
+- **Tool orchestration** - LLM chooses which APIs/databases to call
+- **Goal-oriented execution** - Continue until an objective is met
+- **Complex reasoning** - Multi-step problem solving
+- **Human-like interactions** - Conversational or intelligent assistants
+
+Use **Traditional Workflows** when:
+
+- Steps are known upfront and don't change
+- Deterministic execution is required
+- No AI reasoning is needed
+- Maximum predictability is essential
+
+---
+
+## Quick Example
+
+```typescript
+const supportAgent = await ductape.agents.define({
+  product: 'my-product',
+  tag: 'customer-support-agent',
+  name: 'Customer Support Agent',
+  description: 'An AI agent that handles customer support tickets',
+
+  // LLM Configuration
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.7,
+    maxTokens: 4096,
+  },
+
+  // System prompt defining agent behavior
+  systemPrompt: `You are a helpful customer support agent for an e-commerce platform.
+Your goal is to help customers with their orders, returns, and questions.
+
+Guidelines:
+- Always be polite and professional
+- Look up order information before responding
+- Escalate to human support if you cannot resolve the issue
+- Never share sensitive payment information`,
+
+  // Available tools the agent can use
+  tools: [
+    {
+      tag: 'lookup-order',
+      description: 'Look up order details by order ID or customer email',
+      parameters: {
+        orderId: { type: 'string', description: 'The order ID' },
+        email: { type: 'string', description: 'Customer email (optional)' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.query({
+          database: 'orders-db',
+          event: 'find-order',
+          params: { orderId: params.orderId, email: params.email },
+        });
+      },
+    },
+    {
+      tag: 'check-inventory',
+      description: 'Check if a product is in stock',
+      parameters: {
+        productId: { type: 'string', description: 'Product SKU' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'inventory-api',
+          event: 'check-stock',
+          input: { params: { sku: params.productId } },
+        });
+      },
+    },
+    {
+      tag: 'initiate-return',
+      description: 'Start a return process for an order',
+      parameters: {
+        orderId: { type: 'string', description: 'Order to return' },
+        reason: { type: 'string', description: 'Return reason' },
+        items: { type: 'array', description: 'Items to return' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'returns-api',
+          event: 'create-return',
+          input: { body: params },
+        });
+      },
+    },
+    {
+      tag: 'send-email',
+      description: 'Send an email to the customer',
+      parameters: {
+        to: { type: 'string', description: 'Recipient email' },
+        subject: { type: 'string', description: 'Email subject' },
+        body: { type: 'string', description: 'Email body' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.notification.email({
+          notification: 'support-emails',
+          event: 'custom-email',
+          recipients: [params.to],
+          subject: { text: params.subject },
+          template: { body: params.body },
+        });
+      },
+    },
+    {
+      tag: 'escalate-to-human',
+      description: 'Escalate the ticket to a human support agent',
+      parameters: {
+        reason: { type: 'string', description: 'Why escalation is needed' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+      },
+      handler: async (ctx, params) => {
+        await ctx.publish.send({
+          broker: 'support-queue',
+          event: 'escalation',
+          input: {
+            message: {
+              ticketId: ctx.input.ticketId,
+              reason: params.reason,
+              priority: params.priority,
+              conversation: ctx.getConversationHistory(),
+            },
+          },
+        });
+        return { escalated: true, message: 'Ticket escalated to human support' };
+      },
+    },
+  ],
+
+  // Termination conditions
+  termination: {
+    maxIterations: 20,
+    maxTokens: 50000,
+    timeout: '10m',
+    stopConditions: [
+      { tool: 'escalate-to-human' },
+      { output: { resolved: true } },
+    ],
+  },
+
+  // Memory configuration
+  memory: {
+    shortTerm: {
+      maxMessages: 50,
+      summarizeAfter: 30,
+    },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'customer-support-kb',
+      retrieveTopK: 5,
+    },
+  },
+});
+
+// Execute the agent
+const result = await ductape.agents.run({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'customer-support-agent',
+  input: {
+    ticketId: 'TICKET-12345',
+    customerEmail: 'customer@example.com',
+    message: 'I ordered a laptop last week but received a tablet instead. Order ID is ORD-98765.',
+  },
+});
+
+console.log('Resolution:', result.output);
+console.log('Tools used:', result.toolCalls);
+console.log('Total tokens:', result.usage.totalTokens);
+```
+
+---
+
+## Core Concepts
+
+### 1. Agent Definition
+
+An agent is defined with:
+
+| Component | Description |
+|-----------|-------------|
+| `model` | LLM provider and configuration |
+| `systemPrompt` | Instructions defining agent behavior |
+| `tools` | Available actions the agent can take |
+| `termination` | When the agent should stop |
+| `memory` | Short-term and long-term memory config |
+
+### 2. The Agent Loop
+
+Each iteration of an agentic workflow follows this pattern:
+
+```
+1. OBSERVE  → Gather current state (conversation, tool results, memory)
+2. THINK    → LLM reasons about what to do next
+3. ACT      → Execute selected tool(s)
+4. EVALUATE → Check if goal is achieved or should continue
+```
+
+### 3. Tools
+
+Tools are functions the agent can invoke. Each tool has:
+
+```typescript
+interface IAgentTool {
+  tag: string;                              // Unique identifier
+  name?: string;                            // Human-readable name
+  description: string;                      // What the tool does (for LLM)
+  parameters: Record<string, IToolParam>;   // Input schema
+  handler: (ctx, params) => Promise<any>;   // Implementation
+  requiresConfirmation?: boolean;           // Require human approval
+  costEstimate?: number;                    // For quota tracking
+}
+
+interface IToolParam {
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  description: string;
+  required?: boolean;
+  enum?: string[];
+  default?: any;
+}
+```
+
+### 4. Memory
+
+Agents maintain two types of memory:
+
+**Short-term Memory**: Current conversation context
+```typescript
+memory: {
+  shortTerm: {
+    maxMessages: 50,           // Max messages to keep
+    summarizeAfter: 30,        // Summarize older messages
+    includeToolResults: true,  // Include tool outputs
+  }
+}
+```
+
+**Long-term Memory**: Persistent knowledge via vector stores
+```typescript
+memory: {
+  longTerm: {
+    enabled: true,
+    vectorStore: 'support-kb',  // Vector store tag
+    retrieveTopK: 5,            // Results to retrieve
+    minSimilarity: 0.7,         // Similarity threshold
+    autoStore: true,            // Store new learnings
+  }
+}
+```
+
+---
+
+## Agent Context API
+
+Inside tool handlers and hooks, you have access to the agent context:
+
+### Conversation
+
+```typescript
+// Get conversation history
+const history = ctx.getConversationHistory();
+
+// Add a message to history
+ctx.addMessage({
+  role: 'assistant',
+  content: 'I found your order information.',
+});
+
+// Get the current user message
+const userMessage = ctx.input.message;
+```
+
+### Memory
+
+```typescript
+// Store in short-term memory
+ctx.remember('customerName', 'John Doe');
+
+// Retrieve from short-term memory
+const name = ctx.recall('customerName');
+
+// Search long-term memory (vector store)
+const relevant = await ctx.searchMemory('return policy for electronics');
+
+// Store in long-term memory
+await ctx.storeMemory({
+  content: 'Customer prefers email communication',
+  metadata: { customerId: ctx.input.customerId },
+});
+```
+
+### Reasoning
+
+```typescript
+// Access the LLM's reasoning (chain of thought)
+const reasoning = ctx.getLastReasoning();
+
+// Get all tool calls in this session
+const toolCalls = ctx.getToolCalls();
+
+// Check remaining budget
+const remaining = ctx.getRemainingTokens();
+const iterations = ctx.getRemainingIterations();
+```
+
+### Control Flow
+
+```typescript
+// Pause for human input
+const humanResponse = await ctx.waitForHuman({
+  prompt: 'Should I proceed with the refund?',
+  timeout: '1h',
+});
+
+// End the agent loop with a result
+ctx.complete({ resolved: true, message: 'Issue resolved' });
+
+// Force stop with error
+ctx.abort('Unable to process request');
+```
+
+---
+
+## LLM Configuration
+
+### Supported Providers
+
+| Provider | Models | Features |
+|----------|--------|----------|
+| `anthropic` | claude-sonnet-4-20250514, claude-opus-4-20250514 | Tool use, vision |
+| `openai` | gpt-4o, gpt-4-turbo | Tool use, vision |
+| `azure-openai` | gpt-4, gpt-4-turbo | Tool use |
+| `bedrock` | Claude, Llama | Tool use |
+
+### Model Configuration
+
+```typescript
+model: {
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-20250514',
+
+  // Generation parameters
+  temperature: 0.7,           // Creativity (0-1)
+  maxTokens: 4096,            // Max output tokens per call
+  topP: 0.9,                  // Nucleus sampling
+  topK: 40,                   // Top-K sampling
+
+  // Retry configuration
+  retries: 3,
+  retryDelay: 1000,
+
+  // Cost controls
+  maxInputTokens: 100000,     // Max input context
+
+  // Per-environment overrides
+  envOverrides: {
+    dev: { model: 'claude-3-haiku-20240307' },
+    prd: { model: 'claude-sonnet-4-20250514' },
+  },
+}
+```
+
+---
+
+## Tool Patterns
+
+### Database Tool
+
+```typescript
+{
+  tag: 'query-customers',
+  description: 'Search for customers by various criteria',
+  parameters: {
+    email: { type: 'string', description: 'Customer email' },
+    name: { type: 'string', description: 'Customer name' },
+    orderId: { type: 'string', description: 'Associated order ID' },
+  },
+  handler: async (ctx, params) => {
+    const where: Record<string, any> = {};
+    if (params.email) where.email = params.email;
+    if (params.name) where.name = { $contains: params.name };
+    if (params.orderId) where.orders = { $contains: params.orderId };
+
+    return ctx.database.query({
+      database: 'customers-db',
+      event: 'search-customers',
+      params: where,
+    });
+  },
+}
+```
+
+### API Action Tool
+
+```typescript
+{
+  tag: 'create-refund',
+  description: 'Process a refund for a payment',
+  parameters: {
+    paymentId: { type: 'string', required: true },
+    amount: { type: 'number', description: 'Amount in cents' },
+    reason: { type: 'string', required: true },
+  },
+  requiresConfirmation: true,  // Human must approve
+  handler: async (ctx, params) => {
+    return ctx.action.run({
+      app: 'stripe',
+      event: 'create-refund',
+      input: {
+        body: {
+          payment_intent: params.paymentId,
+          amount: params.amount,
+          reason: params.reason,
+        },
+      },
+    });
+  },
+}
+```
+
+### Multi-Step Tool
+
+```typescript
+{
+  tag: 'process-return',
+  description: 'Complete return process including refund and inventory update',
+  parameters: {
+    orderId: { type: 'string', required: true },
+    items: { type: 'array', required: true },
+  },
+  handler: async (ctx, params) => {
+    // This tool orchestrates multiple operations
+    const order = await ctx.database.query({
+      database: 'orders-db',
+      event: 'get-order',
+      params: { id: params.orderId },
+    });
+
+    // Create return record
+    const returnRecord = await ctx.database.insert({
+      database: 'returns-db',
+      event: 'create-return',
+      data: {
+        orderId: params.orderId,
+        items: params.items,
+        status: 'initiated',
+      },
+    });
+
+    // Process refund
+    const refund = await ctx.action.run({
+      app: 'stripe',
+      event: 'create-refund',
+      input: { body: { payment_intent: order.paymentId } },
+    });
+
+    // Update inventory
+    for (const item of params.items) {
+      await ctx.action.run({
+        app: 'inventory-api',
+        event: 'restock-item',
+        input: { body: { sku: item.sku, quantity: item.quantity } },
+      });
+    }
+
+    return { returnId: returnRecord.id, refundId: refund.id };
+  },
+}
+```
+
+### Graph Query Tool
+
+```typescript
+{
+  tag: 'find-related-customers',
+  description: 'Find customers related through purchases or referrals',
+  parameters: {
+    customerId: { type: 'string', required: true },
+    relationship: { type: 'string', enum: ['purchased-same', 'referred-by', 'referred'] },
+    depth: { type: 'number', default: 2 },
+  },
+  handler: async (ctx, params) => {
+    return ctx.graph.traverse({
+      graph: 'customer-graph',
+      startNodeId: params.customerId,
+      relationshipTypes: [params.relationship],
+      maxDepth: params.depth,
+    });
+  },
+}
+```
+
+---
+
+## Termination Conditions
+
+Control when the agent stops:
+
+```typescript
+termination: {
+  // Resource limits
+  maxIterations: 20,           // Max tool call iterations
+  maxTokens: 50000,            // Max total tokens used
+  timeout: '10m',              // Max execution time
+
+  // Goal-based termination
+  stopConditions: [
+    // Stop when specific tool is called
+    { tool: 'escalate-to-human' },
+    { tool: 'complete-task' },
+
+    // Stop when output matches pattern
+    { output: { resolved: true } },
+    { output: { status: 'completed' } },
+
+    // Stop on specific message content
+    { messageContains: 'TASK_COMPLETE' },
+
+    // Custom condition
+    {
+      custom: async (ctx) => {
+        return ctx.getToolCalls().length >= 10;
+      }
+    },
+  ],
+
+  // What to do when limits are reached
+  onMaxIterations: 'summarize',  // 'stop' | 'summarize' | 'escalate'
+  onTimeout: 'checkpoint',       // 'stop' | 'checkpoint' | 'escalate'
+}
+```
+
+---
+
+## Hooks
+
+Add custom logic at key points:
+
+```typescript
+const agent = await ductape.agents.define({
+  // ... other config
+
+  hooks: {
+    // Before each LLM call
+    beforeThink: async (ctx) => {
+      // Add context from external sources
+      const recentTickets = await fetchRecentTickets(ctx.input.customerId);
+      ctx.addContext('recentTickets', recentTickets);
+    },
+
+    // After LLM responds, before tool execution
+    afterThink: async (ctx, response) => {
+      // Log reasoning for debugging
+      ctx.log.info('Agent reasoning', { reasoning: response.reasoning });
+
+      // Validate tool selection
+      if (response.toolCalls.some(t => t.tag === 'delete-account')) {
+        throw new Error('Cannot delete accounts without manager approval');
+      }
+    },
+
+    // Before each tool execution
+    beforeTool: async (ctx, tool, params) => {
+      // Rate limiting
+      await ctx.quota.check({ quota: 'api-calls', cost: 1 });
+
+      // Audit logging
+      ctx.log.info('Tool execution', { tool: tool.tag, params });
+    },
+
+    // After each tool execution
+    afterTool: async (ctx, tool, params, result) => {
+      // Track metrics
+      ctx.metrics.increment('tool_calls', { tool: tool.tag });
+
+      // Store successful patterns
+      if (result.success) {
+        await ctx.storeMemory({
+          content: `Used ${tool.tag} successfully for ${ctx.input.intent}`,
+          metadata: { tool: tool.tag, params },
+        });
+      }
+    },
+
+    // When agent completes
+    onComplete: async (ctx, result) => {
+      // Store conversation for training
+      await ctx.database.insert({
+        database: 'agent-logs',
+        event: 'store-conversation',
+        data: {
+          agentTag: ctx.agent_tag,
+          input: ctx.input,
+          output: result,
+          conversation: ctx.getConversationHistory(),
+          toolCalls: ctx.getToolCalls(),
+        },
+      });
+    },
+
+    // When agent fails
+    onError: async (ctx, error) => {
+      // Alert on critical failures
+      await ctx.notification.push({
+        notification: 'ops-alerts',
+        event: 'agent-error',
+        tokens: ['ops-team-token'],
+        title: { text: 'Agent Error' },
+        body: { text: error.message, agentTag: ctx.agent_tag },
+      });
+    },
+  },
+});
+```
+
+---
+
+## Human-in-the-Loop
+
+For sensitive operations, require human approval:
+
+### Tool-Level Confirmation
+
+```typescript
+{
+  tag: 'process-refund',
+  description: 'Process a refund',
+  requiresConfirmation: true,
+  confirmationMessage: (params) =>
+    `Refund $${params.amount / 100} to customer ${params.customerId}?`,
+  handler: async (ctx, params) => { /* ... */ },
+}
+```
+
+### Explicit Pause
+
+```typescript
+// Inside any tool handler or hook
+const approval = await ctx.waitForHuman({
+  prompt: 'Customer is requesting $500 refund. Approve?',
+  options: ['approve', 'reject', 'escalate'],
+  timeout: '4h',
+  assignTo: 'support-managers',
+  context: {
+    customerId: ctx.input.customerId,
+    orderTotal: order.total,
+    previousRefunds: customer.refundHistory,
+  },
+});
+
+if (approval.decision === 'approve') {
+  // Proceed with refund
+} else if (approval.decision === 'reject') {
+  ctx.complete({ status: 'rejected', reason: approval.comment });
+} else {
+  // Escalate to human
+}
+```
+
+### Approval Workflow Integration
+
+```typescript
+// External approval via workflow signal
+await ductape.agents.requestApproval({
+  product: 'my-product',
+  env: 'prd',
+  agentRunId: 'run-12345',
+  approval: {
+    type: 'tool-execution',
+    tool: 'process-refund',
+    params: { amount: 50000 },
+    decision: 'approve',
+    approvedBy: 'manager@company.com',
+  },
+});
+```
+
+---
+
+## Parallel Tool Execution
+
+When the LLM requests multiple independent tools:
+
+```typescript
+// Agent configuration
+parallelExecution: {
+  enabled: true,
+  maxConcurrent: 5,
+  strategy: 'independent',  // 'independent' | 'all-or-nothing' | 'best-effort'
+}
+
+// The LLM can request multiple tools in one response
+// They execute in parallel when independent
+```
+
+---
+
+## Streaming
+
+Stream agent responses for real-time UX:
+
+```typescript
+const stream = await ductape.agents.stream({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'support-agent',
+  input: { message: 'Check my order status' },
+});
+
+for await (const event of stream) {
+  switch (event.type) {
+    case 'thinking':
+      console.log('Agent thinking...');
+      break;
+    case 'text':
+      process.stdout.write(event.content);
+      break;
+    case 'tool_start':
+      console.log(`\nCalling tool: ${event.tool}`);
+      break;
+    case 'tool_result':
+      console.log(`Tool result: ${JSON.stringify(event.result)}`);
+      break;
+    case 'complete':
+      console.log('\nAgent complete');
+      break;
+    case 'error':
+      console.error('Error:', event.error);
+      break;
+  }
+}
+```
+
+---
+
+## Multi-Agent Orchestration
+
+Coordinate multiple specialized agents:
+
+```typescript
+const orchestrator = await ductape.agents.defineOrchestrator({
+  product: 'my-product',
+  tag: 'support-orchestrator',
+
+  // Available sub-agents
+  agents: [
+    { tag: 'order-specialist', description: 'Handles order inquiries' },
+    { tag: 'returns-specialist', description: 'Handles returns and refunds' },
+    { tag: 'technical-support', description: 'Handles technical issues' },
+    { tag: 'billing-specialist', description: 'Handles payment issues' },
+  ],
+
+  // Router decides which agent handles each request
+  router: {
+    model: { provider: 'anthropic', model: 'claude-3-haiku-20240307' },
+    prompt: 'Route this customer request to the appropriate specialist agent.',
+  },
+
+  // Allow handoffs between agents
+  handoffs: {
+    enabled: true,
+    preserveContext: true,
+    maxHandoffs: 3,
+  },
+});
+```
+
+---
+
+## Observability
+
+### Metrics
+
+```typescript
+// Automatically tracked metrics
+- agent.iterations           // Iterations per run
+- agent.tokens.input         // Input tokens used
+- agent.tokens.output        // Output tokens used
+- agent.tool_calls           // Tool invocations by tool
+- agent.duration             // Total execution time
+- agent.success_rate         // Completion rate
+- agent.escalation_rate      // Human escalation rate
+```
+
+### Tracing
+
+```typescript
+// Enable detailed tracing
+tracing: {
+  enabled: true,
+  includePrompts: true,       // Log full prompts (careful with PII)
+  includeResponses: true,     // Log full responses
+  includeToolResults: true,   // Log tool outputs
+  exportTo: 'datadog',        // Export destination
+}
+```
+
+### Debugging
+
+```typescript
+// Run in debug mode
+const result = await ductape.agents.run({
+  product: 'my-product',
+  env: 'dev',
+  tag: 'support-agent',
+  input: { message: 'Test message' },
+  debug: {
+    enabled: true,
+    pauseAfterEachStep: true,  // Interactive debugging
+    logLevel: 'verbose',
+    recordReplay: true,        // Record for replay
+  },
+});
+
+// Replay a previous run
+const replay = await ductape.agents.replay({
+  product: 'my-product',
+  env: 'dev',
+  runId: 'run-12345',
+  modifyInputAt: 3,  // Modify after step 3
+});
+```
+
+---
+
+## Cost Management
+
+### Token Budgets
+
+```typescript
+cost: {
+  maxTokensPerRun: 50000,
+  maxCostPerRun: 1.00,        // USD
+  budgetPeriod: 'daily',
+  dailyBudget: 100.00,        // USD
+  alertThreshold: 0.8,        // Alert at 80%
+  onBudgetExceeded: 'queue',  // 'stop' | 'queue' | 'downgrade'
+  downgradeTo: {
+    model: 'claude-3-haiku-20240307',
+  },
+}
+```
+
+### Cost Tracking
+
+```typescript
+const result = await ductape.agents.run({ /* ... */ });
+
+console.log('Cost breakdown:', {
+  inputTokens: result.usage.inputTokens,
+  outputTokens: result.usage.outputTokens,
+  totalTokens: result.usage.totalTokens,
+  estimatedCost: result.usage.estimatedCost,
+  modelUsed: result.usage.model,
+});
+```
+
+---
+
+## Security
+
+### Input Validation
+
+```typescript
+security: {
+  // Sanitize inputs
+  sanitizeInput: true,
+
+  // Prevent prompt injection
+  promptInjectionDetection: {
+    enabled: true,
+    action: 'block',  // 'block' | 'warn' | 'log'
+  },
+
+  // PII handling
+  pii: {
+    detect: true,
+    mask: ['email', 'phone', 'ssn', 'credit_card'],
+    logPolicy: 'masked',
+  },
+
+  // Output validation
+  validateOutput: {
+    enabled: true,
+    blocklist: ['password', 'api_key', 'secret'],
+  },
+}
+```
+
+### Tool Permissions
+
+```typescript
+// Per-environment tool restrictions
+tools: [
+  {
+    tag: 'delete-data',
+    environments: ['dev'],  // Only available in dev
+    requiredPermissions: ['admin'],
+  },
+]
+```
+
+---
+
+## Example: Research Agent
+
+A more complex example showing a research agent:
+
+```typescript
+const researchAgent = await ductape.agents.define({
+  product: 'research-platform',
+  tag: 'research-agent',
+  name: 'Research Assistant',
+
+  model: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.3,  // Lower for more factual responses
+  },
+
+  systemPrompt: `You are a research assistant that helps gather and analyze information.
+
+When given a research topic:
+1. Break down the topic into specific questions
+2. Search for relevant information
+3. Analyze and synthesize findings
+4. Provide a comprehensive summary with sources
+
+Always cite your sources and distinguish between facts and analysis.`,
+
+  tools: [
+    {
+      tag: 'web-search',
+      description: 'Search the web for information',
+      parameters: {
+        query: { type: 'string', required: true },
+        maxResults: { type: 'number', default: 10 },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'search-api',
+          event: 'search',
+          input: { query: { q: params.query, limit: params.maxResults } },
+        });
+      },
+    },
+    {
+      tag: 'fetch-page',
+      description: 'Fetch and extract content from a web page',
+      parameters: {
+        url: { type: 'string', required: true },
+      },
+      handler: async (ctx, params) => {
+        return ctx.action.run({
+          app: 'scraper-api',
+          event: 'extract',
+          input: { body: { url: params.url } },
+        });
+      },
+    },
+    {
+      tag: 'search-knowledge-base',
+      description: 'Search internal knowledge base',
+      parameters: {
+        query: { type: 'string', required: true },
+        category: { type: 'string' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.searchMemory(params.query, {
+          filter: params.category ? { category: params.category } : undefined,
+          topK: 10,
+        });
+      },
+    },
+    {
+      tag: 'save-finding',
+      description: 'Save a research finding for later reference',
+      parameters: {
+        title: { type: 'string', required: true },
+        content: { type: 'string', required: true },
+        source: { type: 'string' },
+        tags: { type: 'array' },
+      },
+      handler: async (ctx, params) => {
+        return ctx.database.insert({
+          database: 'research-db',
+          event: 'save-finding',
+          data: {
+            ...params,
+            researchId: ctx.input.researchId,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      },
+    },
+    {
+      tag: 'generate-report',
+      description: 'Generate a formatted research report',
+      parameters: {
+        title: { type: 'string', required: true },
+        sections: { type: 'array', required: true },
+        format: { type: 'string', enum: ['markdown', 'html', 'pdf'] },
+      },
+      handler: async (ctx, params) => {
+        // Generate report
+        const report = await ctx.action.run({
+          app: 'document-api',
+          event: 'generate',
+          input: { body: params },
+        });
+
+        // Store report
+        const stored = await ctx.storage.upload({
+          storage: 'reports',
+          event: 'upload',
+          input: {
+            buffer: report.content,
+            fileName: `${params.title}.${params.format}`,
+            mimeType: getMimeType(params.format),
+          },
+        });
+
+        return { url: stored.url, reportId: stored.file_key };
+      },
+    },
+  ],
+
+  memory: {
+    shortTerm: { maxMessages: 100 },
+    longTerm: {
+      enabled: true,
+      vectorStore: 'research-kb',
+      autoStore: true,
+    },
+  },
+
+  termination: {
+    maxIterations: 50,
+    timeout: '30m',
+    stopConditions: [
+      { tool: 'generate-report' },
+    ],
+  },
+});
+```
+
+---
+
+## API Reference
+
+### ductape.agents.define()
+
+```typescript
+const agent = await ductape.agents.define({
+  product: string;
+  tag: string;
+  name: string;
+  description?: string;
+  model: IModelConfig;
+  systemPrompt: string;
+  tools: IAgentTool[];
+  termination?: ITerminationConfig;
+  memory?: IMemoryConfig;
+  hooks?: IAgentHooks;
+  security?: ISecurityConfig;
+  cost?: ICostConfig;
+  parallelExecution?: IParallelConfig;
+  tracing?: ITracingConfig;
+});
+```
+
+### ductape.agents.run()
+
+```typescript
+const result = await ductape.agents.run({
+  product: string;
+  env: string;
+  tag: string;
+  input: Record<string, unknown>;
+  runId?: string;
+  context?: Record<string, unknown>;
+  timeout?: number | string;
+  debug?: IDebugConfig;
+}): Promise<IAgentResult>;
+
+interface IAgentResult {
+  runId: string;
+  status: 'completed' | 'failed' | 'timeout' | 'escalated';
+  output: unknown;
+  toolCalls: IToolCall[];
+  conversation: IMessage[];
+  usage: IUsageStats;
+  duration: number;
+}
+```
+
+### ductape.agents.stream()
+
+```typescript
+const stream = await ductape.agents.stream({
+  // Same as run()
+}): AsyncIterable<IAgentEvent>;
+```
+
+---
+
+## Roadmap
+
+1. **Phase 1**: Core agent loop, tools, basic memory
+2. **Phase 2**: Streaming, human-in-the-loop, parallel tools
+3. **Phase 3**: Multi-agent orchestration, long-term memory
+4. **Phase 4**: Cost optimization, advanced security, fine-tuning integration
+
+---
+
+## See Also
+
+- [Workflows](./overview) - Traditional deterministic workflows
+- [Message Brokers](../message-brokers/overview) - Event-driven communication
+- [Vector Stores](../vector-stores/overview) - Long-term memory storage

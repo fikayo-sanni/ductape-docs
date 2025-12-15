@@ -1,0 +1,52 @@
+.previewBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+[data-theme='dark'] .previewBanner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border-color: #b45309;
+}
+
+.previewBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #f59e0b;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .previewBadge {
+  background: #b45309;
+}
+
+.previewContent {
+  color: #92400e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+[data-theme='dark'] .previewContent {
+  color: #fbbf24;
+}
+
+.previewContent strong {
+  color: #78350f;
+}
+
+[data-theme='dark'] .previewContent strong {
+  color: #fcd34d;
+}
