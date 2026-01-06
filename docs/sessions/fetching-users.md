@@ -132,11 +132,7 @@ You can also access these methods through the main Ductape class:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 // Fetch users

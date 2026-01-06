@@ -18,9 +18,7 @@ First, connect an app to create an access tag:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 await ductape.product.init('my-product');
@@ -112,9 +110,7 @@ import Ductape from '@ductape/sdk';
 
 async function setupProductApps() {
   const ductape = new Ductape({
-    workspace_id: 'workspace-123',
-    user_id: 'user-456',
-    private_key: 'your-private-key',
+    accessKey: 'your-access-key',
   });
 
   await ductape.product.init('ecommerce-platform');

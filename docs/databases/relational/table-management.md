@@ -13,9 +13,7 @@ import Ductape from '@ductape/sdk';
 
 // Initialize Ductape
 const ductape = new Ductape({
-  user_id: 'your-user-id',
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Connect to database
@@ -46,9 +44,7 @@ Establish a connection context once, then all schema operations use it automatic
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  user_id: 'your-user-id',
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Connect once

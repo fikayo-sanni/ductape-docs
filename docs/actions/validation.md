@@ -27,9 +27,7 @@ Before configuring validation, ensure you have:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-public-key',
+  accessKey: 'your-access-key',
 });
 ```
 
@@ -164,9 +162,7 @@ import { DecoratorPositions } from '@ductape/sdk/types';
 
 async function setupValidation() {
   const ductape = new Ductape({
-    workspace_id: 'your-workspace-id',
-    user_id: 'your-user-id',
-    private_key: 'your-public-key',
+    accessKey: 'your-access-key',
   });
 
   // Username validation

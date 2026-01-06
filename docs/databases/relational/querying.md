@@ -72,17 +72,17 @@ const result = await ductape.database.query({
 
 ### Comparison Operators
 
-Use `$`-prefixed operators for advanced filtering:
+Use `$`-prefixed operators for advanced filtering. Ductape uses **lowercase operators** following the Mongoose/MongoDB convention for familiarity:
 
 ```ts
 const result = await ductape.database.query({
   table: 'products',
   where: {
-    price: { $GT: 10 },        // Greater than
-    stock: { $GTE: 5 },        // Greater than or equal
-    discount: { $LT: 50 },     // Less than
-    rating: { $LTE: 4.5 },     // Less than or equal
-    status: { $NE: 'deleted' }, // Not equal
+    price: { $gt: 10 },        // Greater than
+    stock: { $gte: 5 },        // Greater than or equal
+    discount: { $lt: 50 },     // Less than
+    rating: { $lte: 4.5 },     // Less than or equal
+    status: { $ne: 'deleted' }, // Not equal
   },
 });
 ```
@@ -91,17 +91,23 @@ const result = await ductape.database.query({
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `$GT` | Greater than | `{ age: { $GT: 18 } }` |
-| `$GTE` | Greater than or equal | `{ age: { $GTE: 18 } }` |
-| `$LT` | Less than | `{ price: { $LT: 100 } }` |
-| `$LTE` | Less than or equal | `{ price: { $LTE: 100 } }` |
-| `$NE` or `$NOT` | Not equal | `{ status: { $NE: 'deleted' } }` |
-| `$IN` | In array | `{ status: { $IN: ['active', 'pending'] } }` |
-| `$NOT_IN` | Not in array | `{ status: { $NOT_IN: ['deleted', 'banned'] } }` |
-| `$LIKE` | Pattern match | `{ email: { $LIKE: '%@gmail.com' } }` |
-| `$IS_NULL` | Is null | `{ deleted_at: { $IS_NULL: true } }` |
-| `$IS_NOT_NULL` | Is not null | `{ verified_at: { $IS_NOT_NULL: true } }` |
-| `$BETWEEN` | Between values | `{ created_at: { $BETWEEN: [start, end] } }` |
+| `$gt` | Greater than | `{ age: { $gt: 18 } }` |
+| `$gte` | Greater than or equal | `{ age: { $gte: 18 } }` |
+| `$lt` | Less than | `{ price: { $lt: 100 } }` |
+| `$lte` | Less than or equal | `{ price: { $lte: 100 } }` |
+| `$ne` | Not equal | `{ status: { $ne: 'deleted' } }` |
+| `$in` | In array | `{ status: { $in: ['active', 'pending'] } }` |
+| `$nin` | Not in array | `{ status: { $nin: ['deleted', 'banned'] } }` |
+| `$like` | Pattern match | `{ email: { $like: '%@gmail.com' } }` |
+| `$isNull` | Is null | `{ deleted_at: { $isNull: true } }` |
+| `$isNotNull` | Is not null | `{ verified_at: { $isNotNull: true } }` |
+| `$between` | Between values | `{ created_at: { $between: [start, end] } }` |
+| `$regex` | Regex match | `{ email: { $regex: '^user.*@example.com$' } }` |
+| `$exists` | Property exists | `{ avatar: { $exists: true } }` |
+
+:::tip Backwards Compatibility
+Uppercase operators (e.g., `$GT`, `$IN`) are still supported for backwards compatibility, but lowercase is recommended.
+:::
 
 ### IN Operator
 
@@ -111,7 +117,7 @@ Match any value in an array:
 const result = await ductape.database.query({
   table: 'orders',
   where: {
-    status: { $IN: ['pending', 'processing', 'shipped'] },
+    status: { $in: ['pending', 'processing', 'shipped'] },
   },
 });
 ```
@@ -122,8 +128,8 @@ const result = await ductape.database.query({
 const result = await ductape.database.query({
   table: 'users',
   where: {
-    email: { $LIKE: '%@gmail.com' },
-    name: { $LIKE: 'John%' },
+    email: { $like: '%@gmail.com' },
+    name: { $like: 'John%' },
   },
 });
 ```
@@ -134,8 +140,8 @@ const result = await ductape.database.query({
 const result = await ductape.database.query({
   table: 'users',
   where: {
-    deleted_at: { $IS_NULL: true },    // Not deleted
-    verified_at: { $IS_NOT_NULL: true }, // Verified
+    deleted_at: { $isNull: true },    // Not deleted
+    verified_at: { $isNotNull: true }, // Verified
   },
 });
 ```
@@ -147,29 +153,44 @@ const result = await ductape.database.query({
   table: 'orders',
   where: {
     created_at: {
-      $BETWEEN: [new Date('2024-01-01'), new Date('2024-12-31')],
+      $between: [new Date('2024-01-01'), new Date('2024-12-31')],
     },
-    total: { $BETWEEN: [100, 500] },
+    total: { $between: [100, 500] },
   },
 });
 ```
 
 ## Logical Operators
 
+Logical operators support both **object syntax** and **array syntax** (Mongoose-style):
+
 ### AND Conditions
 
 All conditions must match:
 
 ```ts
+// Object syntax
 const result = await ductape.database.query({
   table: 'products',
   where: {
-    $AND: {
-      price: { $GTE: 10, $LTE: 100 },
-      category: { $IN: ['electronics', 'gadgets'] },
-      stock: { $GT: 0 },
-      deleted_at: { $IS_NULL: true },
+    $and: {
+      price: { $gte: 10, $lte: 100 },
+      category: { $in: ['electronics', 'gadgets'] },
+      stock: { $gt: 0 },
+      deleted_at: { $isNull: true },
     },
+  },
+});
+
+// Array syntax (Mongoose-style)
+const result2 = await ductape.database.query({
+  table: 'products',
+  where: {
+    $and: [
+      { price: { $gte: 10 } },
+      { price: { $lte: 100 } },
+      { category: { $in: ['electronics', 'gadgets'] } },
+    ],
   },
 });
 ```
@@ -179,13 +200,25 @@ const result = await ductape.database.query({
 Any condition can match:
 
 ```ts
+// Object syntax
 const result = await ductape.database.query({
   table: 'users',
   where: {
-    $OR: {
+    $or: {
       role: 'admin',
       is_superuser: true,
     },
+  },
+});
+
+// Array syntax (Mongoose-style)
+const result2 = await ductape.database.query({
+  table: 'users',
+  where: {
+    $or: [
+      { role: 'admin' },
+      { is_superuser: true },
+    ],
   },
 });
 ```
@@ -198,14 +231,32 @@ Combine AND and OR for complex queries:
 const result = await ductape.database.query({
   table: 'orders',
   where: {
-    $AND: {
-      total: { $GT: 100 },
-      status: { $IN: ['pending', 'processing'] },
-      $OR: {
-        priority: 'high',
-        express_shipping: true,
+    $and: [
+      { total: { $gt: 100 } },
+      { status: { $in: ['pending', 'processing'] } },
+      {
+        $or: [
+          { priority: 'high' },
+          { express_shipping: true },
+        ],
       },
-    },
+    ],
+  },
+});
+```
+
+### NOR Conditions
+
+None of the conditions should match:
+
+```ts
+const result = await ductape.database.query({
+  table: 'users',
+  where: {
+    $nor: [
+      { status: 'banned' },
+      { status: 'suspended' },
+    ],
   },
 });
 ```
@@ -500,10 +551,10 @@ async function searchUsers(query: string, page: number, pageSize: number) {
   const result = await ductape.database.query({
     table: 'users',
     where: {
-      $OR: {
-        name: { $LIKE: `%${query}%` },
-        email: { $LIKE: `%${query}%` },
-      },
+      $or: [
+        { name: { $like: `%${query}%` } },
+        { email: { $like: `%${query}%` } },
+      ],
     },
     orderBy: { column: 'name', order: 'ASC' },
     limit: pageSize,
@@ -526,7 +577,7 @@ async function searchUsers(query: string, page: number, pageSize: number) {
 const recentOrders = await ductape.database.query({
   table: 'orders',
   where: {
-    created_at: { $GTE: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    created_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   },
   orderBy: { column: 'created_at', order: 'DESC' },
   limit: 50,
@@ -540,11 +591,11 @@ const dashboardData = await ductape.database.query({
   table: 'orders',
   select: ['id', 'customer_name', 'total', 'status', 'created_at'],
   where: {
-    $AND: {
-      status: { $IN: ['pending', 'processing'] },
-      total: { $GTE: 100 },
-      created_at: { $GTE: new Date('2024-01-01') },
-    },
+    $and: [
+      { status: { $in: ['pending', 'processing'] } },
+      { total: { $gte: 100 } },
+      { created_at: { $gte: new Date('2024-01-01') } },
+    ],
   },
   orderBy: [
     { column: 'status', order: 'ASC' },

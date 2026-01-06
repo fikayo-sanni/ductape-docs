@@ -43,9 +43,7 @@ Here's how to set up and use a vector database:
 import Ductape, { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 const ductape = new Ductape({
-  user_id: 'your-user-id',
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Create a vector database configuration
@@ -53,7 +51,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Document Embeddings',
   tag: 'doc-embeddings',
-  dbType: VectorDBType.PINECONE,
+  type: VectorDBType.PINECONE,
   dimensions: 1536,
   metric: DistanceMetric.COSINE,
   envs: [

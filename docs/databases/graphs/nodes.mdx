@@ -27,7 +27,7 @@ const user = await ductape.graph.createNode({
 // Find nodes
 const adults = await ductape.graph.findNodes({
   labels: ['Person'],
-  where: { age: { $GTE: 18 } },
+  where: { age: { $gte: 18 } },
   limit: 10,
 });
 
@@ -132,14 +132,14 @@ result.nodes.forEach(node => {
 
 ### Find with Filters
 
-Use the `where` clause to filter nodes:
+Use the `where` clause to filter nodes. Ductape uses **lowercase operators** following the Mongoose/MongoDB convention:
 
 ```ts
 const result = await ductape.graph.findNodes({
   labels: ['Person'],
   where: {
     city: 'San Francisco',
-    age: { $GT: 25 },
+    age: { $gt: 25 },
   },
   limit: 10,
 });
@@ -149,31 +149,37 @@ const result = await ductape.graph.findNodes({
 
 | Operator | Description | Example |
 |----------|-------------|---------|
-| `$GT` | Greater than | `{ age: { $GT: 18 } }` |
-| `$GTE` | Greater than or equal | `{ age: { $GTE: 18 } }` |
-| `$LT` | Less than | `{ price: { $LT: 100 } }` |
-| `$LTE` | Less than or equal | `{ price: { $LTE: 100 } }` |
-| `$NE` | Not equal | `{ status: { $NE: 'deleted' } }` |
-| `$IN` | In array | `{ role: { $IN: ['admin', 'moderator'] } }` |
-| `$NOT_IN` | Not in array | `{ status: { $NOT_IN: ['banned', 'suspended'] } }` |
-| `$CONTAINS` | String contains | `{ email: { $CONTAINS: '@gmail.com' } }` |
-| `$STARTS_WITH` | String starts with | `{ name: { $STARTS_WITH: 'Dr.' } }` |
-| `$ENDS_WITH` | String ends with | `{ email: { $ENDS_WITH: '.edu' } }` |
-| `$EXISTS` | Property exists | `{ verified: { $EXISTS: true } }` |
+| `$gt` | Greater than | `{ age: { $gt: 18 } }` |
+| `$gte` | Greater than or equal | `{ age: { $gte: 18 } }` |
+| `$lt` | Less than | `{ price: { $lt: 100 } }` |
+| `$lte` | Less than or equal | `{ price: { $lte: 100 } }` |
+| `$ne` | Not equal | `{ status: { $ne: 'deleted' } }` |
+| `$in` | In array | `{ role: { $in: ['admin', 'moderator'] } }` |
+| `$nin` | Not in array | `{ status: { $nin: ['banned', 'suspended'] } }` |
+| `$contains` | String contains | `{ email: { $contains: '@gmail.com' } }` |
+| `$startsWith` | String starts with | `{ name: { $startsWith: 'Dr.' } }` |
+| `$endsWith` | String ends with | `{ email: { $endsWith: '.edu' } }` |
+| `$exists` | Property exists | `{ verified: { $exists: true } }` |
+| `$regex` | Regex match | `{ email: { $regex: '^user.*@example.com$' } }` |
+
+:::tip Backwards Compatibility
+Uppercase operators (e.g., `$GT`, `$IN`) are still supported for backwards compatibility, but lowercase is recommended.
+:::
 
 ### Complex Filters
 
-Combine multiple conditions:
+Combine multiple conditions using array syntax (Mongoose-style):
 
 ```ts
 const result = await ductape.graph.findNodes({
   labels: ['Product'],
   where: {
-    $AND: {
-      price: { $GTE: 50, $LTE: 500 },
-      inStock: true,
-      category: { $IN: ['electronics', 'gadgets'] },
-    },
+    $and: [
+      { price: { $gte: 50 } },
+      { price: { $lte: 500 } },
+      { inStock: true },
+      { category: { $in: ['electronics', 'gadgets'] } },
+    ],
   },
   limit: 20,
 });
@@ -185,11 +191,11 @@ const result = await ductape.graph.findNodes({
 const result = await ductape.graph.findNodes({
   labels: ['Person'],
   where: {
-    $OR: {
-      role: 'admin',
-      isSuper user: true,
-      department: 'Security',
-    },
+    $or: [
+      { role: 'admin' },
+      { isSuperUser: true },
+      { department: 'Security' },
+    ],
   },
 });
 ```
@@ -200,14 +206,16 @@ const result = await ductape.graph.findNodes({
 const result = await ductape.graph.findNodes({
   labels: ['Order'],
   where: {
-    $AND: {
-      total: { $GT: 100 },
-      status: { $IN: ['pending', 'processing'] },
-      $OR: {
-        priority: 'high',
-        expressShipping: true,
+    $and: [
+      { total: { $gt: 100 } },
+      { status: { $in: ['pending', 'processing'] } },
+      {
+        $or: [
+          { priority: 'high' },
+          { expressShipping: true },
+        ],
       },
-    },
+    ],
   },
 });
 ```
@@ -219,8 +227,8 @@ const result = await ductape.graph.findNodes({
 const result = await ductape.graph.findNodes({
   labels: ['User'],
   where: {
-    email: { $ENDS_WITH: '@gmail.com' },
-    name: { $STARTS_WITH: 'John' },
+    email: { $endsWith: '@gmail.com' },
+    name: { $startsWith: 'John' },
   },
 });
 ```
@@ -296,7 +304,7 @@ Update multiple nodes matching criteria:
 ```ts
 const result = await ductape.graph.updateNode({
   labels: ['User'],
-  where: { lastLogin: { $LT: new Date('2024-01-01') } },
+  where: { lastLogin: { $lt: new Date('2024-01-01') } },
   properties: { status: 'inactive' },
 });
 
@@ -337,7 +345,7 @@ Delete multiple nodes matching criteria:
 const result = await ductape.graph.deleteNode({
   labels: ['TempUser'],
   where: {
-    createdAt: { $LT: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Older than 30 days
+    createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Older than 30 days
   },
   detach: true,
 });
@@ -612,7 +620,7 @@ async function getActiveUsers() {
   return ductape.graph.findNodes({
     labels: ['User'],
     where: {
-      status: { $NE: 'deleted' },
+      status: { $ne: 'deleted' },
     },
   });
 }

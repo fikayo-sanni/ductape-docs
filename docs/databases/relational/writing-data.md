@@ -89,7 +89,7 @@ const result = await ductape.database.update({
     updated_at: new Date(),
   },
   where: {
-    last_login: { $LT: new Date('2023-01-01') },
+    last_login: { $lt: new Date('2023-01-01') },
   },
   returning: true,
 });
@@ -100,53 +100,53 @@ console.log('Updated records:', result.data);
 
 ### Update Operators
 
-Ductape provides special operators for atomic update operations. These operators work across all supported databases (PostgreSQL, MySQL, MariaDB, MongoDB, DynamoDB, Cassandra).
+Ductape provides special operators for atomic update operations. These operators work across all supported databases (PostgreSQL, MySQL, MariaDB, MongoDB, DynamoDB, Cassandra) and use **lowercase naming** following the Mongoose/MongoDB convention.
 
 #### Numeric Operators
 
 ```ts
-// $INC - Increment a numeric value
+// $inc - Increment a numeric value
 await ductape.database.update({
   table: 'products',
   data: {
-    stock: { $INC: 10 }, // Add 10 to stock
-    views: { $INC: 1 },  // Increment view count
+    stock: { $inc: 10 }, // Add 10 to stock
+    views: { $inc: 1 },  // Increment view count
   },
   where: { id: productId },
 });
 
-// $DEC - Decrement a numeric value
+// Decrement using negative value
 await ductape.database.update({
   table: 'products',
   data: {
-    stock: { $DEC: 5 }, // Subtract 5 from stock
+    stock: { $inc: -5 }, // Subtract 5 from stock
   },
   where: { id: productId },
 });
 
-// $MUL - Multiply a numeric value
+// $mul - Multiply a numeric value
 await ductape.database.update({
   table: 'products',
   data: {
-    price: { $MUL: 1.1 }, // Increase price by 10%
+    price: { $mul: 1.1 }, // Increase price by 10%
   },
   where: { category: 'electronics' },
 });
 
-// $MIN - Set to minimum (only update if new value is less than current)
+// $min - Set to minimum (only update if new value is less than current)
 await ductape.database.update({
   table: 'products',
   data: {
-    lowest_price: { $MIN: currentPrice }, // Track lowest price seen
+    lowest_price: { $min: currentPrice }, // Track lowest price seen
   },
   where: { id: productId },
 });
 
-// $MAX - Set to maximum (only update if new value is greater than current)
+// $max - Set to maximum (only update if new value is greater than current)
 await ductape.database.update({
   table: 'products',
   data: {
-    highest_price: { $MAX: currentPrice }, // Track highest price seen
+    highest_price: { $max: currentPrice }, // Track highest price seen
   },
   where: { id: productId },
 });
@@ -155,20 +155,20 @@ await ductape.database.update({
 #### Field Operators
 
 ```ts
-// $SET - Explicitly set a value (useful when you need to distinguish from regular updates)
+// $set - Explicitly set a value (useful when you need to distinguish from regular updates)
 await ductape.database.update({
   table: 'users',
   data: {
-    settings: { $SET: { theme: 'dark', language: 'en' } },
+    settings: { $set: { theme: 'dark', language: 'en' } },
   },
   where: { id: userId },
 });
 
-// $UNSET - Remove/null a field
+// $unset - Remove/null a field
 await ductape.database.update({
   table: 'users',
   data: {
-    temporary_token: { $UNSET: true }, // Set to NULL / remove field
+    temporary_token: { $unset: true }, // Set to NULL / remove field
   },
   where: { id: userId },
 });
@@ -184,29 +184,29 @@ These operators work with array/list columns. Behavior varies by database:
 - **Cassandra**: Works with list and set types
 
 ```ts
-// $PUSH - Add an element to an array
+// $push - Add an element to an array
 await ductape.database.update({
   table: 'users',
   data: {
-    tags: { $PUSH: 'premium' }, // Add 'premium' to tags array
+    tags: { $push: 'premium' }, // Add 'premium' to tags array
   },
   where: { id: userId },
 });
 
-// $PULL - Remove an element from an array
+// $pull - Remove an element from an array
 await ductape.database.update({
   table: 'users',
   data: {
-    tags: { $PULL: 'trial' }, // Remove 'trial' from tags array
+    tags: { $pull: 'trial' }, // Remove 'trial' from tags array
   },
   where: { id: userId },
 });
 
-// $ADDTOSET - Add element only if it doesn't exist (unique add)
+// $addToSet - Add element only if it doesn't exist (unique add)
 await ductape.database.update({
   table: 'users',
   data: {
-    roles: { $ADDTOSET: 'editor' }, // Add 'editor' only if not present
+    roles: { $addToSet: 'editor' }, // Add 'editor' only if not present
   },
   where: { id: userId },
 });
@@ -216,16 +216,22 @@ await ductape.database.update({
 
 | Operator | Description | Supported Databases |
 |----------|-------------|---------------------|
-| `$INC` | Increment numeric value | All |
-| `$DEC` | Decrement numeric value | All |
-| `$MUL` | Multiply numeric value | PostgreSQL, MySQL, MariaDB, MongoDB |
-| `$MIN` | Set to minimum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
-| `$MAX` | Set to maximum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
-| `$SET` | Explicitly set a value | All |
-| `$UNSET` | Remove/null a field | All |
-| `$PUSH` | Add element to array | All |
-| `$PULL` | Remove element from array | All (except DynamoDB) |
-| `$ADDTOSET` | Add unique element to array | All |
+| `$inc` | Increment numeric value | All |
+| `$mul` | Multiply numeric value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$min` | Set to minimum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$max` | Set to maximum of current and new value | PostgreSQL, MySQL, MariaDB, MongoDB |
+| `$set` | Explicitly set a value | All |
+| `$unset` | Remove/null a field | All |
+| `$push` | Add element to array | All |
+| `$pull` | Remove element from array | All (except DynamoDB) |
+| `$addToSet` | Add unique element to array | All |
+| `$pop` | Remove first/last element from array | PostgreSQL, MySQL, MongoDB |
+| `$rename` | Rename a field | MongoDB |
+| `$currentDate` | Set to current date/timestamp | MongoDB |
+
+:::tip Backwards Compatibility
+Uppercase operators (e.g., `$INC`, `$SET`) are still supported for backwards compatibility, but lowercase is recommended.
+:::
 
 #### Combining Multiple Operators
 
@@ -233,10 +239,10 @@ await ductape.database.update({
 await ductape.database.update({
   table: 'game_stats',
   data: {
-    score: { $INC: 100 },           // Increment score
-    high_score: { $MAX: newScore }, // Update high score if higher
-    games_played: { $INC: 1 },      // Increment game count
-    achievements: { $ADDTOSET: 'first_win' }, // Add achievement
+    score: { $inc: 100 },           // Increment score
+    high_score: { $max: newScore }, // Update high score if higher
+    games_played: { $inc: 1 },      // Increment game count
+    achievements: { $addToSet: 'first_win' }, // Add achievement
     updated_at: new Date(),         // Regular field update
   },
   where: { player_id: playerId },
@@ -254,10 +260,10 @@ await ductape.database.update({
     cancellation_reason: 'Customer request',
   },
   where: {
-    $AND: {
-      status: { $IN: ['pending', 'processing'] },
-      created_at: { $LT: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-    },
+    $and: [
+      { status: { $in: ['pending', 'processing'] } },
+      { created_at: { $lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+    ],
   },
 });
 ```
@@ -335,10 +341,10 @@ console.log('Deleted count:', result.count);
 await ductape.database.delete({
   table: 'sessions',
   where: {
-    $AND: {
-      expires_at: { $LT: new Date() },
-      user_id: { $IS_NOT_NULL: true },
-    },
+    $and: [
+      { expires_at: { $lt: new Date() } },
+      { user_id: { $isNotNull: true } },
+    ],
   },
 });
 ```
@@ -371,7 +377,7 @@ await ductape.database.update({
 const activeUsers = await ductape.database.query({
   table: 'users',
   where: {
-    deleted_at: { $IS_NULL: true },
+    deleted_at: { $isNull: true },
   },
 });
 ```

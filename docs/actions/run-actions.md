@@ -18,9 +18,7 @@ Before running Actions, ensure you have:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-public-key',
+  accessKey: 'your-access-key',
 });
 ```
 

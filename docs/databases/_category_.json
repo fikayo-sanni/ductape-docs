@@ -1,9 +1,9 @@
 {
-    "label": "Database Actions",
-    "position": 3,
-    "link": {
-      "type": "generated-index",
-      "description": "Database Actions with Ductape"
-    }
+  "label": "Databases",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Unified data layer for relational databases, graph databases, vector stores, and cross-database operations."
   }
+}
   

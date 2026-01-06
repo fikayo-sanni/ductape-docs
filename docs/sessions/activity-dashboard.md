@@ -169,11 +169,7 @@ Here's a complete example showing how to build a session monitoring dashboard:
 import { SessionsService } from '@ductape/sdk';
 
 const sessions = new SessionsService({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 async function displaySessionDashboard() {

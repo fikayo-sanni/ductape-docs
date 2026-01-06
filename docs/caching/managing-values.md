@@ -12,9 +12,7 @@ The `CacheService` provides comprehensive methods for managing cache values prog
 import Ductape from '@ductape/sdk';
 
 const {cache} = new Ductape({
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
-  user_id: 'your-user-id',
+  accessKey: 'your-access-key',
 });
 
 // Fetch cache values
@@ -226,11 +224,7 @@ Here's a complete example showing how to manage cache values:
 import { CacheService } from '@ductape/sdk';
 
 const cache = new CacheService({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 async function manageCacheValues() {

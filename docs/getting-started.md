@@ -22,9 +22,7 @@ Create a Ductape instance with your workspace credentials:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-  user_id: process.env.DUCTAPE_USER_ID!,
-  private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
 });
 ```
 
@@ -60,9 +58,7 @@ import Ductape from '@ductape/sdk';
 
 // Create a single instance
 export const ductape = new Ductape({
-  workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-  user_id: process.env.DUCTAPE_USER_ID!,
-  private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
 });
 
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
@@ -127,9 +123,7 @@ Ductape supports relational databases, graph databases, and vector databases. Es
 import Ductape from '@ductape/sdk';
 
 export const ductape = new Ductape({
-  workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-  user_id: process.env.DUCTAPE_USER_ID!,
-  private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
 });
 
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
@@ -226,9 +220,7 @@ export async function searchSimilarProducts(queryEmbedding: number[]) {
 import Ductape from '@ductape/sdk';
 
 export const ductape = new Ductape({
-  workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-  user_id: process.env.DUCTAPE_USER_ID!,
-  private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
 });
 
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
@@ -291,9 +283,7 @@ export class DuctapeService implements OnModuleInit {
 
   constructor() {
     this.ductape = new Ductape({
-      workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-      user_id: process.env.DUCTAPE_USER_ID!,
-      private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
     });
   }
 
@@ -361,9 +351,7 @@ let initialized = false;
 export function getDuctape(): Ductape {
   if (!ductapeInstance) {
     ductapeInstance = new Ductape({
-      workspace_id: process.env.DUCTAPE_WORKSPACE_ID!,
-      user_id: process.env.DUCTAPE_USER_ID!,
-      private_key: process.env.DUCTAPE_PRIVATE_KEY!,
+      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
     });
 
     ductapeInstance.actions.config({

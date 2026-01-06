@@ -44,9 +44,7 @@ Every product contains:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Create a product

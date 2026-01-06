@@ -1,0 +1,8 @@
+{
+  "label": "Vector Stores",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Work with Pinecone, Qdrant, Weaviate, and other vector databases for embeddings and similarity search."
+  }
+}

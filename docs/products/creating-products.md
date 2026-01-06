@@ -14,9 +14,7 @@ Create a product with just a name and description:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 const product = await ductape.product.create({
@@ -60,9 +58,7 @@ import Ductape from '@ductape/sdk';
 
 async function createProduct() {
   const ductape = new Ductape({
-    workspace_id: 'workspace-123',
-    user_id: 'user-456',
-    private_key: 'your-private-key',
+    accessKey: 'your-access-key',
   });
 
   // Create the product

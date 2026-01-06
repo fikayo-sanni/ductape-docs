@@ -1,0 +1,8 @@
+{
+  "label": "Graph Databases",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Work with Neo4j and other graph databases for relationship-heavy data."
+  }
+}

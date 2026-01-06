@@ -96,6 +96,103 @@ result.files.forEach(file => {
 });
 ```
 
+### List files by type
+
+Filter files by type to retrieve only specific categories:
+
+```ts
+// Get only images
+const images = await ductape.storage.list({
+  product: 'media',
+  env: 'prd',
+  storage: 'uploads-storage',
+  fileType: 'image',
+  limit: 50,
+});
+
+console.log(`Found ${images.files.length} images`);
+
+// Get only documents
+const docs = await ductape.storage.list({
+  product: 'media',
+  env: 'prd',
+  storage: 'uploads-storage',
+  fileType: 'document',
+  limit: 50,
+});
+
+// Available file types: 'image', 'video', 'audio', 'document', 'archive', 'other'
+```
+
+### List files with pagination
+
+For large storage buckets, use pagination to fetch files in batches:
+
+```ts
+// First page
+const firstPage = await ductape.storage.list({
+  product: 'billing',
+  env: 'prd',
+  storage: 'invoices-storage',
+  prefix: 'invoices/',
+  limit: 25,
+});
+
+console.log(`Loaded ${firstPage.files.length} files`);
+console.log(`Has more: ${firstPage.hasMore}`);
+
+// Load next page if available
+if (firstPage.hasMore && firstPage.nextToken) {
+  const secondPage = await ductape.storage.list({
+    product: 'billing',
+    env: 'prd',
+    storage: 'invoices-storage',
+    prefix: 'invoices/',
+    limit: 25,
+    continuationToken: firstPage.nextToken,
+  });
+
+  console.log(`Loaded ${secondPage.files.length} more files`);
+}
+```
+
+### Get storage statistics
+
+Get comprehensive file counts and sizes without loading all files:
+
+```ts
+const stats = await ductape.storage.stats({
+  product: 'media',
+  env: 'prd',
+  storage: 'media-storage',
+});
+
+console.log(`Total files: ${stats.totalFiles}`);
+console.log(`Total size: ${stats.totalSize} bytes`);
+
+// Breakdown by file type
+console.log(`Images: ${stats.byType.image.count} files (${stats.byType.image.size} bytes)`);
+console.log(`Videos: ${stats.byType.video.count} files (${stats.byType.video.size} bytes)`);
+console.log(`Audio: ${stats.byType.audio.count} files (${stats.byType.audio.size} bytes)`);
+console.log(`Documents: ${stats.byType.document.count} files (${stats.byType.document.size} bytes)`);
+console.log(`Archives: ${stats.byType.archive.count} files (${stats.byType.archive.size} bytes)`);
+console.log(`Other: ${stats.byType.other.count} files (${stats.byType.other.size} bytes)`);
+```
+
+You can also filter stats by prefix:
+
+```ts
+// Get stats for only a specific folder
+const userStats = await ductape.storage.stats({
+  product: 'media',
+  env: 'prd',
+  storage: 'media-storage',
+  prefix: 'users/123/',
+});
+
+console.log(`User has ${userStats.totalFiles} files`);
+```
+
 ### Generate signed URL
 
 ```ts
@@ -257,6 +354,8 @@ interface IListFilesOptions {
   env: string;
   storage: string;
   prefix?: string;
+  /** Filter by file type (image, video, audio, document, archive, other) */
+  fileType?: 'image' | 'video' | 'audio' | 'document' | 'archive' | 'other';
   limit?: number;
   continuationToken?: string;
 }
@@ -300,13 +399,61 @@ interface IDownloadResult {
 
 ```ts
 interface IListFilesResult {
+  success: boolean;
   files: Array<{
     name: string;
     size: number;
     lastModified: Date;
+    url?: string;
+    mimeType?: string;
   }>;
-  continuationToken?: string;
+  /** Total count (when available from provider) */
+  total?: number;
+  /** Current page number */
+  page?: number;
+  /** Items per page */
+  limit?: number;
+  /** Continuation token for next page */
+  nextToken?: string;
+  /** Whether more results are available */
   hasMore: boolean;
+}
+```
+
+### IStorageStatsOptions
+
+```ts
+interface IStorageStatsOptions {
+  product: string;
+  env: string;
+  storage: string;
+  /** Optional prefix to filter files */
+  prefix?: string;
+  /** Optional session token */
+  session?: string;
+  /** Optional cache tag for caching the result */
+  cache?: string;
+}
+```
+
+### IStorageStatsResult
+
+```ts
+interface IStorageStatsResult {
+  success: boolean;
+  /** Total number of files */
+  totalFiles: number;
+  /** Total size in bytes */
+  totalSize: number;
+  /** Breakdown by file type */
+  byType: {
+    image: { count: number; size: number };
+    video: { count: number; size: number };
+    audio: { count: number; size: number };
+    document: { count: number; size: number };
+    archive: { count: number; size: number };
+    other: { count: number; size: number };
+  };
 }
 ```
 

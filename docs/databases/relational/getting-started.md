@@ -33,9 +33,7 @@ Set up the Ductape SDK with your credentials:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  user_id: 'your-user-id',
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 ```
 
@@ -150,9 +148,7 @@ import Ductape from '@ductape/sdk';
 async function main() {
   // Initialize SDK
   const ductape = new Ductape({
-    user_id: 'your-user-id',
-    workspace_id: 'your-workspace-id',
-    private_key: 'your-private-key',
+    accessKey: 'your-access-key',
   });
 
   // Register database (usually done once during setup)

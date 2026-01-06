@@ -15,10 +15,17 @@ Monitor provider availability and detect failures before they impact your users.
 
 Healthchecks periodically probe your providers to verify they're working correctly. When a provider fails, it's marked as unavailable and traffic is routed elsewhere.
 
-## Defining a Healthcheck
+## Quick Start
 
 ```ts
-const healthcheck = await resilience.healthcheck.define({
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+});
+
+// Define a healthcheck using code-first API
+const healthcheck = await ductape.health.define({
   product: 'my-product',
   tag: 'stripe-health',
   name: 'Stripe API Health',
@@ -42,6 +49,8 @@ const healthcheck = await resilience.healthcheck.define({
 
 ## Probe Types
 
+Healthchecks support multiple probe types to monitor different components of your system.
+
 ### App Probe
 
 Check an app action for availability:
@@ -64,27 +73,111 @@ ctx.probe().app('stripe-app').action('health').input({
 
 ### Database Probe
 
-Check database connectivity:
+Test database connectivity by establishing a connection:
 
 ```ts
-// Simple ping
-ctx.probe().database('main-db').action('ping');
-
-// With query input
-ctx.probe().database('main-db').action('query').input({
-  query: 'SELECT 1',
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'postgres-health',
+  name: 'PostgreSQL Health',
+  handler: async (ctx) => {
+    // Test database connection
+    ctx.probe().database('main-db').action('ping');
+    ctx.interval(30000);
+    ctx.retries(2);
+    ctx.env('prd');
+  },
 });
 ```
+
+Database probes use `testConnection()` to verify the database is reachable and responding.
+
+### Graph Probe
+
+Test graph database connectivity:
+
+```ts
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'neo4j-health',
+  name: 'Neo4j Health',
+  handler: async (ctx) => {
+    // Test graph database connection
+    ctx.probe().graph('knowledge-graph').action('ping');
+    ctx.interval(60000);
+    ctx.retries(2);
+    ctx.env('prd');
+  },
+});
+```
+
+Graph probes verify that your graph database (Neo4j, etc.) is accessible and responding.
+
+### Message Broker Probe
+
+Test message broker connectivity:
+
+```ts
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'rabbitmq-health',
+  name: 'RabbitMQ Health',
+  handler: async (ctx) => {
+    // Test broker connection
+    ctx.probe().messageBroker('order-events').action('ping');
+    ctx.interval(30000);
+    ctx.retries(2);
+    ctx.env('prd');
+  },
+});
+```
+
+Message broker probes connect to your broker (RabbitMQ, Kafka, Redis, SQS, etc.) and verify connectivity.
+
+### Storage Probe
+
+Test object storage connectivity:
+
+```ts
+await ductape.health.define({
+  product: 'my-product',
+  tag: 's3-health',
+  name: 'S3 Bucket Health',
+  handler: async (ctx) => {
+    // Test storage connection
+    ctx.probe().storage('main-bucket').action('ping');
+    ctx.interval(60000);
+    ctx.retries(2);
+    ctx.env('prd');
+  },
+});
+```
+
+Storage probes verify that your object storage (AWS S3, Google Cloud Storage, Azure Blob Storage, etc.) is accessible by attempting to list objects.
 
 ### Workflow Probe
 
 Run a workflow to verify end-to-end functionality:
 
 ```ts
-ctx.probe().workflow('health-check-flow').input({
-  test: true,
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'order-workflow-health',
+  name: 'Order Workflow Health',
+  handler: async (ctx) => {
+    // Execute a test workflow
+    ctx.probe().workflow('order-processing').input({
+      test_mode: true,
+      order_id: 'health-check-order',
+    });
+    ctx.interval(300000); // Every 5 minutes
+    ctx.retries(1);
+    ctx.env('prd');
+  },
 });
 ```
+
+Workflow probes execute the specified workflow with the provided input and check if it completes successfully. This is useful for testing end-to-end system functionality.
 
 ## Configuration Options
 
@@ -177,48 +270,64 @@ ctx.onFailure()
 
 ### Create
 
+Create a healthcheck directly with a schema:
+
 ```ts
-await resilience.healthcheck.create(productId, healthcheck);
+await ductape.health.create('my-product', {
+  tag: 'stripe-health',
+  name: 'Stripe API Health',
+  app: 'stripe-app',
+  event: 'health',
+  interval: 30000,
+  retries: 2,
+  envs: [{ slug: 'prd' }, { slug: 'stg' }],
+});
+```
+
+### List
+
+Fetch all healthchecks for a product:
+
+```ts
+const healthchecks = await ductape.health.list('my-product');
 ```
 
 ### Fetch
 
-```ts
-const hc = await resilience.healthcheck.fetch(productId, 'stripe-health');
-```
-
-### Fetch All
+Fetch a specific healthcheck by tag:
 
 ```ts
-const healthchecks = await resilience.healthcheck.fetchAll(productId);
+const hc = await ductape.health.fetch('my-product', 'stripe-health');
 ```
 
 ### Update
 
+Update an existing healthcheck:
+
 ```ts
-await resilience.healthcheck.update(productId, 'stripe-health', {
-  handler: async (ctx) => {
-    ctx.probe().app('stripe-app').action('health');
-    ctx.interval(15000); // More frequent checks
-    ctx.retries(3);
-    ctx.env('prd');
-  },
+await ductape.health.update('my-product', 'stripe-health', {
+  interval: 15000, // More frequent checks
+  retries: 3,
 });
 ```
 
 ### Delete
 
+Remove a healthcheck:
+
 ```ts
-await resilience.healthcheck.delete(productId, 'stripe-health');
+await ductape.health.delete('my-product', 'stripe-health');
 ```
 
 ## Status and Manual Runs
 
 ### Get Status
 
+Check the current cached status of a healthcheck:
+
 ```ts
-const status = await resilience.healthcheck.getStatus({
-  product: productId,
+const status = await ductape.health.status({
+  product: 'my-product',
   env: 'prd',
   tag: 'stripe-health',
 });
@@ -233,13 +342,23 @@ console.log(status);
 // }
 ```
 
-### Manual Run
-
-Trigger a healthcheck immediately:
+The `check` method is an alias for `status`:
 
 ```ts
-const result = await resilience.healthcheck.runNow({
-  product: productId,
+const status = await ductape.health.check({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'stripe-health',
+});
+```
+
+### Manual Run
+
+Trigger a healthcheck immediately. This executes the healthcheck locally using the configured probe and caches the result in Redis:
+
+```ts
+const result = await ductape.health.run({
+  product: 'my-product',
   env: 'prd',
   tag: 'stripe-health',
 });
@@ -247,32 +366,49 @@ const result = await resilience.healthcheck.runNow({
 console.log(result);
 // {
 //   status: 'available',
-//   latency: 142,
-//   checkedAt: '2024-01-15T10:36:00Z'
+//   checkedAt: '2024-01-15T10:35:00Z',
+//   latency: 142
 // }
 ```
+
+The `run` method:
+1. Fetches the healthcheck configuration
+2. Executes the configured probe based on type:
+   - **App**: Executes the app action
+   - **Database**: Tests database connection
+   - **Graph**: Tests graph database connection
+   - **Message Broker**: Tests broker connection (connect/disconnect)
+   - **Storage**: Tests object storage connectivity (list objects)
+   - **Workflow**: Executes the workflow and checks completion status
+3. Caches the result in Redis for status tracking
+4. Triggers failure notifications if configured and the check fails
+5. Returns the execution result
 
 ## Data References
 
 Use dynamic values in your healthcheck configuration:
 
 ```ts
-handler: async (ctx) => {
-  ctx.probe().app('stripe-app').action('health');
-  ctx.interval(30000);
-  ctx.retries(2);
-  ctx.env('prd', {
-    input: {
-      headers: {
-        'Authorization': ctx.auth('stripe-auth'),
-      },
-      body: {
-        api_key: ctx.token('stripe-api-key'),
-        endpoint: ctx.variable('stripe-app', 'health_endpoint'),
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'stripe-health',
+  handler: async (ctx) => {
+    ctx.probe().app('stripe-app').action('health');
+    ctx.interval(30000);
+    ctx.retries(2);
+    ctx.env('prd', {
+      input: {
+        headers: {
+          'Authorization': ctx.auth('stripe-auth'),
+        },
+        body: {
+          api_key: ctx.token('stripe-api-key'),
+          endpoint: ctx.variable('stripe-app', 'health_endpoint'),
+        }
       }
-    }
-  });
-}
+    });
+  },
+});
 ```
 
 ### Available References
@@ -281,3 +417,148 @@ handler: async (ctx) => {
 - `ctx.token(key)` - Reference token values
 - `ctx.variable(app, key)` - Reference app variables
 - `ctx.constant(app, key)` - Reference app constants
+
+:::caution Handling Secrets
+
+All secrets used in healthcheck configurations must be provided using the `$Secret{}` reference syntax. Never hardcode sensitive values like API keys, tokens, or credentials directly in your healthcheck configuration.
+
+```ts
+// ✅ Correct - Use $Secret{} for sensitive values
+ctx.env('prd', {
+  input: {
+    headers: {
+      'Authorization': '$Secret{stripe-api-key}',
+      'X-API-Key': '$Secret{internal-api-key}',
+    },
+    body: {
+      api_key: '$Secret{stripe-secret}',
+    }
+  }
+});
+
+// ❌ Incorrect - Never hardcode secrets
+ctx.env('prd', {
+  input: {
+    headers: {
+      'Authorization': 'sk_live_abc123...', // Don't do this!
+    }
+  }
+});
+```
+
+The `$Secret{}` syntax ensures that:
+- Secrets are resolved at runtime from your secure secret store
+- Sensitive values are never exposed in logs or audit trails
+- Different environments can use different secret values automatically
+
+:::
+
+## OAuth Auto-Refresh for App Probes
+
+For app healthchecks that use OAuth-protected APIs, you can configure automatic token refresh using `ductape.actions.oauth()`. This ensures your healthchecks continue working even when access tokens expire.
+
+### Setting Up OAuth
+
+Configure OAuth once, and all app actions (including healthcheck probes) will automatically use refreshed tokens:
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+});
+
+// Set up OAuth with automatic refresh
+await ductape.actions.oauth({
+  product: 'my-product',
+  app: 'salesforce',
+  env: 'prd',
+  tokens: {
+    accessToken: initialAccessToken,
+    refreshToken: initialRefreshToken,
+  },
+  expiresAt: tokenExpiry, // Unix timestamp in ms
+  // Or use expiresIn for duration in seconds:
+  // expiresIn: 3600, // 1 hour
+
+  // Build credentials from tokens
+  credentials: (tokens) => ({
+    'headers:Authorization': `Bearer ${tokens.accessToken}`,
+  }),
+
+  // Called automatically when tokens expire
+  onExpiry: async (currentTokens) => {
+    // Use ductape.actions.run to call your refresh token endpoint
+    const response = await ductape.actions.run({
+      product: 'my-product',
+      app: 'salesforce',
+      env: 'prd',
+      action: 'refresh-token',
+      input: {
+        'body:grant_type': 'refresh_token',
+        'body:refresh_token': currentTokens.refreshToken,
+      },
+    });
+
+    return {
+      tokens: {
+        accessToken: response.access_token,
+        refreshToken: response.refresh_token || currentTokens.refreshToken,
+      },
+      expiresIn: response.expires_in, // seconds until expiry
+    };
+  },
+
+  // Optional: refresh 1 minute before actual expiry (default)
+  refreshBuffer: 60000,
+});
+```
+
+### Healthcheck with OAuth
+
+Once OAuth is configured, your app healthchecks automatically use the refreshed tokens:
+
+```ts
+// Define a healthcheck for an OAuth-protected API
+await ductape.health.define({
+  product: 'my-product',
+  tag: 'salesforce-health',
+  name: 'Salesforce API Health',
+  handler: async (ctx) => {
+    // This action will automatically include OAuth credentials
+    // and refresh them if expired
+    ctx.probe().app('salesforce').action('health-check');
+    ctx.interval(60000); // Check every minute
+    ctx.retries(2);
+    ctx.env('prd');
+  },
+});
+
+// The healthcheck will:
+// 1. Check if OAuth tokens are expired (with buffer)
+// 2. Automatically refresh tokens if needed via onExpiry callback
+// 3. Execute the health-check action with fresh credentials
+// 4. Cache the result and trigger notifications on failure
+```
+
+### OAuth Configuration Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `product` | `string` | Product tag |
+| `app` | `string` | App tag |
+| `env` | `string` | Environment slug |
+| `tokens` | `object` | Initial tokens (`accessToken`, `refreshToken`, etc.) |
+| `expiresAt` | `number` | Token expiration timestamp (Unix ms) |
+| `expiresIn` | `number` | Alternative: expiration duration in seconds |
+| `credentials` | `function` | Builds credentials object from tokens |
+| `onExpiry` | `function` | Async callback to refresh tokens |
+| `refreshBuffer` | `number` | Refresh tokens this many ms before expiry (default: 60000) |
+
+### How Token Refresh Works
+
+1. **Before each action**: The SDK checks if tokens are within the `refreshBuffer` of expiry
+2. **Automatic refresh**: If expired, `onExpiry` is called to get new tokens
+3. **Concurrent protection**: Multiple simultaneous requests share the same refresh operation
+4. **Secure storage**: Tokens are stored in your secrets service using `$Secret{}` references
+5. **Credentials injection**: Fresh credentials are automatically merged into action inputs

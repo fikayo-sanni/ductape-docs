@@ -16,9 +16,7 @@ Product environments allow you to maintain separate configurations for developme
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 await ductape.product.init('my-product');

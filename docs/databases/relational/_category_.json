@@ -1,0 +1,8 @@
+{
+  "label": "SQL & NoSQL",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Work with PostgreSQL, MySQL, MongoDB, DynamoDB, and other SQL and NoSQL databases."
+  }
+}

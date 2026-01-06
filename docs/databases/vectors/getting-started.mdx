@@ -32,9 +32,7 @@ npm install @ductape/sdk
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  user_id: 'your-user-id',
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 ```
 
@@ -49,7 +47,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Product Embeddings',
   tag: 'product-vectors',
-  dbType: VectorDBType.PINECONE,
+  type: VectorDBType.PINECONE,
   dimensions: 1536,  // Must match your embedding model
   metric: DistanceMetric.COSINE,
   envs: [
@@ -178,7 +176,7 @@ async function main() {
     product: 'my-product',
     name: 'FAQ Embeddings',
     tag: 'faq-vectors',
-    dbType: VectorDBType.QDRANT,
+    type: VectorDBType.QDRANT,
     dimensions: 1536,
     metric: DistanceMetric.COSINE,
     envs: [
@@ -261,7 +259,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Pinecone Vectors',
   tag: 'pinecone-db',
-  dbType: VectorDBType.PINECONE,
+  type: VectorDBType.PINECONE,
   dimensions: 1536,
   metric: DistanceMetric.COSINE,
   envs: [
@@ -285,7 +283,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Qdrant Vectors',
   tag: 'qdrant-db',
-  dbType: VectorDBType.QDRANT,
+  type: VectorDBType.QDRANT,
   dimensions: 1536,
   metric: DistanceMetric.COSINE,
   envs: [
@@ -313,7 +311,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Weaviate Vectors',
   tag: 'weaviate-db',
-  dbType: VectorDBType.WEAVIATE,
+  type: VectorDBType.WEAVIATE,
   dimensions: 1536,
   metric: DistanceMetric.COSINE,
   envs: [
@@ -336,7 +334,7 @@ await ductape.vector.create({
   product: 'my-product',
   name: 'Memory Vectors',
   tag: 'memory-db',
-  dbType: VectorDBType.MEMORY,
+  type: VectorDBType.MEMORY,
   dimensions: 1536,
   metric: DistanceMetric.COSINE,
   envs: [

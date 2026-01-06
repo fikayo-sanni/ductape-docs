@@ -196,8 +196,8 @@ const result = await ductape.graph.findRelationships({
   startNodeId: customerId,
   where: {
     status: 'completed',
-    finalPrice: { $GT: 100 },
-    purchasedAt: { $GTE: new Date('2024-01-01') },
+    finalPrice: { $gt: 100 },
+    purchasedAt: { $gte: new Date('2024-01-01') },
   },
 });
 ```
@@ -271,7 +271,7 @@ const result = await ductape.graph.updateRelationship({
   type: 'PURCHASED',
   where: {
     status: 'pending',
-    purchasedAt: { $LT: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    purchasedAt: { $lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   },
   properties: {
     status: 'expired',
@@ -324,7 +324,7 @@ const result = await ductape.graph.deleteRelationship({
 const result = await ductape.graph.deleteRelationship({
   type: 'TEMP_LINK',
   where: {
-    createdAt: { $LT: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
   },
 });
 

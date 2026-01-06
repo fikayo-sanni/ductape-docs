@@ -15,9 +15,7 @@ The Ductape SDK provides direct access to processor methods through dedicated na
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Run operations immediately
@@ -82,9 +80,7 @@ The SDK exposes methods for managing different types of product resources:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 // Run a product action immediately

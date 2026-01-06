@@ -12,11 +12,11 @@ Learn how to perform calculations on your data using Ductape's aggregation API. 
 const stats = await ductape.database.aggregate({
   table: 'orders',
   operations: {
-    total_orders: { $COUNT: '*' },
-    total_revenue: { $SUM: 'total' },
-    avg_order_value: { $AVG: 'total' },
-    min_order: { $MIN: 'total' },
-    max_order: { $MAX: 'total' },
+    total_orders: { $count: '*' },
+    total_revenue: { $sum: 'total' },
+    avg_order_value: { $avg: 'total' },
+    min_order: { $min: 'total' },
+    max_order: { $max: 'total' },
   },
   where: { status: 'completed' },
 });
@@ -28,11 +28,11 @@ console.log('Average Order:', stats.avg_order_value);
 
 ## Aggregation Syntax
 
-Ductape uses a clean, object-based syntax for aggregations:
+Ductape uses a clean, object-based syntax for aggregations with **lowercase operators** following the Mongoose/MongoDB convention:
 
 ```ts
 {
-  alias_name: { $FUNCTION: 'column_name' }
+  alias_name: { $function: 'column_name' }
 }
 ```
 
@@ -40,14 +40,18 @@ Ductape uses a clean, object-based syntax for aggregations:
 
 | Function | Description | Example |
 |----------|-------------|---------|
-| `$COUNT` | Count records | `{ total: { $COUNT: '*' } }` |
-| `$SUM` | Sum of values | `{ revenue: { $SUM: 'amount' } }` |
-| `$AVG` | Average value | `{ avg_price: { $AVG: 'price' } }` |
-| `$MIN` | Minimum value | `{ lowest: { $MIN: 'price' } }` |
-| `$MAX` | Maximum value | `{ highest: { $MAX: 'price' } }` |
-| `$STRING_AGG` | Concatenate strings (PostgreSQL) | `{ names: { $STRING_AGG: 'name' } }` |
-| `$GROUP_CONCAT` | Concatenate strings (MySQL) | `{ names: { $GROUP_CONCAT: 'name' } }` |
-| `$ARRAY_AGG` | Collect into array | `{ ids: { $ARRAY_AGG: 'id' } }` |
+| `$count` | Count records | `{ total: { $count: '*' } }` |
+| `$sum` | Sum of values | `{ revenue: { $sum: 'amount' } }` |
+| `$avg` | Average value | `{ avg_price: { $avg: 'price' } }` |
+| `$min` | Minimum value | `{ lowest: { $min: 'price' } }` |
+| `$max` | Maximum value | `{ highest: { $max: 'price' } }` |
+| `$stringAgg` | Concatenate strings (PostgreSQL) | `{ names: { $stringAgg: { column: 'name', separator: ', ' } } }` |
+| `$groupConcat` | Concatenate strings (MySQL) | `{ names: { $groupConcat: { column: 'name', separator: ', ' } } }` |
+| `$arrayAgg` | Collect into array | `{ ids: { $arrayAgg: 'id' } }` |
+
+:::tip Backwards Compatibility
+Uppercase operators (e.g., `$COUNT`, `$SUM`) are still supported for backwards compatibility, but lowercase is recommended.
+:::
 
 ## Count
 
@@ -114,13 +118,11 @@ const monthlyRevenue = await ductape.database.sum({
   table: 'orders',
   column: 'total',
   where: {
-    $AND: {
-      status: 'completed',
-      created_at: {
-        $GTE: new Date('2024-01-01'),
-        $LT: new Date('2024-02-01'),
-      },
-    },
+    $and: [
+      { status: 'completed' },
+      { created_at: { $gte: new Date('2024-01-01') } },
+      { created_at: { $lt: new Date('2024-02-01') } },
+    ],
   },
 });
 ```
@@ -169,11 +171,11 @@ Perform multiple aggregations in a single query:
 const stats = await ductape.database.aggregate({
   table: 'orders',
   operations: {
-    total_orders: { $COUNT: '*' },
-    total_revenue: { $SUM: 'total' },
-    avg_order_value: { $AVG: 'total' },
-    min_order: { $MIN: 'total' },
-    max_order: { $MAX: 'total' },
+    total_orders: { $count: '*' },
+    total_revenue: { $sum: 'total' },
+    avg_order_value: { $avg: 'total' },
+    min_order: { $min: 'total' },
+    max_order: { $max: 'total' },
   },
   where: { status: 'completed' },
 });
@@ -199,8 +201,8 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['status'],
   aggregate: {
-    count: { $COUNT: '*' },
-    total: { $SUM: 'total' },
+    count: { $count: '*' },
+    total: { $sum: 'total' },
   },
 });
 
@@ -220,9 +222,9 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['status', 'payment_method'],
   aggregate: {
-    total_orders: { $COUNT: '*' },
-    total_amount: { $SUM: 'total' },
-    avg_amount: { $AVG: 'total' },
+    total_orders: { $count: '*' },
+    total_amount: { $sum: 'total' },
+    avg_amount: { $avg: 'total' },
   },
 });
 
@@ -242,11 +244,11 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['category'],
   aggregate: {
-    count: { $COUNT: '*' },
-    revenue: { $SUM: 'total' },
+    count: { $count: '*' },
+    revenue: { $sum: 'total' },
   },
   where: {
-    created_at: { $GTE: new Date('2024-01-01') },
+    created_at: { $gte: new Date('2024-01-01') },
     status: 'completed',
   },
 });
@@ -261,12 +263,12 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['customer_id'],
   aggregate: {
-    order_count: { $COUNT: '*' },
-    total_spent: { $SUM: 'total' },
+    order_count: { $count: '*' },
+    total_spent: { $sum: 'total' },
   },
   having: {
-    order_count: { $GT: 10 },      // Customers with more than 10 orders
-    total_spent: { $GTE: 1000 },   // Who spent at least $1000
+    order_count: { $gt: 10 },      // Customers with more than 10 orders
+    total_spent: { $gte: 1000 },   // Who spent at least $1000
   },
 });
 ```
@@ -278,8 +280,8 @@ const result = await ductape.database.groupBy({
   table: 'products',
   groupBy: ['category'],
   aggregate: {
-    product_count: { $COUNT: '*' },
-    avg_price: { $AVG: 'price' },
+    product_count: { $count: '*' },
+    avg_price: { $avg: 'price' },
   },
   orderBy: { column: 'product_count', order: 'DESC' },
   limit: 10, // Top 10 categories
@@ -296,8 +298,8 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['customer_id'],
   aggregate: {
-    order_ids: { $STRING_AGG: 'id' },    // "1, 2, 3, 4"
-    products: { $ARRAY_AGG: 'product_id' }, // [1, 2, 3, 4]
+    order_ids: { $stringAgg: { column: 'id', separator: ', ' } },    // "1, 2, 3, 4"
+    products: { $arrayAgg: 'product_id' }, // [1, 2, 3, 4]
   },
 });
 ```
@@ -310,7 +312,7 @@ const result = await ductape.database.groupBy({
   table: 'orders',
   groupBy: ['customer_id'],
   aggregate: {
-    product_names: { $GROUP_CONCAT: 'product_name' }, // "Product A,Product B,Product C"
+    product_names: { $groupConcat: { column: 'product_name', separator: ',' } }, // "Product A,Product B,Product C"
   },
 });
 ```
@@ -318,13 +320,13 @@ const result = await ductape.database.groupBy({
 ### MongoDB
 
 ```ts
-// Push to array (equivalent to $ARRAY_AGG)
+// Push to array (equivalent to $arrayAgg)
 const result = await ductape.database.groupBy({
   table: 'orders', // Collection name
   groupBy: ['customer_id'],
   aggregate: {
-    order_ids: { $ARRAY_AGG: '_id' },
-    total_spent: { $SUM: 'total' },
+    order_ids: { $arrayAgg: '_id' },
+    total_spent: { $sum: 'total' },
   },
 });
 ```
@@ -339,19 +341,19 @@ async function getDashboardStats() {
     ductape.database.aggregate({
       table: 'orders',
       operations: {
-        total_orders: { $COUNT: '*' },
-        total_revenue: { $SUM: 'total' },
-        avg_order: { $AVG: 'total' },
+        total_orders: { $count: '*' },
+        total_revenue: { $sum: 'total' },
+        avg_order: { $avg: 'total' },
       },
       where: {
-        created_at: { $GTE: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        created_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
       },
     }),
 
     ductape.database.count({
       table: 'users',
       where: {
-        created_at: { $GTE: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        created_at: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
       },
     }),
 
@@ -377,12 +379,12 @@ async function getSalesByCategory(startDate: Date, endDate: Date) {
     table: 'order_items',
     groupBy: ['category'],
     aggregate: {
-      units_sold: { $SUM: 'quantity' },
-      revenue: { $SUM: 'total' },
-      avg_price: { $AVG: 'unit_price' },
+      units_sold: { $sum: 'quantity' },
+      revenue: { $sum: 'total' },
+      avg_price: { $avg: 'unit_price' },
     },
     where: {
-      created_at: { $BETWEEN: [startDate, endDate] },
+      created_at: { $between: [startDate, endDate] },
     },
     orderBy: { column: 'revenue', order: 'DESC' },
   });
@@ -397,11 +399,11 @@ async function getTopCustomers(limit: number = 10) {
     table: 'orders',
     groupBy: ['customer_id'],
     aggregate: {
-      order_count: { $COUNT: '*' },
-      total_spent: { $SUM: 'total' },
-      avg_order: { $AVG: 'total' },
-      first_order: { $MIN: 'created_at' },
-      last_order: { $MAX: 'created_at' },
+      order_count: { $count: '*' },
+      total_spent: { $sum: 'total' },
+      avg_order: { $avg: 'total' },
+      first_order: { $min: 'created_at' },
+      last_order: { $max: 'created_at' },
     },
     where: { status: 'completed' },
     orderBy: { column: 'total_spent', order: 'DESC' },

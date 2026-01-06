@@ -25,9 +25,7 @@ Resilience in Ductape helps you build fault-tolerant integrations by:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  private_key: 'your-private-key',
-  user_id: 'your-user-id',
+  accessKey: 'your-access-key',
 });
 ```
 
@@ -101,10 +99,36 @@ const fallback = await resilience.fallback.define({
 
 ## Running Resilience Operations
 
+### Run a Healthcheck
+
+Manually trigger a healthcheck and cache the result:
+
+```ts
+const result = await ductape.health.run({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'stripe-health',
+});
+
+console.log(result.status); // 'available' or 'unavailable'
+```
+
+### Check Health Status
+
+Get the current cached status of a healthcheck:
+
+```ts
+const status = await ductape.health.status({
+  product: 'my-product',
+  env: 'prd',
+  tag: 'stripe-health',
+});
+```
+
 ### Run a Quota
 
 ```ts
-const result = await resilience.quota.run({
+const result = await ductape.quota.run({
   product: 'my-product',
   env: 'prd',
   tag: 'sms-quota',
@@ -115,7 +139,7 @@ const result = await resilience.quota.run({
 ### Run a Fallback
 
 ```ts
-const paymentResult = await resilience.fallback.run({
+const paymentResult = await ductape.fallback.run({
   product: 'my-product',
   env: 'prd',
   tag: 'payment-fallback',

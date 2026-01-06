@@ -12,11 +12,7 @@ Sessions let you track user behavior and manage authentication across your produ
 import { SessionsService } from '@ductape/sdk';
 
 const sessions = new SessionsService({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 // Create a session
@@ -40,11 +36,7 @@ You can also use sessions through the main Ductape class:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 // Start a session

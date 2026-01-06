@@ -1,181 +1,359 @@
 ---
 sidebar_position: 1
-sidebar_label: Manage Logs
+sidebar_label: Overview
 ---
 
 import PreviewBanner from '@site/src/components/PreviewBanner';
 
 <PreviewBanner />
 
-# Managing Logs
+# Logs
 
-The Logs module provides functionality to fetch and analyze logs for both apps and products within the Ductape platform.
+The Logs module provides comprehensive logging and analytics for your applications and products within the Ductape platform. Track API calls, monitor performance, and analyze usage patterns across all your services.
+
+## When to Use Logs
+
+Use **Logs** when you need:
+
+- **Usage Analytics** - Track how your APIs and features are being used
+- **Error Monitoring** - Identify and debug failures in your integrations
+- **Performance Insights** - Monitor response times and throughput
+- **Audit Trails** - Keep records of all actions for compliance
+- **Trend Analysis** - Understand usage patterns over time
+
+---
+
+## Quick Example
+
+```typescript
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+});
+
+// Initialize with a product tag
+await ductape.logs.init('my-product');
+
+// Fetch recent logs
+const logs = await ductape.logs.fetch({
+  component: 'product',
+  type: 'actions',
+  groupBy: 'day',
+  limit: 20,
+});
+
+console.log('Metrics:', logs.metrics);
+console.log('Weekly Trends:', logs.weeklyMetrics);
+console.log('Log Entries:', logs.logs.data);
+```
+
+---
 
 ## Initialization
 
-Before fetching logs, initialize the Logs service with either an AppTag, ProductTag, or both:
+Before fetching logs, initialize the Logs service with your product or app tag:
 
-```javascript
+```typescript
 // Initialize with a product tag
-await ductape.logs.init("ductape_demo_tapes:test_product");
-````
+await ductape.logs.init('my-product');
+
+// Or initialize with an app tag
+await ductape.logs.init('my-app');
+```
+
+---
 
 ## Fetching Logs
 
-The `fetch` method retrieves logs based on the provided query parameters.
+The `fetch` method retrieves logs based on query parameters. You can fetch logs for either apps or products.
 
-### Parameters
+### Basic Usage
 
-| Parameter   | Required | Type                   | Description                                                                    |
-| ----------- | -------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `component` | Yes      | `'app'` or `'product'` | Specifies the component type.                                                  |
-| `type`      | No       | `string`               | Type of analysis (e.g., `'apps'`, `'process'`, `'feature'`, `'integrations'`). |
-| `groupBy`   | No       | `string`               | Time period for grouping (e.g., `'day'`, `'week'`, `'month'`, `'year'`).       |
-| `search`    | No       | `string`               | Search term for filtering logs.                                                |
-| `page`      | No       | `number`               | Page number for pagination (≥ 1).                                              |
-| `limit`     | No       | `number`               | Number of items per page (≥ 1).                                                |
-| `status`    | No       | `string`               | Filter by status (`'success'`, `'processing'`, `'fail'`).                      |
+```typescript
+// Fetch product logs
+const productLogs = await ductape.logs.fetch({
+  component: 'product',
+  type: 'database',
+  status: 'success',
+  limit: 50,
+});
 
-#### Additional fields for `component='app'`
-
-| Parameter | Required | Type     | Description                                        |
-| --------- | -------- | -------- | -------------------------------------------------- |
-| `tag`     | No       | `string` | Tag identifier (only valid when `type='actions'`). |
-| `env`     | No       | `string` | Environment filter.                                |
-| `name`    | No       | `string` | Name filter.                                       |
-| `action`  | No       | `string` | Specific action filter.                            |
-
-#### Additional fields for `component='product'`
-
-| Parameter | Required | Type     | Description             |
-| --------- | -------- | -------- | ----------------------- |
-| `env`     | No       | `string` | Environment filter.     |
-| `name`    | No       | `string` | Name filter.            |
-| `action`  | No       | `string` | Specific action filter. |
-
-## Examples
-
-### Fetch App Logs
-
-```javascript
-const appLogs = await logs.fetch({
+// Fetch app logs
+const appLogs = await ductape.logs.fetch({
   component: 'app',
   type: 'actions',
   groupBy: 'day',
-  limit: 20
+  limit: 20,
 });
 ```
 
-### Fetch Product Logs
+---
 
-```javascript
-const productLogs = await logs.fetch({
+## Query Parameters
+
+### Common Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `component` | `'app'` \| `'product'` | Yes | Log source type |
+| `type` | string | No | Analysis type (see below) |
+| `groupBy` | `'day'` \| `'week'` \| `'month'` \| `'year'` | No | Time grouping for aggregations |
+| `search` | string | No | Search term for filtering |
+| `page` | number | No | Page number (starts at 1) |
+| `limit` | number | No | Results per page |
+| `status` | `'success'` \| `'processing'` \| `'fail'` | No | Filter by status |
+
+### Log Types
+
+| Type | Description |
+|------|-------------|
+| `actions` | API action invocations |
+| `database` | Database operations |
+| `apps` | App-level activities |
+| `process` | Background processes |
+| `feature` | Feature usage |
+| `integrations` | Third-party integrations |
+
+### App-Specific Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `tag` | string | Tag identifier (valid when `type='actions'`) |
+| `env` | string | Environment filter |
+| `name` | string | Name filter |
+| `action` | string | Specific action filter |
+
+### Product-Specific Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `env` | string | Environment filter |
+| `name` | string | Name filter |
+| `action` | string | Specific action filter |
+
+---
+
+## Response Structure
+
+### App Logs Response
+
+```typescript
+interface AppLogsResponse {
+  // Summary metrics
+  metrics: {
+    totalActions: number;
+    totalEnvironments: number;
+    totalAuthorizations: number;
+  };
+
+  // Week-over-week comparisons
+  weeklyMetrics: {
+    totalProductsConnected: TrendMetric;
+    totalFeaturesUsingAction: TrendMetric;
+    errors: TrendMetricWithPercentage;
+  };
+
+  // Time-series data for charts
+  usageData: {
+    requestsOverTime: TimeSeriesData[];
+    successOverTime: TimeSeriesData[];
+    failuresOverTime: TimeSeriesData[];
+  };
+
+  // Paginated log entries
+  logs: {
+    metadata: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+    data: LogEntry[];
+  };
+}
+
+interface TrendMetric {
+  current: number;
+  previous: number;
+  difference: number;
+  trend: '>' | '<' | '=';
+}
+
+interface TrendMetricWithPercentage extends TrendMetric {
+  percentageChange: string;
+}
+```
+
+### Product Logs Response
+
+```typescript
+interface ProductLogsResponse {
+  // Summary metrics
+  metrics: {
+    totalApps: number;
+    totalDatabases: number;
+    totalFeatures: number;
+  };
+
+  // Week-over-week comparisons
+  weeklyMetrics: {
+    totalActionsCalled: TrendMetric;
+    totalActiveIssues: TrendMetric;
+    errors: TrendMetricWithPercentage;
+  };
+
+  // Time-series data for charts
+  usageData: {
+    requestsOverTime: TimeSeriesData[];
+    successOverTime: TimeSeriesData[];
+    failuresOverTime: TimeSeriesData[];
+  };
+
+  // Paginated log entries
+  logs: {
+    metadata: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+    data: LogEntry[];
+  };
+}
+```
+
+---
+
+## Examples
+
+### Monitor Error Rates
+
+Track errors across your product:
+
+```typescript
+const errorLogs = await ductape.logs.fetch({
   component: 'product',
-  type: 'database',
-  status: 'success'
+  status: 'fail',
+  groupBy: 'day',
+  limit: 100,
+});
+
+// Check error trend
+const { errors } = errorLogs.weeklyMetrics;
+if (errors.trend === '>') {
+  console.log(`Errors increased by ${errors.percentageChange}`);
+}
+
+// Get error details
+errorLogs.logs.data.forEach(log => {
+  console.log(`Error: ${log.message} at ${log.timestamp}`);
 });
 ```
 
-## Response Structures
+### Search Logs
 
-### App Response Structure
+Find specific log entries:
 
-```javascript
-{
-  metrics: {
-    totalActions: number,
-    totalEnvironments: number,
-    totalAuthorizations: number
-  },
-  weeklyMetrics: {
-    totalProductsConnected: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: '>' | '<' | '='
-    },
-    totalFeaturesUsingAction: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: string
-    },
-    errors: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: '>' | '<' | '=',
-      percentageChange: string
-    }
-  },
-  usageData: {
-    requestsOverTime: Array<...>,
-    successOverTime: Array<...>,
-    failuresOverTime: Array<...>
-  },
-  logs: {
-    metadata: {
-      total: number,
-      page: number,
-      limit: number,
-      totalPages: number
-    },
-    data: Array<LogEntry>
+```typescript
+const searchResults = await ductape.logs.fetch({
+  component: 'product',
+  search: 'payment failed',
+  type: 'integrations',
+  limit: 50,
+});
+```
+
+### Paginated Results
+
+Fetch logs with pagination:
+
+```typescript
+async function getAllLogs(component: 'app' | 'product') {
+  const allLogs = [];
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const result = await ductape.logs.fetch({
+      component,
+      page,
+      limit: 100,
+    });
+
+    allLogs.push(...result.logs.data);
+    hasMore = page < result.logs.metadata.totalPages;
+    page++;
   }
+
+  return allLogs;
 }
 ```
 
-### Product Response Structure
+### Filter by Environment
 
-```javascript
-{
-  metrics: {
-    totalApps: number,
-    totalDatabases: number,
-    totalFeatures: number
-  },
-  weeklyMetrics: {
-    totalActionsCalled: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: '>' | '<' | '='
-    },
-    totalActiveIssues: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: string
-    },
-    errors: {
-      current: number,
-      previous: number,
-      difference: number,
-      trend: '>' | '<' | '=',
-      percentageChange: string
-    }
-  },
-  usageData: {
-    requestsOverTime: Array<...>,
-    successOverTime: Array<...>,
-    failuresOverTime: Array<...>
-  },
-  logs: {
-    metadata: {
-      total: number,
-      page: number,
-      limit: number,
-      totalPages: number
-    },
-    data: Array<LogEntry>
-  }
-}
+Monitor specific environments:
+
+```typescript
+const prodLogs = await ductape.logs.fetch({
+  component: 'product',
+  env: 'prd',
+  status: 'fail',
+  groupBy: 'week',
+});
+
+console.log('Production errors this week:', prodLogs.weeklyMetrics.errors.current);
 ```
+
+### Dashboard Analytics
+
+Get data for a monitoring dashboard:
+
+```typescript
+const analytics = await ductape.logs.fetch({
+  component: 'product',
+  groupBy: 'day',
+});
+
+// Display metrics
+console.log('Connected Apps:', analytics.metrics.totalApps);
+console.log('Active Databases:', analytics.metrics.totalDatabases);
+console.log('Features in Use:', analytics.metrics.totalFeatures);
+
+// Plot time-series
+analytics.usageData.requestsOverTime.forEach(point => {
+  console.log(`${point.date}: ${point.count} requests`);
+});
+```
+
+---
 
 ## Error Handling
 
-The `fetch` method may throw errors in the following cases:
+The `fetch` method throws errors in these cases:
 
-* If the Logs service is not initialized.
-* If required parameters are missing or invalid.
-* If the API request fails.
+```typescript
+try {
+  const logs = await ductape.logs.fetch({
+    component: 'product',
+    type: 'actions',
+  });
+} catch (error) {
+  if (error.message.includes('not initialized')) {
+    // Call init() first
+    await ductape.logs.init('my-product');
+  } else if (error.message.includes('invalid parameter')) {
+    // Check parameter values
+  } else {
+    // API or network error
+    console.error('Failed to fetch logs:', error);
+  }
+}
+```
+
+---
+
+## See Also
+
+- [Sessions](../sessions/overview) - User session tracking
+- [Resilience](../resilience/overview) - Health checks and monitoring

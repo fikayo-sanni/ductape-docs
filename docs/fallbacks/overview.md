@@ -32,9 +32,7 @@ import Ductape from '@ductape/sdk';
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 
@@ -303,9 +301,7 @@ import Ductape from '@ductape/sdk';
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  user_id: 'your-user-id',
-  private_key: 'your-private-key',
+  accessKey: 'your-access-key',
 });
 
 await ductape.product.init('messaging-app');

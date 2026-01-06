@@ -18,9 +18,7 @@ Before managing secrets, ensure you have:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your_workspace_id',
-  user_id: 'your_user_id',
-  private_key: 'your_private_key'
+  accessKey: 'your-access-key',
 });
 
 await ductape.init();

@@ -12,11 +12,7 @@ Configure cloud storage providers and perform file operations across AWS S3, Goo
 import { StorageService } from '@ductape/sdk';
 
 const storage = new StorageService({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 // Upload a file
@@ -40,11 +36,7 @@ You can also use storage through the main Ductape class:
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace-id',
-  public_key: 'your-public-key',
-  user_id: 'your-user-id',
-  token: 'your-token',
-  env_type: 'prd',
+  accessKey: 'your-access-key',
 });
 
 // Upload a file
@@ -136,20 +128,96 @@ const result = await storage.list({
   env: 'production',
   storage: 'main-storage',
   prefix: 'documents/',        // Optional: filter by prefix
-  limit: 100,                  // Optional: max results
+  fileType: 'image',           // Optional: filter by type (image, video, audio, document, archive, other)
+  limit: 100,                  // Optional: max results (default: 100, max: 1000)
   continuationToken: '...',    // Optional: for pagination
 });
 
 // Returns
 {
+  success: true,
   files: [
-    { name: 'documents/report.pdf', size: 1024000, lastModified: Date },
-    { name: 'documents/invoice.pdf', size: 512000, lastModified: Date },
+    { name: 'documents/report.pdf', size: 1024000, lastModified: Date, url: '...', mimeType: 'application/pdf' },
+    { name: 'documents/invoice.pdf', size: 512000, lastModified: Date, url: '...', mimeType: 'application/pdf' },
   ],
-  continuationToken: '...',    // For next page (if more results)
-  hasMore: true
+  limit: 100,
+  nextToken: '...',            // Continuation token for next page
+  hasMore: true                // Whether more results are available
 }
 ```
+
+#### File Type Filtering
+
+Filter files by type to retrieve only specific categories:
+
+```ts
+// Get only images
+const images = await storage.list({
+  product: 'my-product',
+  env: 'production',
+  storage: 'media-storage',
+  fileType: 'image',
+  limit: 50,
+});
+
+// Available file types: 'image', 'video', 'audio', 'document', 'archive', 'other'
+```
+
+#### Pagination Example
+
+For buckets with many files, use cursor-based pagination:
+
+```ts
+async function getAllFiles(product: string, env: string, storageTag: string) {
+  const allFiles = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const result = await storage.list({
+      product,
+      env,
+      storage: storageTag,
+      limit: 100,
+      continuationToken,
+    });
+
+    allFiles.push(...result.files);
+    continuationToken = result.nextToken;
+  } while (continuationToken);
+
+  return allFiles;
+}
+```
+
+### Get Storage Statistics
+
+Get comprehensive file counts and sizes without loading all files:
+
+```ts
+const stats = await storage.stats({
+  product: 'my-product',
+  env: 'production',
+  storage: 'main-storage',
+  prefix: 'documents/',     // Optional: filter by prefix
+});
+
+// Returns
+{
+  success: true,
+  totalFiles: 1250,
+  totalSize: 5368709120,    // 5 GB in bytes
+  byType: {
+    image: { count: 500, size: 2147483648 },
+    video: { count: 50, size: 2684354560 },
+    audio: { count: 100, size: 268435456 },
+    document: { count: 400, size: 214748364 },
+    archive: { count: 50, size: 53687091 },
+    other: { count: 150, size: 0 }
+  }
+}
+```
+
+The `stats()` method efficiently iterates through all files using provider-native pagination (up to 1000 files per API call) and categorizes them by extension. It only retrieves metadata, not file contents.
 
 ### Generate Signed URL
 
@@ -283,9 +351,11 @@ const provider = await ductape.storage.fetch('app-storage');
 | `upload(options)` | Upload a file to cloud storage |
 | `download(options)` | Download a file from cloud storage |
 | `delete(options)` | Delete a file from cloud storage |
-| `list(options)` | List files with optional prefix filter |
+| `list(options)` | List files with pagination support |
+| `stats(options)` | Get file counts and sizes by type |
 | `getSignedUrl(options)` | Generate a temporary signed URL |
 | `dispatch(options)` | Queue a storage operation as a job |
+| `testConnection(options)` | Test storage provider connectivity |
 
 ### Error Handling
 
@@ -299,7 +369,7 @@ try {
     console.log('Error code:', error.code);
     console.log('Message:', error.message);
     // Codes: STORAGE_ENV_NOT_FOUND, UPLOAD_FAILED, DOWNLOAD_FAILED,
-    //        DELETE_FAILED, LIST_FAILED, SIGNED_URL_FAILED
+    //        DELETE_FAILED, LIST_FAILED, STATS_FAILED, SIGNED_URL_FAILED
   }
 }
 ```

@@ -24,7 +24,7 @@ Ductape makes it easy to connect, manage, and automate third-party services like
    ![Apps View](/img/tokens.png)
    - Click the **eye** icon to reveal your credentials. An OTP will be sent to your email enter it in the prompt to view your Ductape credentials.
    ![Apps View](/img/tokens-otp.png)
-   - Copy and store your credentials securely. You’ll need your `user_id`, `workspace_id`, and `private_key`.
+   - Copy and store your credentials securely. You'll need your `accessKey`.
 
 
 
@@ -87,16 +87,14 @@ In your package.json, under scripts add the following command:
 Create a dotenv file and add the following:
 
 ```bash
-DUCTAPE_USER_ID=
-DUCTAPE_WORKSPACE_ID=
-DUCTAPE_PRIVATE_KEY=
+DUCTAPE_ACCESS_KEY=
 
 PRODUCT_TAG=
 
 PAYSTACK_APP_TAG=
 
 PAYSTACK_PRIVATE_KEY_SND=
-PAYSTACK_PRIVATE_KEY_PRD= 
+PAYSTACK_PRIVATE_KEY_PRD=
 ```
 
 ### 5. **Initialize Ductape**
@@ -109,14 +107,11 @@ import { config } from 'dotenv';
 
 config();
 
-const credentials = {
-    user_id: String(process.env.DUCTAPE_USER_ID),
-    workspace_id: String(process.env.DUCTAPE_WORKSPACE_ID),
-    private_key: String(process.env.DUCTAPE_PRIVATE_KEY),
+const ductape = new Ductape({
+    accessKey: String(process.env.DUCTAPE_ACCESS_KEY),
     redis_url: 'redis://localhost:6379', // optional
-};
+});
 
-const ductape = new Ductape(credentials);
 export default ductape;
 ```
 
