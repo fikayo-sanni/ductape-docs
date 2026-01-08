@@ -1,0 +1,517 @@
+---
+sidebar_position: 3
+title: Storage Operations
+---
+
+# Storage Operations
+
+The storage service allows you to upload, download, list, and manage files in your Ductape product. Perfect for handling user uploads, documents, images, and any other file types.
+
+## Uploading Files
+
+### Basic Upload
+
+```typescript
+const file = document.getElementById('fileInput').files[0];
+
+const result = await ductape.storage.upload({
+  file: file,
+  path: 'uploads/documents'
+});
+
+console.log('File URL:', result.url);
+console.log('File key:', result.key);
+```
+
+### Upload with Progress Tracking
+
+```typescript
+const result = await ductape.storage.upload({
+  file: file,
+  path: 'uploads/images',
+  onProgress: (progress) => {
+    console.log(`Progress: ${progress.percentage}%`);
+    console.log(`Uploaded: ${progress.loaded} / ${progress.total} bytes`);
+
+    // Update UI
+    document.getElementById('progress-bar').style.width =
+      `${progress.percentage}%`;
+  }
+});
+```
+
+### Upload with Custom Filename
+
+```typescript
+const result = await ductape.storage.upload({
+  file: file,
+  path: 'uploads/documents',
+  filename: 'custom-name.pdf' // Override original filename
+});
+```
+
+### Upload with Metadata
+
+```typescript
+const result = await ductape.storage.upload({
+  file: file,
+  path: 'uploads/documents',
+  metadata: {
+    userId: 'user-123',
+    uploadedAt: new Date().toISOString(),
+    category: 'invoices'
+  }
+});
+```
+
+### Upload Multiple Files
+
+```typescript
+const files = Array.from(document.getElementById('fileInput').files);
+
+const uploadPromises = files.map(file =>
+  ductape.storage.upload({
+    file: file,
+    path: 'uploads/batch',
+    onProgress: (progress) => {
+      console.log(`${file.name}: ${progress.percentage}%`);
+    }
+  })
+);
+
+const results = await Promise.all(uploadPromises);
+console.log('All files uploaded:', results);
+```
+
+## Downloading Files
+
+### Download File
+
+```typescript
+const result = await ductape.storage.download({
+  key: 'uploads/documents/report.pdf'
+});
+
+// Create download link
+const blob = new Blob([result.data], { type: result.contentType });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'report.pdf';
+a.click();
+URL.revokeObjectURL(url);
+```
+
+### Download as Data URL
+
+```typescript
+const result = await ductape.storage.download({
+  key: 'uploads/images/photo.jpg'
+});
+
+const blob = new Blob([result.data], { type: result.contentType });
+const dataUrl = await new Promise((resolve) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(reader.result);
+  reader.readAsDataURL(blob);
+});
+
+// Use in img tag
+document.getElementById('preview').src = dataUrl;
+```
+
+## Listing Files
+
+### List All Files in Path
+
+```typescript
+const result = await ductape.storage.list({
+  path: 'uploads/documents'
+});
+
+console.log('Files:', result.files);
+result.files.forEach(file => {
+  console.log(`- ${file.key} (${file.size} bytes)`);
+  console.log(`  Last modified: ${file.lastModified}`);
+  console.log(`  Content type: ${file.contentType}`);
+});
+```
+
+### List with Pagination
+
+```typescript
+const result = await ductape.storage.list({
+  path: 'uploads',
+  limit: 50,
+  offset: 0
+});
+
+console.log(`Showing ${result.files.length} of ${result.total} files`);
+```
+
+### List with Prefix Filter
+
+```typescript
+const result = await ductape.storage.list({
+  path: 'uploads',
+  prefix: '2024-01' // Only files starting with "2024-01"
+});
+```
+
+## Deleting Files
+
+### Delete Single File
+
+```typescript
+const result = await ductape.storage.delete({
+  key: 'uploads/documents/old-file.pdf'
+});
+
+console.log('File deleted:', result.success);
+```
+
+### Delete Multiple Files
+
+```typescript
+const result = await ductape.storage.delete({
+  keys: [
+    'uploads/temp/file1.txt',
+    'uploads/temp/file2.txt',
+    'uploads/temp/file3.txt'
+  ]
+});
+
+console.log(`Deleted ${result.deletedCount} files`);
+```
+
+## Signed URLs
+
+Generate temporary URLs for secure file access:
+
+### Get Signed URL for Download
+
+```typescript
+const result = await ductape.storage.getSignedUrl({
+  key: 'uploads/documents/report.pdf',
+  operation: 'download',
+  expiresIn: 3600 // 1 hour in seconds
+});
+
+console.log('Temporary URL:', result.url);
+// Share this URL - it expires after 1 hour
+```
+
+### Get Signed URL for Upload
+
+```typescript
+const result = await ductape.storage.getSignedUrl({
+  key: 'uploads/user-content/new-file.pdf',
+  operation: 'upload',
+  expiresIn: 300, // 5 minutes
+  contentType: 'application/pdf'
+});
+
+// Use the signed URL to upload directly from browser
+const response = await fetch(result.url, {
+  method: 'PUT',
+  body: file,
+  headers: {
+    'Content-Type': 'application/pdf'
+  }
+});
+```
+
+## Complete Upload Example
+
+Here's a complete example with file validation, progress tracking, and error handling:
+
+```typescript
+async function uploadFile(fileInput: HTMLInputElement) {
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    alert('Please select a file');
+    return;
+  }
+
+  // Validate file
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSize) {
+    alert('File too large. Maximum size is 10MB');
+    return;
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(file.type)) {
+    alert('Invalid file type. Only JPEG, PNG, and PDF allowed');
+    return;
+  }
+
+  // Show progress UI
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  progressBar.style.display = 'block';
+
+  try {
+    const result = await ductape.storage.upload({
+      file: file,
+      path: `uploads/${new Date().getFullYear()}`,
+      metadata: {
+        originalName: file.name,
+        uploadedAt: new Date().toISOString(),
+        userId: 'current-user-id'
+      },
+      onProgress: (progress) => {
+        progressBar.value = progress.percentage;
+        progressText.textContent = `${progress.percentage}% uploaded`;
+      }
+    });
+
+    alert('Upload successful!');
+    console.log('File URL:', result.url);
+
+    // Save to database
+    await ductape.databases.insert({
+      table: 'files',
+      data: {
+        key: result.key,
+        url: result.url,
+        filename: file.name,
+        size: file.size,
+        contentType: file.type,
+        uploadedAt: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('Upload failed:', error);
+    alert('Upload failed: ' + error.message);
+  } finally {
+    progressBar.style.display = 'none';
+  }
+}
+```
+
+## Image Upload with Preview
+
+```typescript
+async function uploadImageWithPreview(fileInput: HTMLInputElement) {
+  const file = fileInput.files?.[0];
+
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Please select an image file');
+    return;
+  }
+
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('preview').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  // Upload
+  try {
+    const result = await ductape.storage.upload({
+      file: file,
+      path: 'uploads/images',
+      onProgress: (progress) => {
+        console.log(`Uploading: ${progress.percentage}%`);
+      }
+    });
+
+    console.log('Image uploaded:', result.url);
+
+    // Update database with image URL
+    await ductape.databases.update({
+      table: 'users',
+      where: { id: 'current-user-id' },
+      data: { profileImage: result.url }
+    });
+
+  } catch (error) {
+    console.error('Upload failed:', error);
+  }
+}
+```
+
+## File Gallery Example
+
+Building a complete file gallery with upload, list, and delete:
+
+```typescript
+class FileGallery {
+  private ductape: Ductape;
+  private currentPath: string;
+
+  constructor(ductape: Ductape, path: string) {
+    this.ductape = ductape;
+    this.currentPath = path;
+  }
+
+  async uploadFile(file: File) {
+    return await this.ductape.storage.upload({
+      file: file,
+      path: this.currentPath,
+      onProgress: (progress) => {
+        this.updateUploadProgress(file.name, progress.percentage);
+      }
+    });
+  }
+
+  async loadFiles() {
+    const result = await this.ductape.storage.list({
+      path: this.currentPath,
+      limit: 100
+    });
+
+    this.renderFiles(result.files);
+    return result;
+  }
+
+  async deleteFile(key: string) {
+    if (!confirm('Are you sure you want to delete this file?')) {
+      return;
+    }
+
+    await this.ductape.storage.delete({ key });
+    await this.loadFiles(); // Refresh list
+  }
+
+  async downloadFile(key: string, filename: string) {
+    const result = await this.ductape.storage.download({ key });
+
+    const blob = new Blob([result.data], { type: result.contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private renderFiles(files: any[]) {
+    const container = document.getElementById('file-list');
+    container.innerHTML = '';
+
+    files.forEach(file => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <div class="file-info">
+          <strong>${file.key.split('/').pop()}</strong>
+          <span>${this.formatFileSize(file.size)}</span>
+          <span>${new Date(file.lastModified).toLocaleDateString()}</span>
+        </div>
+        <div class="file-actions">
+          <button onclick="gallery.downloadFile('${file.key}', '${file.key.split('/').pop()}')">
+            Download
+          </button>
+          <button onclick="gallery.deleteFile('${file.key}')">
+            Delete
+          </button>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  private updateUploadProgress(filename: string, percentage: number) {
+    console.log(`${filename}: ${percentage}%`);
+  }
+}
+
+// Usage
+const gallery = new FileGallery(ductape, 'uploads/documents');
+await gallery.loadFiles();
+```
+
+## Direct Browser Upload
+
+Upload directly from browser to storage without going through your server:
+
+```typescript
+async function directUpload(file: File) {
+  // 1. Get signed upload URL
+  const { url, key } = await ductape.storage.getSignedUrl({
+    key: `uploads/${Date.now()}-${file.name}`,
+    operation: 'upload',
+    expiresIn: 300,
+    contentType: file.type
+  });
+
+  // 2. Upload directly to storage
+  const response = await fetch(url, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Upload failed');
+  }
+
+  // 3. Save metadata to database
+  await ductape.databases.insert({
+    table: 'files',
+    data: {
+      key: key,
+      filename: file.name,
+      size: file.size,
+      contentType: file.type,
+      uploadedAt: new Date()
+    }
+  });
+
+  console.log('File uploaded:', key);
+}
+```
+
+## Best Practices
+
+1. **Validate files client-side**: Check file size, type, and name before uploading
+2. **Use progress callbacks**: Provide visual feedback during upload
+3. **Handle errors gracefully**: Wrap operations in try-catch blocks
+4. **Organize files**: Use meaningful path structures (e.g., `uploads/users/{userId}/documents`)
+5. **Clean up old files**: Implement periodic cleanup of unused files
+6. **Use signed URLs**: For sensitive files, use temporary signed URLs instead of public URLs
+7. **Compress images**: Resize/compress images before upload to save bandwidth
+8. **Implement retries**: Handle network failures with retry logic
+
+## File Type Detection
+
+```typescript
+function getFileCategory(file: File): string {
+  const type = file.type;
+
+  if (type.startsWith('image/')) return 'images';
+  if (type.startsWith('video/')) return 'videos';
+  if (type.startsWith('audio/')) return 'audio';
+  if (type === 'application/pdf') return 'documents';
+  if (type.includes('spreadsheet') || type.includes('excel')) return 'spreadsheets';
+
+  return 'other';
+}
+
+// Usage
+const file = fileInput.files[0];
+const category = getFileCategory(file);
+const result = await ductape.storage.upload({
+  file: file,
+  path: `uploads/${category}`
+});
+```
+
+## Next Steps
+
+- [Workflows](./workflows)
+- [Sessions & Authentication](./sessions)
+- [Real-time Subscriptions](./subscriptions)

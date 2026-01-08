@@ -1,0 +1,889 @@
+---
+sidebar_position: 1
+title: Building a Todo App
+---
+
+# Tutorial: Building a Real-time Todo App
+
+In this tutorial, we'll build a complete todo application with real-time updates using Ductape. We'll cover authentication, database operations, and real-time subscriptions.
+
+## What We'll Build
+
+- User authentication with sessions
+- Create, read, update, and delete todos
+- Real-time synchronization across tabs/devices
+- Filter todos by completion status
+- TypeScript for type safety
+
+## Prerequisites
+
+- Node.js 16+ installed
+- Basic knowledge of React or Vue
+- A Ductape account with a product set up
+
+## Choose Your Framework
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="react" label="React" default>
+
+## Step 1: Project Setup
+
+```bash
+npx create-react-app todo-app --template typescript
+cd todo-app
+npm install @ductape/react @ductape/client
+```
+
+## Step 2: Configure Ductape Provider
+
+Create `.env.local`:
+
+```env
+REACT_APP_DUCTAPE_ACCESS_KEY=your_access_key
+REACT_APP_DUCTAPE_PRODUCT=your_product
+REACT_APP_DUCTAPE_ENV=prd
+```
+
+Update `src/App.tsx`:
+
+```tsx
+import { DuctapeProvider } from '@ductape/react';
+import TodoApp from './components/TodoApp';
+
+function App() {
+  return (
+    <DuctapeProvider
+      config={{
+        accessKey: process.env.REACT_APP_DUCTAPE_ACCESS_KEY!,
+        product: process.env.REACT_APP_DUCTAPE_PRODUCT!,
+        env: process.env.REACT_APP_DUCTAPE_ENV!
+      }}
+      autoConnect={true}
+    >
+      <TodoApp />
+    </DuctapeProvider>
+  );
+}
+
+export default App;
+```
+
+## Step 3: Define Types
+
+Create `src/types.ts`:
+
+```typescript
+export interface Todo {
+  id: string;
+  userId: string;
+  text: string;
+  completed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+```
+
+## Step 4: Create Authentication Component
+
+Create `src/components/Auth.tsx`:
+
+```tsx
+import { useState } from 'react';
+import { useSessionStart } from '@ductape/react';
+
+interface AuthProps {
+  onLogin: (userId: string) => void;
+}
+
+export default function Auth({ onLogin }: AuthProps) {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+
+  const { mutate: startSession, isLoading } = useSessionStart({
+    onSuccess: (session) => {
+      localStorage.setItem('ductape_token', session.token);
+      onLogin(session.userId);
+    }
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // In a real app, verify credentials first
+    const userId = `user-${Date.now()}`;
+
+    startSession({
+      userId,
+      metadata: { email, name }
+    });
+  };
+
+  return (
+    <div className="auth-container">
+      <h1>Todo App</h1>
+      <form onSubmit={handleLogin}>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          required
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email"
+          required
+        />
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Logging in...' : 'Start'}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+## Step 5: Create Todo List Component
+
+Create `src/components/TodoList.tsx`:
+
+```tsx
+import { useState, useEffect } from 'react';
+import {
+  useDatabaseQuery,
+  useDatabaseInsert,
+  useDatabaseUpdate,
+  useDatabaseDelete,
+  useDatabaseSubscription
+} from '@ductape/react';
+import { Todo } from '../types';
+
+interface TodoListProps {
+  userId: string;
+  onLogout: () => void;
+}
+
+export default function TodoList({ userId, onLogout }: TodoListProps) {
+  const [newTodoText, setNewTodoText] = useState('');
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [todos, setTodos] = useState<Todo[]>([]);
+
+  // Query initial todos
+  const { data: initialData, isLoading } = useDatabaseQuery<Todo>(
+    ['todos', userId],
+    {
+      table: 'todos',
+      where: { userId },
+      orderBy: [{ column: 'createdAt', order: 'desc' }]
+    }
+  );
+
+  // Initialize todos from query
+  useEffect(() => {
+    if (initialData) {
+      setTodos(initialData.rows);
+    }
+  }, [initialData]);
+
+  // Subscribe to real-time updates
+  useDatabaseSubscription({
+    table: 'todos',
+    where: { userId },
+    onChange: (event) => {
+      if (event.type === 'insert') {
+        setTodos(prev => [event.data.new, ...prev]);
+      } else if (event.type === 'update') {
+        setTodos(prev =>
+          prev.map(todo =>
+            todo.id === event.data.new.id ? event.data.new : todo
+          )
+        );
+      } else if (event.type === 'delete') {
+        setTodos(prev => prev.filter(todo => todo.id !== event.data.old.id));
+      }
+    }
+  });
+
+  // Create mutation
+  const { mutate: createTodo } = useDatabaseInsert({
+    onSuccess: () => setNewTodoText('')
+  });
+
+  // Update mutation
+  const { mutate: updateTodo } = useDatabaseUpdate();
+
+  // Delete mutation
+  const { mutate: deleteTodo } = useDatabaseDelete();
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTodoText.trim()) return;
+
+    createTodo({
+      table: 'todos',
+      data: {
+        userId,
+        text: newTodoText,
+        completed: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  };
+
+  const handleToggle = (todo: Todo) => {
+    updateTodo({
+      table: 'todos',
+      where: { id: todo.id },
+      data: {
+        completed: !todo.completed,
+        updatedAt: new Date()
+      }
+    });
+  };
+
+  const handleDelete = (todoId: string) => {
+    deleteTodo({
+      table: 'todos',
+      where: { id: todoId }
+    });
+  };
+
+  const handleDeleteCompleted = () => {
+    if (confirm('Delete all completed todos?')) {
+      deleteTodo({
+        table: 'todos',
+        where: { userId, completed: true }
+      });
+    }
+  };
+
+  // Filter todos
+  const filteredTodos = todos.filter(todo => {
+    if (filter === 'active') return !todo.completed;
+    if (filter === 'completed') return todo.completed;
+    return true;
+  });
+
+  const activeCount = todos.filter(t => !t.completed).length;
+  const completedCount = todos.filter(t => t.completed).length;
+
+  if (isLoading) {
+    return <div>Loading todos...</div>;
+  }
+
+  return (
+    <div className="todo-app">
+      <header>
+        <h1>My Todos</h1>
+        <button onClick={onLogout}>Logout</button>
+      </header>
+
+      <form onSubmit={handleCreate} className="todo-form">
+        <input
+          type="text"
+          value={newTodoText}
+          onChange={(e) => setNewTodoText(e.target.value)}
+          placeholder="What needs to be done?"
+          autoFocus
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      <div className="filters">
+        <button
+          className={filter === 'all' ? 'active' : ''}
+          onClick={() => setFilter('all')}
+        >
+          All ({todos.length})
+        </button>
+        <button
+          className={filter === 'active' ? 'active' : ''}
+          onClick={() => setFilter('active')}
+        >
+          Active ({activeCount})
+        </button>
+        <button
+          className={filter === 'completed' ? 'active' : ''}
+          onClick={() => setFilter('completed')}
+        >
+          Completed ({completedCount})
+        </button>
+      </div>
+
+      <ul className="todo-list">
+        {filteredTodos.map(todo => (
+          <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => handleToggle(todo)}
+            />
+            <span className="todo-text">{todo.text}</span>
+            <button
+              onClick={() => handleDelete(todo.id)}
+              className="delete-btn"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {completedCount > 0 && (
+        <footer>
+          <button onClick={handleDeleteCompleted}>
+            Clear completed ({completedCount})
+          </button>
+        </footer>
+      )}
+    </div>
+  );
+}
+```
+
+## Step 6: Main App Component
+
+Create `src/components/TodoApp.tsx`:
+
+```tsx
+import { useState, useEffect } from 'react';
+import { useSessionVerify } from '@ductape/react';
+import Auth from './Auth';
+import TodoList from './TodoList';
+
+export default function TodoApp() {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  const { mutate: verifySession } = useSessionVerify({
+    onSuccess: (result) => {
+      setUserId(result.userId);
+    },
+    onError: () => {
+      localStorage.removeItem('ductape_token');
+    }
+  });
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const token = localStorage.getItem('ductape_token');
+    if (token) {
+      verifySession({ token });
+    }
+  }, [verifySession]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('ductape_token');
+    setUserId(null);
+  };
+
+  if (!userId) {
+    return <Auth onLogin={setUserId} />;
+  }
+
+  return <TodoList userId={userId} onLogout={handleLogout} />;
+}
+```
+
+## Step 7: Add Styles
+
+Create `src/App.css`:
+
+```css
+.auth-container {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.auth-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-container input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.auth-container button {
+  padding: 10px;
+  font-size: 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.auth-container button:hover {
+  background: #0056b3;
+}
+
+.todo-app {
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.todo-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.todo-form input {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.todo-form button {
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filters button {
+  flex: 1;
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filters button.active {
+  background: #007bff;
+  color: white;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+}
+
+.todo-list li {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.todo-list li.completed .todo-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.todo-text {
+  flex: 1;
+  margin-left: 10px;
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+footer button {
+  padding: 8px 16px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+```
+
+</TabItem>
+
+<TabItem value="vue" label="Vue 3">
+
+## Step 1: Project Setup
+
+```bash
+npm create vite@latest todo-app -- --template vue-ts
+cd todo-app
+npm install
+npm install @ductape/vue @ductape/client
+```
+
+## Step 2: Configure Ductape Plugin
+
+Create `.env.local`:
+
+```env
+VITE_DUCTAPE_ACCESS_KEY=your_access_key
+VITE_DUCTAPE_PRODUCT=your_product
+VITE_DUCTAPE_ENV=prd
+```
+
+Update `src/main.ts`:
+
+```typescript
+import { createApp } from 'vue';
+import { createDuctape } from '@ductape/vue';
+import App from './App.vue';
+import './style.css';
+
+const app = createApp(App);
+
+const ductape = createDuctape({
+  accessKey: import.meta.env.VITE_DUCTAPE_ACCESS_KEY,
+  product: import.meta.env.VITE_DUCTAPE_PRODUCT,
+  env: import.meta.env.VITE_DUCTAPE_ENV,
+  autoConnect: true
+});
+
+app.use(ductape);
+app.mount('#app');
+```
+
+## Step 3: Create Auth Component
+
+Create `src/components/Auth.vue`:
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useSessionStart } from '@ductape/vue';
+
+const emit = defineEmits<{
+  login: [userId: string]
+}>();
+
+const email = ref('');
+const name = ref('');
+
+const { mutate: startSession, isLoading } = useSessionStart({
+  onSuccess: (session) => {
+    localStorage.setItem('ductape_token', session.token);
+    emit('login', session.userId);
+  }
+});
+
+const handleLogin = () => {
+  const userId = `user-${Date.now()}`;
+  startSession({
+    userId,
+    metadata: { email: email.value, name: name.value }
+  });
+};
+</script>
+
+<template>
+  <div class="auth-container">
+    <h1>Todo App</h1>
+    <form @submit.prevent="handleLogin">
+      <input
+        v-model="name"
+        type="text"
+        placeholder="Your name"
+        required
+      />
+      <input
+        v-model="email"
+        type="email"
+        placeholder="Your email"
+        required
+      />
+      <button type="submit" :disabled="isLoading">
+        {{ isLoading ? 'Logging in...' : 'Start' }}
+      </button>
+    </form>
+  </div>
+</template>
+```
+
+## Step 4: Create Todo List Component
+
+Create `src/components/TodoList.vue`:
+
+```vue
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import {
+  useDatabaseQuery,
+  useDatabaseInsert,
+  useDatabaseUpdate,
+  useDatabaseDelete,
+  useDatabaseSubscription
+} from '@ductape/vue';
+
+interface Todo {
+  id: string;
+  userId: string;
+  text: string;
+  completed: boolean;
+  createdAt: Date;
+}
+
+const props = defineProps<{
+  userId: string;
+}>();
+
+const emit = defineEmits<{
+  logout: []
+}>();
+
+const newTodoText = ref('');
+const filter = ref<'all' | 'active' | 'completed'>('all');
+const todos = ref<Todo[]>([]);
+
+// Query initial todos
+const { data: initialData, isLoading } = useDatabaseQuery<Todo>(
+  () => ['todos', props.userId],
+  () => ({
+    table: 'todos',
+    where: { userId: props.userId },
+    orderBy: [{ column: 'createdAt', order: 'desc' }]
+  })
+);
+
+// Initialize todos
+watch(initialData, (data) => {
+  if (data) {
+    todos.value = data.rows;
+  }
+});
+
+// Subscribe to real-time updates
+useDatabaseSubscription({
+  table: 'todos',
+  where: { userId: props.userId },
+  onChange: (event) => {
+    if (event.type === 'insert') {
+      todos.value = [event.data.new, ...todos.value];
+    } else if (event.type === 'update') {
+      todos.value = todos.value.map(todo =>
+        todo.id === event.data.new.id ? event.data.new : todo
+      );
+    } else if (event.type === 'delete') {
+      todos.value = todos.value.filter(todo => todo.id !== event.data.old.id);
+    }
+  }
+});
+
+// Mutations
+const { mutate: createTodo } = useDatabaseInsert({
+  onSuccess: () => { newTodoText.value = ''; }
+});
+
+const { mutate: updateTodo } = useDatabaseUpdate();
+const { mutate: deleteTodo } = useDatabaseDelete();
+
+const handleCreate = () => {
+  if (!newTodoText.value.trim()) return;
+
+  createTodo({
+    table: 'todos',
+    data: {
+      userId: props.userId,
+      text: newTodoText.value,
+      completed: false,
+      createdAt: new Date()
+    }
+  });
+};
+
+const handleToggle = (todo: Todo) => {
+  updateTodo({
+    table: 'todos',
+    where: { id: todo.id },
+    data: { completed: !todo.completed }
+  });
+};
+
+const handleDelete = (todoId: string) => {
+  deleteTodo({
+    table: 'todos',
+    where: { id: todoId }
+  });
+};
+
+const filteredTodos = computed(() => {
+  if (filter.value === 'active') return todos.value.filter(t => !t.completed);
+  if (filter.value === 'completed') return todos.value.filter(t => t.completed);
+  return todos.value;
+});
+
+const activeCount = computed(() => todos.value.filter(t => !t.completed).length);
+const completedCount = computed(() => todos.value.filter(t => t.completed).length);
+</script>
+
+<template>
+  <div v-if="isLoading">Loading todos...</div>
+  <div v-else class="todo-app">
+    <header>
+      <h1>My Todos</h1>
+      <button @click="emit('logout')">Logout</button>
+    </header>
+
+    <form @submit.prevent="handleCreate" class="todo-form">
+      <input
+        v-model="newTodoText"
+        type="text"
+        placeholder="What needs to be done?"
+        autofocus
+      />
+      <button type="submit">Add</button>
+    </form>
+
+    <div class="filters">
+      <button
+        :class="{ active: filter === 'all' }"
+        @click="filter = 'all'"
+      >
+        All ({{ todos.length }})
+      </button>
+      <button
+        :class="{ active: filter === 'active' }"
+        @click="filter = 'active'"
+      >
+        Active ({{ activeCount }})
+      </button>
+      <button
+        :class="{ active: filter === 'completed' }"
+        @click="filter = 'completed'"
+      >
+        Completed ({{ completedCount }})
+      </button>
+    </div>
+
+    <ul class="todo-list">
+      <li
+        v-for="todo in filteredTodos"
+        :key="todo.id"
+        :class="{ completed: todo.completed }"
+      >
+        <input
+          type="checkbox"
+          :checked="todo.completed"
+          @change="handleToggle(todo)"
+        />
+        <span class="todo-text">{{ todo.text }}</span>
+        <button @click="handleDelete(todo.id)" class="delete-btn">
+          ×
+        </button>
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+## Step 5: Main App Component
+
+Update `src/App.vue`:
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useSessionVerify } from '@ductape/vue';
+import Auth from './components/Auth.vue';
+import TodoList from './components/TodoList.vue';
+
+const userId = ref<string | null>(null);
+
+const { mutate: verifySession } = useSessionVerify({
+  onSuccess: (result) => {
+    userId.value = result.userId;
+  },
+  onError: () => {
+    localStorage.removeItem('ductape_token');
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('ductape_token');
+  if (token) {
+    verifySession({ token });
+  }
+});
+
+const handleLogout = () => {
+  localStorage.removeItem('ductape_token');
+  userId.value = null;
+};
+</script>
+
+<template>
+  <Auth v-if="!userId" @login="userId = $event" />
+  <TodoList v-else :user-id="userId" @logout="handleLogout" />
+</template>
+```
+
+</TabItem>
+</Tabs>
+
+## Step 8: Run Your App
+
+```bash
+npm start
+```
+
+Your todo app is now running with:
+- ✅ Real-time synchronization
+- ✅ User sessions
+- ✅ Full CRUD operations
+- ✅ Filter functionality
+- ✅ TypeScript support
+
+## Next Steps
+
+- Add user profiles
+- Implement todo sharing
+- Add file attachments to todos
+- Create todo categories
+- Add due dates and reminders
+
+## Learn More
+
+- [Database Operations](/frontend/client/databases)
+- [Sessions & Authentication](/frontend/client/sessions)
+- [Real-time Subscriptions](/frontend/client/subscriptions)

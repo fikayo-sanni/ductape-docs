@@ -23,6 +23,67 @@ const sidebars: SidebarsConfig = {
       label: 'Adding an App',
     },
 
+    // Frontend - Client SDKs
+    {
+      type: 'category',
+      label: 'Frontend',
+      collapsed: true,
+      items: [
+        {
+          type: 'category',
+          label: 'Getting Started',
+          collapsed: false,
+          items: [
+            'frontend/overview',
+            'frontend/client/getting-started',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Core Concepts',
+          collapsed: true,
+          items: [
+            'frontend/client/databases',
+            'frontend/client/storage',
+            'frontend/client/workflows',
+            'frontend/client/sessions',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Framework Guides',
+          collapsed: true,
+          items: [
+            {
+              type: 'category',
+              label: 'React',
+              collapsed: true,
+              items: [
+                'frontend/react/getting-started',
+                'frontend/react/database-hooks',
+              ],
+            },
+            {
+              type: 'category',
+              label: 'Vue 3',
+              collapsed: true,
+              items: [
+                'frontend/vue/getting-started',
+              ],
+            },
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Tutorials',
+          collapsed: true,
+          items: [
+            'frontend/tutorials/building-a-todo-app',
+          ],
+        },
+      ],
+    },
+
     // Products - Core Backend Systems
     {
       type: 'category',
@@ -79,25 +140,77 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Databases
+    // Databases - Unified data layer
     {
       type: 'category',
       label: 'Databases',
       collapsed: true,
       items: [
-        'databases/getting-started',
-        'databases/querying',
-        'databases/writing-data',
-        'databases/pre-save-operations',
-        'databases/triggers',
-        'databases/aggregations',
-        'databases/transactions',
-        'databases/migrations',
-        'databases/table-management',
-        'databases/indexing',
-        'databases/actions',
-        'databases/direct-queries',
-        'databases/best-practices',
+        // SQL & NoSQL Databases
+        {
+          type: 'category',
+          label: 'Core Databases',
+          collapsed: true,
+          items: [
+            'databases/relational/getting-started',
+            'databases/relational/querying',
+            'databases/relational/writing-data',
+            'databases/relational/pre-save-operations',
+            'databases/relational/triggers',
+            'databases/relational/aggregations',
+            'databases/relational/transactions',
+            'databases/relational/migrations',
+            'databases/relational/table-management',
+            'databases/relational/indexing',
+            'databases/relational/actions',
+            'databases/relational/direct-queries',
+            'databases/relational/best-practices',
+          ],
+        },
+        // Graph Databases
+        {
+          type: 'category',
+          label: 'Graph Databases',
+          collapsed: true,
+          items: [
+            'databases/graphs/overview',
+            'databases/graphs/getting-started',
+            'databases/graphs/nodes',
+            'databases/graphs/relationships',
+            'databases/graphs/traversals',
+            'databases/graphs/indexing',
+            'databases/graphs/transactions',
+            'databases/graphs/actions',
+            'databases/graphs/best-practices',
+          ],
+        },
+        // Vector Stores
+        {
+          type: 'category',
+          label: 'Vector Stores',
+          collapsed: true,
+          items: [
+            'databases/vectors/overview',
+            'databases/vectors/getting-started',
+            'databases/vectors/querying',
+            'databases/vectors/agent-integration',
+            'databases/vectors/best-practices',
+          ],
+        },
+        // Data Warehouse
+        {
+          type: 'category',
+          label: 'Warehouse',
+          collapsed: true,
+          items: [
+            'databases/warehouse/getting-started',
+            'databases/warehouse/joins',
+            'databases/warehouse/semantic-joins',
+            'databases/warehouse/transactions',
+            'databases/warehouse/query-reference',
+            'databases/warehouse/best-practices',
+          ],
+        },
       ],
     },
 
@@ -167,20 +280,6 @@ const sidebars: SidebarsConfig = {
 
     // --- Preview Features Below ---
 
-    // Vectors (Preview)
-    {
-      type: 'category',
-      label: 'Vectors (Preview)',
-      collapsed: true,
-      items: [
-        'vectors/overview',
-        'vectors/getting-started',
-        'vectors/querying',
-        'vectors/agent-integration',
-        'vectors/best-practices',
-      ],
-    },
-
     // Agents (Preview)
     {
       type: 'category',
@@ -223,24 +322,6 @@ const sidebars: SidebarsConfig = {
         'workflows/step-types',
         'workflows/execution',
         'workflows/examples',
-      ],
-    },
-
-    // Graphs (Preview)
-    {
-      type: 'category',
-      label: 'Graphs (Preview)',
-      collapsed: true,
-      items: [
-        'graphs/getting-started',
-        'graphs/nodes',
-        'graphs/relationships',
-        'graphs/traversals',
-        'graphs/indexing',
-        'graphs/transactions',
-        'graphs/actions',
-        'graphs/best-practices',
-        'graphs/overview',
       ],
     },
 

@@ -77,9 +77,13 @@ const iconMap: Record<string, LucideIcon> = {
   'Secrets': Key,
 };
 
-// Clean emoji prefix from label if present
+// Clean emoji prefix and (Preview) suffix from label if present
 function cleanLabel(label: string): string {
-  return label.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]\uFE0F?\s*/u, '').replace(/^[^\w\s]\s*/u, '');
+  return label
+    .replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]\uFE0F?\s*/u, '')
+    .replace(/^[^\w\s]\s*/u, '')
+    .replace(/\s*\(Preview\)\s*$/i, '')
+    .trim();
 }
 
 function useCategoryHrefWithSSRFallback(item: Props['item']): string | undefined {

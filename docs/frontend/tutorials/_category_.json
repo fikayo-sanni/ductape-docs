@@ -1,0 +1,9 @@
+{
+  "label": "Tutorials",
+  "position": 5,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Step-by-step tutorials for building real-world applications with Ductape frontend SDKs."
+  }
+}

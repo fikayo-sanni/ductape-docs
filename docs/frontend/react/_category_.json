@@ -1,0 +1,9 @@
+{
+  "label": "@ductape/react",
+  "position": 3,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "React hooks and components for Ductape - build real-time React applications with ease."
+  }
+}
