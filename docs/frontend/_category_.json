@@ -1,0 +1,9 @@
+{
+  "label": "Frontend",
+  "position": 5,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Build real-time frontend applications with Ductape's JavaScript/TypeScript client libraries for vanilla JS, React, and Vue."
+  }
+}

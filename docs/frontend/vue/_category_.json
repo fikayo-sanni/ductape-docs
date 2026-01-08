@@ -1,0 +1,9 @@
+{
+  "label": "@ductape/vue",
+  "position": 4,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Vue 3 composables and plugin for Ductape - build reactive Vue applications with Ductape."
+  }
+}

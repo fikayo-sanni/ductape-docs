@@ -1,0 +1,9 @@
+{
+  "label": "@ductape/client",
+  "position": 2,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Core JavaScript/TypeScript client for Ductape - works with any framework or vanilla JavaScript."
+  }
+}

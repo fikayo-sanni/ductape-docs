@@ -1,0 +1,410 @@
+---
+sidebar_position: 1
+title: Getting Started
+---
+
+# Getting Started with @ductape/react
+
+The `@ductape/react` package provides React hooks and components for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a React-idiomatic way to work with databases, storage, workflows, and more.
+
+## Installation
+
+```bash
+npm install @ductape/react @ductape/client
+# or
+yarn add @ductape/react @ductape/client
+# or
+pnpm add @ductape/react @ductape/client
+```
+
+:::info
+Both `@ductape/react` and `@ductape/client` are required. The React package is a peer dependency wrapper around the core client.
+:::
+
+## Requirements
+
+- React 17.0.0 or higher
+- TypeScript 4.5+ (optional but recommended)
+
+## Basic Setup
+
+### 1. Wrap Your App with DuctapeProvider
+
+```tsx
+import { DuctapeProvider } from '@ductape/react';
+
+function App() {
+  return (
+    <DuctapeProvider
+      config={{
+        accessKey: process.env.REACT_APP_DUCTAPE_KEY,
+        product: 'my-product',
+        env: 'prd'
+      }}
+      autoConnect={true} // Automatically establish WebSocket connection
+    >
+      <YourApp />
+    </DuctapeProvider>
+  );
+}
+
+export default App;
+```
+
+### 2. Use Hooks in Your Components
+
+```tsx
+import { useDatabaseQuery } from '@ductape/react';
+
+function UsersList() {
+  const { data, isLoading, error, refetch } = useDatabaseQuery(
+    'users',
+    {
+      table: 'users',
+      where: { active: true },
+      limit: 10
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <button onClick={() => refetch()}>Refresh</button>
+      <ul>
+        {data?.rows.map(user => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Provider Configuration
+
+The `DuctapeProvider` accepts these props:
+
+```tsx
+interface DuctapeProviderProps {
+  config: {
+    accessKey: string;      // Your public access key
+    product: string;        // Product tag
+    env: string;           // Environment
+    baseURL?: string;      // Optional: Custom API URL
+    wsURL?: string;        // Optional: Custom WebSocket URL
+    timeout?: number;      // Optional: Request timeout (ms)
+    debug?: boolean;       // Optional: Enable debug logging
+  };
+  autoConnect?: boolean;   // Auto-connect WebSocket (default: false)
+  children: React.ReactNode;
+}
+```
+
+### Environment Variables
+
+```env
+# .env.local
+REACT_APP_DUCTAPE_ACCESS_KEY=your_access_key
+REACT_APP_DUCTAPE_PRODUCT=my-product
+REACT_APP_DUCTAPE_ENV=prd
+```
+
+```tsx
+<DuctapeProvider
+  config={{
+    accessKey: process.env.REACT_APP_DUCTAPE_ACCESS_KEY!,
+    product: process.env.REACT_APP_DUCTAPE_PRODUCT!,
+    env: process.env.REACT_APP_DUCTAPE_ENV!
+  }}
+  autoConnect
+>
+  <App />
+</DuctapeProvider>
+```
+
+## Quick Examples
+
+### Query Data
+
+```tsx
+import { useDatabaseQuery } from '@ductape/react';
+
+function ProductList() {
+  const { data, isLoading, error } = useDatabaseQuery(
+    'products',
+    {
+      table: 'products',
+      where: { category: 'electronics' },
+      orderBy: [{ column: 'price', order: 'asc' }],
+      limit: 20
+    }
+  );
+
+  if (isLoading) return <div>Loading products...</div>;
+  if (error) return <div>Error loading products</div>;
+
+  return (
+    <div>
+      {data?.rows.map(product => (
+        <div key={product.id}>
+          <h3>{product.name}</h3>
+          <p>${product.price}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Insert Data
+
+```tsx
+import { useDatabaseInsert } from '@ductape/react';
+import { useState } from 'react';
+
+function CreateUser() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+
+  const { mutate, isLoading, error } = useDatabaseInsert({
+    onSuccess: (data) => {
+      console.log('User created:', data.rows[0]);
+      setName('');
+      setEmail('');
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutate({
+      table: 'users',
+      data: { name, email }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+        required
+      />
+      <input
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        type="email"
+        required
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create User'}
+      </button>
+      {error && <p>Error: {error.message}</p>}
+    </form>
+  );
+}
+```
+
+### Real-time Subscription
+
+```tsx
+import { useDatabaseSubscription } from '@ductape/react';
+import { useState } from 'react';
+
+function LiveMessages() {
+  const [messages, setMessages] = useState([]);
+
+  useDatabaseSubscription({
+    table: 'messages',
+    where: { channel: 'general' },
+    onChange: (event) => {
+      if (event.type === 'insert') {
+        setMessages(prev => [...prev, event.data.new]);
+      }
+    }
+  });
+
+  return (
+    <ul>
+      {messages.map(msg => (
+        <li key={msg.id}>{msg.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### File Upload
+
+```tsx
+import { useUpload } from '@ductape/react';
+
+function FileUploader() {
+  const { upload, progress, isLoading, error } = useUpload();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      upload({
+        file,
+        path: 'uploads/documents',
+        onSuccess: (result) => {
+          console.log('File uploaded:', result.url);
+        }
+      });
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={handleFileChange}
+        disabled={isLoading}
+      />
+      {isLoading && <p>Uploading: {progress?.percentage}%</p>}
+      {error && <p>Error: {error.message}</p>}
+    </div>
+  );
+}
+```
+
+### Execute Workflow
+
+```tsx
+import { useWorkflowExecute } from '@ductape/react';
+
+function ProcessOrder({ orderId }: { orderId: string }) {
+  const { mutate, isLoading, data, error } = useWorkflowExecute();
+
+  const handleProcess = () => {
+    mutate({
+      workflow: 'process-order',
+      input: { orderId }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleProcess} disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Process Order'}
+      </button>
+      {data && <p>Execution ID: {data.executionId}</p>}
+      {error && <p>Error: {error.message}</p>}
+    </div>
+  );
+}
+```
+
+## Accessing the Client Directly
+
+You can access the underlying Ductape client instance:
+
+```tsx
+import { useDuctape } from '@ductape/react';
+
+function MyComponent() {
+  const { client, isReady, isConnected } = useDuctape();
+
+  // Use client directly for operations not covered by hooks
+  const handleCustomOperation = async () => {
+    const result = await client.databases.query({
+      table: 'custom_table'
+    });
+  };
+
+  return (
+    <div>
+      <p>Ready: {isReady ? 'Yes' : 'No'}</p>
+      <p>Connected: {isConnected ? 'Yes' : 'No'}</p>
+    </div>
+  );
+}
+```
+
+## TypeScript Support
+
+The hooks are fully typed. You can provide type parameters:
+
+```tsx
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+function UsersList() {
+  const { data, isLoading } = useDatabaseQuery<User>(
+    'users',
+    {
+      table: 'users',
+      limit: 10
+    }
+  );
+
+  // data.rows is typed as User[]
+  return (
+    <ul>
+      {data?.rows.map(user => (
+        <li key={user.id}>
+          {user.name} - {user.role}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## Error Boundaries
+
+Wrap your components with error boundaries to handle errors gracefully:
+
+```tsx
+import { ErrorBoundary } from 'react-error-boundary';
+
+function App() {
+  return (
+    <DuctapeProvider config={...}>
+      <ErrorBoundary fallback={<div>Something went wrong</div>}>
+        <YourApp />
+      </ErrorBoundary>
+    </DuctapeProvider>
+  );
+}
+```
+
+## Best Practices
+
+1. **Use query keys wisely**: The first parameter to hooks like `useDatabaseQuery` is a query key used for caching. Make it unique per query.
+
+2. **Memoize query options**: Use `useMemo` for complex query options to prevent unnecessary re-renders:
+
+```tsx
+const queryOptions = useMemo(
+  () => ({
+    table: 'users',
+    where: { active: true }
+  }),
+  []
+);
+
+const { data } = useDatabaseQuery('users', queryOptions);
+```
+
+3. **Handle loading and error states**: Always provide UI feedback for loading and error states.
+
+4. **Cleanup subscriptions**: Subscriptions automatically cleanup when components unmount.
+
+5. **Use TypeScript**: Leverage TypeScript for type safety and better developer experience.
+
+## Next Steps
+
+- [Database Hooks](./database-hooks)
+- [Storage Hooks](./storage-hooks)
+- [Workflow Hooks](./workflow-hooks)
+- [Real-time Subscriptions](./subscriptions)
+- [Session Management](./sessions)

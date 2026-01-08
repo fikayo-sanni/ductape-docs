@@ -1,0 +1,183 @@
+---
+sidebar_position: 1
+title: Frontend Overview
+---
+
+# Frontend Development with Ductape
+
+Ductape provides powerful frontend client libraries that make it easy to build real-time, data-driven applications. Our frontend SDKs give you direct access to databases, storage, workflows, agents, and more—all from the browser with built-in security and real-time synchronization.
+
+## Available Packages
+
+Ductape offers three complementary packages for frontend development:
+
+### [@ductape/client](./client/getting-started)
+The core client library that works with any JavaScript framework or vanilla JavaScript. Provides a simple, type-safe interface for all Ductape services.
+
+**Use when:**
+- Building with vanilla JavaScript/TypeScript
+- Using frameworks not yet supported (Angular, Svelte, etc.)
+- You want full control over data fetching and state management
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-public-access-key',
+  product: 'your-product-tag',
+  env: 'prd'
+});
+```
+
+### [@ductape/react](./react/getting-started)
+React hooks and components built on top of @ductape/client, providing a React-idiomatic way to work with Ductape.
+
+**Use when:**
+- Building React applications (React 17+)
+- You want automatic loading states and error handling
+- You prefer declarative data fetching with hooks
+
+```tsx
+import { DuctapeProvider, useDatabaseQuery } from '@ductape/react';
+
+function UsersList() {
+  const { data, isLoading } = useDatabaseQuery('users', {
+    table: 'users',
+    limit: 10
+  });
+}
+```
+
+### [@ductape/vue](./vue/getting-started)
+Vue 3 composables and plugin built on top of @ductape/client for Vue applications.
+
+**Use when:**
+- Building Vue 3 applications
+- You want reactive data with Vue's composition API
+- You need seamless integration with Vue's ecosystem
+
+```vue
+<script setup>
+import { useDatabaseQuery } from '@ductape/vue';
+
+const { data, isLoading } = useDatabaseQuery(
+  ['users'],
+  { table: 'users', limit: 10 }
+);
+</script>
+```
+
+## Key Features
+
+### Real-time Subscriptions
+Subscribe to database changes, workflow updates, and more with WebSocket-based real-time synchronization.
+
+```typescript
+// Automatic real-time updates
+const { data } = useDatabaseQuery('todos', {
+  table: 'todos',
+  where: { completed: false }
+});
+
+// Subscribe to changes
+ductape.databases.subscribe({
+  table: 'todos',
+  onChange: (event) => console.log('Todo changed:', event)
+});
+```
+
+### Built-in Security
+Access control and authentication are handled automatically through your product configuration. The client only exposes what you've configured as accessible from the frontend.
+
+```typescript
+// Session management
+await ductape.sessions.start({
+  userId: 'user-123',
+  metadata: { role: 'user' }
+});
+
+// All subsequent requests include session context
+const data = await ductape.databases.query({
+  table: 'private_data' // Access controlled by your product config
+});
+```
+
+### Type Safety
+Full TypeScript support with intelligent type inference for your database schemas and API responses.
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const { data } = await ductape.databases.query<User>({
+  table: 'users',
+  where: { active: true }
+});
+// data.rows is typed as User[]
+```
+
+### Optimistic Updates
+Update your UI instantly while changes sync in the background.
+
+```typescript
+const { mutate } = useDatabaseInsert({
+  onMutate: async (newTodo) => {
+    // Optimistically update UI
+    return { newTodo };
+  },
+  onError: (err, variables, context) => {
+    // Rollback on error
+  }
+});
+```
+
+## What Can You Build?
+
+- **Real-time Dashboards**: Live data visualization with automatic updates
+- **Collaborative Apps**: Multi-user applications with real-time sync
+- **Chat Applications**: Message brokers and presence tracking
+- **File Sharing**: Upload, download, and manage files
+- **Data-Driven UIs**: Complex queries with filtering, sorting, and pagination
+- **AI-Powered Features**: Run agents and workflows directly from the frontend
+- **Graph Applications**: Social networks, recommendation engines
+- **Vector Search**: Semantic search and AI features
+
+## Getting Started
+
+Choose your framework and jump right in:
+
+- [Vanilla JavaScript/TypeScript →](./client/getting-started)
+- [React →](./react/getting-started)
+- [Vue 3 →](./vue/getting-started)
+
+## Architecture
+
+All three packages share a common architecture:
+
+```
+┌─────────────────────────────────────────┐
+│  Your Application                       │
+├─────────────────────────────────────────┤
+│  @ductape/react or @ductape/vue        │  ← Framework-specific bindings
+├─────────────────────────────────────────┤
+│  @ductape/client                       │  ← Core client SDK
+├─────────────────────────────────────────┤
+│  HTTP/WebSocket                         │  ← Transport layer
+├─────────────────────────────────────────┤
+│  Ductape Backend Services              │  ← Your configured product
+└─────────────────────────────────────────┘
+```
+
+The framework-specific packages (@ductape/react and @ductape/vue) are thin wrappers that provide idiomatic APIs for each framework while leveraging the full power of @ductape/client under the hood.
+
+## Next Steps
+
+1. **Install**: Choose your package and install it
+2. **Configure**: Set up your client with access keys
+3. **Connect**: Initialize connection to your product
+4. **Build**: Start using databases, storage, workflows, and more
+
+Explore the documentation for your chosen framework to learn more.

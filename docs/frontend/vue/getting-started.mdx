@@ -1,0 +1,499 @@
+---
+sidebar_position: 1
+title: Getting Started
+---
+
+# Getting Started with @ductape/vue
+
+The `@ductape/vue` package provides Vue 3 composables and a plugin for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a reactive, Vue-idiomatic way to work with databases, storage, workflows, and more.
+
+## Installation
+
+```bash
+npm install @ductape/vue @ductape/client
+# or
+yarn add @ductape/vue @ductape/client
+# or
+pnpm add @ductape/vue @ductape/client
+```
+
+:::info
+Both `@ductape/vue` and `@ductape/client` are required. The Vue package is a peer dependency wrapper around the core client.
+:::
+
+## Requirements
+
+- Vue 3.0.0 or higher
+- TypeScript 4.5+ (optional but recommended)
+
+## Basic Setup
+
+### 1. Install the Plugin
+
+```typescript
+// main.ts
+import { createApp } from 'vue';
+import { createDuctape } from '@ductape/vue';
+import App from './App.vue';
+
+const app = createApp(App);
+
+const ductape = createDuctape({
+  accessKey: import.meta.env.VITE_DUCTAPE_KEY,
+  product: 'my-product',
+  env: 'prd',
+  autoConnect: true // Automatically establish WebSocket connection
+});
+
+app.use(ductape);
+app.mount('#app');
+```
+
+### 2. Use Composables in Your Components
+
+```vue
+<script setup lang="ts">
+import { useDatabaseQuery } from '@ductape/vue';
+
+const { data, isLoading, error, refetch } = useDatabaseQuery(
+  ['users'],
+  {
+    table: 'users',
+    where: { active: true },
+    limit: 10
+  }
+);
+</script>
+
+<template>
+  <div>
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="error">Error: {{ error.message }}</div>
+    <div v-else>
+      <button @click="refetch">Refresh</button>
+      <ul>
+        <li v-for="user in data?.rows" :key="user.id">
+          {{ user.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+```
+
+## Plugin Configuration
+
+The `createDuctape` function accepts these options:
+
+```typescript
+interface DuctapePluginOptions {
+  accessKey: string;      // Your public access key
+  product: string;        // Product tag
+  env: string;           // Environment
+  baseURL?: string;      // Optional: Custom API URL
+  wsURL?: string;        // Optional: Custom WebSocket URL
+  timeout?: number;      // Optional: Request timeout (ms)
+  debug?: boolean;       // Optional: Enable debug logging
+  autoConnect?: boolean; // Optional: Auto-connect WebSocket (default: false)
+}
+```
+
+### Environment Variables
+
+```env
+# .env.local
+VITE_DUCTAPE_ACCESS_KEY=your_access_key
+VITE_DUCTAPE_PRODUCT=my-product
+VITE_DUCTAPE_ENV=prd
+```
+
+```typescript
+// main.ts
+const ductape = createDuctape({
+  accessKey: import.meta.env.VITE_DUCTAPE_ACCESS_KEY,
+  product: import.meta.env.VITE_DUCTAPE_PRODUCT,
+  env: import.meta.env.VITE_DUCTAPE_ENV,
+  autoConnect: true
+});
+```
+
+## Quick Examples
+
+### Query Data
+
+```vue
+<script setup lang="ts">
+import { useDatabaseQuery } from '@ductape/vue';
+
+const { data, isLoading, error } = useDatabaseQuery(
+  ['products', 'electronics'],
+  {
+    table: 'products',
+    where: { category: 'electronics' },
+    orderBy: [{ column: 'price', order: 'asc' }],
+    limit: 20
+  }
+);
+</script>
+
+<template>
+  <div>
+    <div v-if="isLoading">Loading products...</div>
+    <div v-else-if="error">Error loading products</div>
+    <div v-else>
+      <div v-for="product in data?.rows" :key="product.id">
+        <h3>{{ product.name }}</h3>
+        <p>${{ product.price }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### Insert Data
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useDatabaseInsert } from '@ductape/vue';
+
+const name = ref('');
+const email = ref('');
+
+const { mutate, isLoading, error } = useDatabaseInsert({
+  onSuccess: (data) => {
+    console.log('User created:', data.rows[0]);
+    name.value = '';
+    email.value = '';
+  }
+});
+
+const handleSubmit = () => {
+  mutate({
+    table: 'users',
+    data: {
+      name: name.value,
+      email: email.value
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <input
+      v-model="name"
+      placeholder="Name"
+      required
+    />
+    <input
+      v-model="email"
+      placeholder="Email"
+      type="email"
+      required
+    />
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Creating...' : 'Create User' }}
+    </button>
+    <p v-if="error">Error: {{ error.message }}</p>
+  </form>
+</template>
+```
+
+### Real-time Subscription
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useDatabaseSubscription } from '@ductape/vue';
+
+const messages = ref([]);
+
+useDatabaseSubscription({
+  table: 'messages',
+  where: { channel: 'general' },
+  onChange: (event) => {
+    if (event.type === 'insert') {
+      messages.value.push(event.data.new);
+    }
+  }
+});
+</script>
+
+<template>
+  <ul>
+    <li v-for="msg in messages" :key="msg.id">
+      {{ msg.text }}
+    </li>
+  </ul>
+</template>
+```
+
+### File Upload
+
+```vue
+<script setup lang="ts">
+import { useUpload } from '@ductape/vue';
+
+const { upload, progress, isLoading, error } = useUpload();
+
+const handleFileChange = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) {
+    upload({
+      file,
+      path: 'uploads/documents',
+      onSuccess: (result) => {
+        console.log('File uploaded:', result.url);
+      }
+    });
+  }
+};
+</script>
+
+<template>
+  <div>
+    <input
+      type="file"
+      @change="handleFileChange"
+      :disabled="isLoading"
+    />
+    <p v-if="isLoading">Uploading: {{ progress?.percentage }}%</p>
+    <p v-if="error">Error: {{ error.message }}</p>
+  </div>
+</template>
+```
+
+### Execute Workflow
+
+```vue
+<script setup lang="ts">
+import { useWorkflowExecute } from '@ductape/vue';
+
+const props = defineProps<{
+  orderId: string;
+}>();
+
+const { mutate, isLoading, data, error } = useWorkflowExecute();
+
+const handleProcess = () => {
+  mutate({
+    workflow: 'process-order',
+    input: { orderId: props.orderId }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleProcess" :disabled="isLoading">
+      {{ isLoading ? 'Processing...' : 'Process Order' }}
+    </button>
+    <p v-if="data">Execution ID: {{ data.executionId }}</p>
+    <p v-if="error">Error: {{ error.message }}</p>
+  </div>
+</template>
+```
+
+## Accessing the Client Directly
+
+You can access the underlying Ductape client instance:
+
+```vue
+<script setup lang="ts">
+import { useDuctape } from '@ductape/vue';
+
+const { client, isReady, isConnected } = useDuctape();
+
+// Use client directly for operations not covered by composables
+const handleCustomOperation = async () => {
+  const result = await client.databases.query({
+    table: 'custom_table'
+  });
+  console.log(result);
+};
+</script>
+
+<template>
+  <div>
+    <p>Ready: {{ isReady ? 'Yes' : 'No' }}</p>
+    <p>Connected: {{ isConnected ? 'Yes' : 'No' }}</p>
+    <button @click="handleCustomOperation">
+      Run Custom Operation
+    </button>
+  </div>
+</template>
+```
+
+## Reactive Queries with Computed
+
+Use Vue's reactivity system with Ductape composables:
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useDatabaseQuery } from '@ductape/vue';
+
+const category = ref('electronics');
+const priceLimit = ref(1000);
+
+const queryKey = computed(() => ['products', category.value, priceLimit.value]);
+const queryOptions = computed(() => ({
+  table: 'products',
+  where: {
+    category: category.value,
+    price: { $lt: priceLimit.value }
+  }
+}));
+
+const { data, isLoading } = useDatabaseQuery(queryKey, queryOptions);
+</script>
+
+<template>
+  <div>
+    <select v-model="category">
+      <option value="electronics">Electronics</option>
+      <option value="books">Books</option>
+    </select>
+    <input v-model.number="priceLimit" type="number" placeholder="Max price" />
+
+    <div v-if="isLoading">Loading...</div>
+    <div v-else>
+      <div v-for="product in data?.rows" :key="product.id">
+        {{ product.name }} - ${{ product.price }}
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+## TypeScript Support
+
+The composables are fully typed. You can provide type parameters:
+
+```vue
+<script setup lang="ts">
+import { useDatabaseQuery } from '@ductape/vue';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+const { data, isLoading } = useDatabaseQuery<User>(
+  ['users'],
+  {
+    table: 'users',
+    limit: 10
+  }
+);
+
+// data.value?.rows is typed as User[]
+</script>
+
+<template>
+  <ul>
+    <li v-for="user in data?.rows" :key="user.id">
+      {{ user.name }} - {{ user.role }}
+    </li>
+  </ul>
+</template>
+```
+
+## Using Without the Plugin
+
+You can use the composables without the plugin by creating a client manually:
+
+```vue
+<script setup lang="ts">
+import { Ductape } from '@ductape/client';
+import { useDatabaseQuery } from '@ductape/vue';
+import { provide } from 'vue';
+import { DUCTAPE_INJECTION_KEY } from '@ductape/vue';
+
+// Create client
+const client = new Ductape({
+  accessKey: 'your-key',
+  product: 'my-product',
+  env: 'prd'
+});
+
+// Provide to children
+provide(DUCTAPE_INJECTION_KEY, client);
+
+// Use composables
+const { data } = useDatabaseQuery(['users'], {
+  table: 'users'
+});
+</script>
+```
+
+## Best Practices
+
+1. **Use query keys wisely**: The first parameter to composables like `useDatabaseQuery` is a query key used for caching. Make it unique and reactive.
+
+2. **Use computed for reactive queries**: When query options depend on reactive state, use `computed`:
+
+```vue
+<script setup lang="ts">
+const userId = ref('123');
+
+const queryOptions = computed(() => ({
+  table: 'posts',
+  where: { userId: userId.value }
+}));
+
+const { data } = useDatabaseQuery(['posts', userId], queryOptions);
+</script>
+```
+
+3. **Handle loading and error states**: Always provide UI feedback in templates.
+
+4. **Cleanup is automatic**: Subscriptions and watchers automatically cleanup when components unmount.
+
+5. **Use TypeScript**: Leverage TypeScript with Vue 3 for type safety and better developer experience.
+
+## Composition API vs Options API
+
+While we recommend the Composition API (`<script setup>`), you can also use the Options API:
+
+```vue
+<script lang="ts">
+import { defineComponent } from 'vue';
+import { useDatabaseQuery } from '@ductape/vue';
+
+export default defineComponent({
+  setup() {
+    const { data, isLoading, error } = useDatabaseQuery(
+      ['users'],
+      { table: 'users', limit: 10 }
+    );
+
+    return {
+      data,
+      isLoading,
+      error
+    };
+  }
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <ul v-else>
+    <li v-for="user in data?.rows" :key="user.id">
+      {{ user.name }}
+    </li>
+  </ul>
+</template>
+```
+
+## Next Steps
+
+- [Database Composables](./database-composables)
+- [Storage Composables](./storage-composables)
+- [Workflow Composables](./workflow-composables)
+- [Real-time Subscriptions](./subscriptions)
+- [Session Management](./sessions)

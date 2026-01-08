@@ -1,0 +1,394 @@
+---
+sidebar_position: 1
+title: Getting Started
+---
+
+# Getting Started with @ductape/client
+
+The `@ductape/client` package is the core JavaScript/TypeScript SDK for Ductape. It works with any framework or vanilla JavaScript and provides a simple, type-safe interface to all Ductape services.
+
+## Installation
+
+```bash
+npm install @ductape/client
+# or
+yarn add @ductape/client
+# or
+pnpm add @ductape/client
+```
+
+## Basic Setup
+
+### 1. Initialize the Client
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-public-access-key',
+  product: 'your-product-tag',
+  env: 'prd' // or 'dev', 'staging', etc.
+});
+```
+
+### 2. Connect for Real-time Features
+
+If you need real-time subscriptions or WebSocket features, establish a connection:
+
+```typescript
+await ductape.connect();
+
+console.log('Connected to Ductape!');
+```
+
+:::tip
+The connection is optional. You can use databases, storage, and other services over HTTP without calling `connect()`. Only call it if you need real-time subscriptions or presence features.
+:::
+
+### 3. Use Services
+
+```typescript
+// Database operations
+await ductape.databases.connect({ database: 'main' });
+
+const users = await ductape.databases.query({
+  table: 'users',
+  where: { active: true },
+  limit: 10
+});
+
+console.log('Active users:', users.rows);
+```
+
+## Configuration Options
+
+The `Ductape` constructor accepts the following configuration:
+
+```typescript
+interface IDuctapeClientConfig {
+  // Required
+  accessKey: string;      // Your public access key
+  product: string;        // Product tag
+  env: string;           // Environment (e.g., 'prd', 'dev')
+
+  // Optional
+  baseURL?: string;      // API base URL (defaults to Ductape cloud)
+  wsURL?: string;        // WebSocket URL (defaults to Ductape cloud)
+  timeout?: number;      // Request timeout in ms (default: 30000)
+  retryAttempts?: number; // Number of retry attempts (default: 3)
+  debug?: boolean;       // Enable debug logging
+}
+```
+
+### Example with Custom Configuration
+
+```typescript
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY,
+  product: 'my-app',
+  env: 'prd',
+  timeout: 60000, // 60 seconds
+  debug: true,    // Enable logging
+});
+```
+
+## Quick Examples
+
+### Database Query
+
+```typescript
+const result = await ductape.databases.query({
+  table: 'products',
+  where: {
+    category: 'electronics',
+    price: { $lt: 1000 }
+  },
+  orderBy: [{ column: 'price', order: 'asc' }],
+  limit: 20
+});
+
+console.log(`Found ${result.count} products`);
+```
+
+### Insert Data
+
+```typescript
+const newUser = await ductape.databases.insert({
+  table: 'users',
+  data: {
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    role: 'user'
+  }
+});
+
+console.log('Created user:', newUser.rows[0]);
+```
+
+### Upload a File
+
+```typescript
+const file = document.getElementById('fileInput').files[0];
+
+const result = await ductape.storage.upload({
+  file: file,
+  path: 'uploads/documents',
+  onProgress: (progress) => {
+    console.log(`Upload progress: ${progress.percentage}%`);
+  }
+});
+
+console.log('File uploaded:', result.url);
+```
+
+### Execute a Workflow
+
+```typescript
+const execution = await ductape.workflows.execute({
+  workflow: 'process-order',
+  input: {
+    orderId: '12345',
+    userId: 'user-789'
+  }
+});
+
+console.log('Workflow execution:', execution.executionId);
+```
+
+### Subscribe to Database Changes
+
+```typescript
+await ductape.connect(); // WebSocket connection required
+
+const subscription = ductape.databases.subscribe({
+  table: 'messages',
+  where: { channel: 'general' },
+  onChange: (event) => {
+    console.log('Change detected:', event.type, event.data);
+
+    if (event.type === 'insert') {
+      console.log('New message:', event.data.new);
+    }
+  }
+});
+
+// Later: unsubscribe
+subscription.unsubscribe();
+```
+
+## Connection State Management
+
+Monitor the connection state for real-time features:
+
+```typescript
+await ductape.connect();
+
+ductape.onConnectionStateChange((state) => {
+  console.log('Connection state:', state);
+  // States: 'connected', 'disconnected', 'connecting', 'reconnecting'
+});
+```
+
+## Error Handling
+
+All async operations throw errors that you should handle:
+
+```typescript
+try {
+  const result = await ductape.databases.query({
+    table: 'users',
+    where: { id: userId }
+  });
+  console.log('User:', result.rows[0]);
+} catch (error) {
+  console.error('Query failed:', error.message);
+
+  // Error types you might encounter:
+  // - Network errors
+  // - Authentication errors
+  // - Validation errors
+  // - Not found errors
+}
+```
+
+## TypeScript Support
+
+The client is fully typed. You can provide type parameters for better intellisense:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+const result = await ductape.databases.query<User>({
+  table: 'users',
+  limit: 10
+});
+
+// result.rows is typed as User[]
+const firstUser: User = result.rows[0];
+```
+
+## Using with Different Frameworks
+
+### Vanilla JavaScript
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="module">
+    import { Ductape } from 'https://cdn.jsdelivr.net/npm/@ductape/client/+esm';
+
+    const ductape = new Ductape({
+      accessKey: 'your-key',
+      product: 'my-product',
+      env: 'prd'
+    });
+
+    async function loadUsers() {
+      const result = await ductape.databases.query({
+        table: 'users',
+        limit: 10
+      });
+
+      document.getElementById('users').innerHTML = result.rows
+        .map(u => `<li>${u.name}</li>`)
+        .join('');
+    }
+
+    loadUsers();
+  </script>
+</head>
+<body>
+  <ul id="users"></ul>
+</body>
+</html>
+```
+
+### With React (without hooks)
+
+```tsx
+import { Ductape } from '@ductape/client';
+import { useEffect, useState } from 'react';
+
+const ductape = new Ductape({
+  accessKey: process.env.REACT_APP_DUCTAPE_KEY,
+  product: 'my-product',
+  env: 'prd'
+});
+
+function UsersList() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const result = await ductape.databases.query({
+          table: 'users',
+          limit: 10
+        });
+        setUsers(result.rows);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUsers();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <ul>
+      {users.map(user => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+:::tip
+For React applications, we recommend using [@ductape/react](../react/getting-started) which provides hooks and better integration.
+:::
+
+### With Vue (without composables)
+
+```vue
+<script>
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: import.meta.env.VITE_DUCTAPE_KEY,
+  product: 'my-product',
+  env: 'prd'
+});
+
+export default {
+  data() {
+    return {
+      users: [],
+      loading: true
+    };
+  },
+  async mounted() {
+    try {
+      const result = await ductape.databases.query({
+        table: 'users',
+        limit: 10
+      });
+      this.users = result.rows;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.loading = false;
+    }
+  }
+};
+</script>
+
+<template>
+  <div v-if="loading">Loading...</div>
+  <ul v-else>
+    <li v-for="user in users" :key="user.id">
+      {{ user.name }}
+    </li>
+  </ul>
+</template>
+```
+
+:::tip
+For Vue 3 applications, we recommend using [@ductape/vue](../vue/getting-started) which provides composables and better integration.
+:::
+
+## Next Steps
+
+- [Database Operations](./databases)
+- [Storage](./storage)
+- [Workflows](./workflows)
+- [Agents](./agents)
+- [Real-time Subscriptions](./subscriptions)
+- [Sessions & Authentication](./sessions)
+
+## Helper Functions
+
+The package also exports a `createClient` helper:
+
+```typescript
+import { createClient } from '@ductape/client';
+
+const ductape = createClient({
+  accessKey: 'your-key',
+  product: 'my-product',
+  env: 'prd'
+});
+
+// Equivalent to: new Ductape({ ... })
+```

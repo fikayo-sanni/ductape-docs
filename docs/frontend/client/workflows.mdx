@@ -1,0 +1,579 @@
+---
+sidebar_position: 4
+title: Workflows
+---
+
+# Workflows
+
+Workflows allow you to execute complex, multi-step processes with built-in durability, retries, and state management. Execute backend workflows directly from your frontend application.
+
+## Executing Workflows
+
+### Basic Execution
+
+```typescript
+const execution = await ductape.workflows.execute({
+  workflow: 'process-order',
+  input: {
+    orderId: 'order-123',
+    userId: 'user-456'
+  }
+});
+
+console.log('Execution ID:', execution.executionId);
+console.log('Status:', execution.status);
+```
+
+### Execute with Options
+
+```typescript
+const execution = await ductape.workflows.execute({
+  workflow: 'send-notification',
+  input: {
+    userId: 'user-123',
+    message: 'Your order has shipped!'
+  },
+  options: {
+    timeout: 60000, // 60 seconds
+    retries: 3,
+    metadata: {
+      source: 'frontend',
+      triggeredBy: 'user-action'
+    }
+  }
+});
+```
+
+## Checking Workflow Status
+
+### Get Current Status
+
+```typescript
+const status = await ductape.workflows.getStatus({
+  executionId: 'exec-123'
+});
+
+console.log('Status:', status.status); // 'running', 'completed', 'failed', 'cancelled'
+console.log('Result:', status.result);
+console.log('Error:', status.error);
+```
+
+### Poll for Completion
+
+```typescript
+async function waitForCompletion(executionId: string): Promise<any> {
+  while (true) {
+    const status = await ductape.workflows.getStatus({ executionId });
+
+    if (status.status === 'completed') {
+      return status.result;
+    }
+
+    if (status.status === 'failed') {
+      throw new Error(status.error);
+    }
+
+    if (status.status === 'cancelled') {
+      throw new Error('Workflow was cancelled');
+    }
+
+    // Wait 1 second before checking again
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+// Usage
+const execution = await ductape.workflows.execute({
+  workflow: 'data-processing',
+  input: { dataId: '123' }
+});
+
+try {
+  const result = await waitForCompletion(execution.executionId);
+  console.log('Workflow completed:', result);
+} catch (error) {
+  console.error('Workflow failed:', error);
+}
+```
+
+## Workflow History
+
+Get the execution history to see all steps:
+
+```typescript
+const history = await ductape.workflows.getHistory({
+  executionId: 'exec-123'
+});
+
+history.events.forEach(event => {
+  console.log(`[${event.timestamp}] ${event.type}:`, event.data);
+});
+```
+
+## Sending Signals
+
+Send signals to running workflows:
+
+```typescript
+// Start a long-running workflow
+const execution = await ductape.workflows.execute({
+  workflow: 'approval-process',
+  input: { requestId: 'req-123' }
+});
+
+// Later: send an approval signal
+await ductape.workflows.signal({
+  executionId: execution.executionId,
+  signal: 'approve',
+  data: {
+    approvedBy: 'user-456',
+    comments: 'Looks good'
+  }
+});
+```
+
+## Cancelling Workflows
+
+```typescript
+await ductape.workflows.cancel({
+  executionId: 'exec-123',
+  reason: 'User cancelled the operation'
+});
+```
+
+## Subscribing to Workflow Updates
+
+Get real-time updates on workflow execution:
+
+```typescript
+// Connect to WebSocket first
+await ductape.connect();
+
+const subscription = ductape.workflows.subscribe({
+  executionId: 'exec-123',
+  onChange: (event) => {
+    console.log('Workflow event:', event);
+
+    if (event.type === 'status_changed') {
+      console.log('New status:', event.data.status);
+    }
+
+    if (event.type === 'step_completed') {
+      console.log('Step completed:', event.data.step);
+    }
+
+    if (event.type === 'completed') {
+      console.log('Workflow completed:', event.data.result);
+    }
+
+    if (event.type === 'failed') {
+      console.error('Workflow failed:', event.data.error);
+    }
+  }
+});
+
+// Later: unsubscribe
+subscription.unsubscribe();
+```
+
+## Listing Workflows
+
+Get a list of workflow executions:
+
+```typescript
+const result = await ductape.workflows.list({
+  workflow: 'process-order',
+  status: 'running',
+  limit: 20,
+  offset: 0
+});
+
+console.log(`Found ${result.count} running executions`);
+result.executions.forEach(exec => {
+  console.log(`- ${exec.executionId}: ${exec.status}`);
+});
+```
+
+## Complete Order Processing Example
+
+```typescript
+class OrderProcessor {
+  private ductape: Ductape;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async processOrder(orderId: string) {
+    // Show loading state
+    this.showLoading(true);
+
+    try {
+      // Execute workflow
+      const execution = await this.ductape.workflows.execute({
+        workflow: 'process-order',
+        input: {
+          orderId: orderId,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      // Subscribe to updates
+      const subscription = this.ductape.workflows.subscribe({
+        executionId: execution.executionId,
+        onChange: (event) => {
+          this.handleWorkflowEvent(event);
+        }
+      });
+
+      // Wait for completion
+      const result = await this.waitForCompletion(execution.executionId);
+
+      // Cleanup
+      subscription.unsubscribe();
+      this.showLoading(false);
+
+      // Show success
+      this.showSuccess('Order processed successfully!');
+      return result;
+
+    } catch (error) {
+      this.showLoading(false);
+      this.showError('Failed to process order: ' + error.message);
+      throw error;
+    }
+  }
+
+  private async waitForCompletion(executionId: string): Promise<any> {
+    while (true) {
+      const status = await this.ductape.workflows.getStatus({ executionId });
+
+      if (status.status === 'completed') {
+        return status.result;
+      }
+
+      if (status.status === 'failed') {
+        throw new Error(status.error);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  private handleWorkflowEvent(event: any) {
+    switch (event.type) {
+      case 'status_changed':
+        this.updateStatus(event.data.status);
+        break;
+
+      case 'step_completed':
+        this.updateProgress(event.data.step);
+        break;
+
+      case 'completed':
+        console.log('Workflow completed:', event.data.result);
+        break;
+
+      case 'failed':
+        console.error('Workflow failed:', event.data.error);
+        break;
+    }
+  }
+
+  private showLoading(show: boolean) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+  }
+
+  private updateStatus(status: string) {
+    document.getElementById('status').textContent = `Status: ${status}`;
+  }
+
+  private updateProgress(step: string) {
+    const progress = document.getElementById('progress');
+    const item = document.createElement('li');
+    item.textContent = `✓ ${step}`;
+    progress.appendChild(item);
+  }
+
+  private showSuccess(message: string) {
+    alert(message);
+  }
+
+  private showError(message: string) {
+    alert(message);
+  }
+}
+
+// Usage
+const processor = new OrderProcessor(ductape);
+await processor.processOrder('order-123');
+```
+
+## Approval Workflow Example
+
+```typescript
+class ApprovalWorkflow {
+  private ductape: Ductape;
+  private executionId: string | null = null;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async submitForApproval(data: any) {
+    const execution = await this.ductape.workflows.execute({
+      workflow: 'approval-process',
+      input: {
+        data: data,
+        submittedBy: 'current-user-id',
+        submittedAt: new Date().toISOString()
+      }
+    });
+
+    this.executionId = execution.executionId;
+
+    // Subscribe to updates
+    this.ductape.workflows.subscribe({
+      executionId: this.executionId,
+      onChange: (event) => {
+        if (event.type === 'completed') {
+          this.onApproved(event.data.result);
+        } else if (event.type === 'failed') {
+          this.onRejected(event.data.error);
+        }
+      }
+    });
+
+    return execution;
+  }
+
+  async approve(comments: string) {
+    if (!this.executionId) {
+      throw new Error('No active workflow');
+    }
+
+    await this.ductape.workflows.signal({
+      executionId: this.executionId,
+      signal: 'approve',
+      data: {
+        approvedBy: 'current-user-id',
+        comments: comments,
+        approvedAt: new Date().toISOString()
+      }
+    });
+  }
+
+  async reject(reason: string) {
+    if (!this.executionId) {
+      throw new Error('No active workflow');
+    }
+
+    await this.ductape.workflows.signal({
+      executionId: this.executionId,
+      signal: 'reject',
+      data: {
+        rejectedBy: 'current-user-id',
+        reason: reason,
+        rejectedAt: new Date().toISOString()
+      }
+    });
+  }
+
+  async cancel() {
+    if (!this.executionId) {
+      throw new Error('No active workflow');
+    }
+
+    await this.ductape.workflows.cancel({
+      executionId: this.executionId,
+      reason: 'Cancelled by user'
+    });
+  }
+
+  private onApproved(result: any) {
+    console.log('Approved:', result);
+    alert('Request approved!');
+  }
+
+  private onRejected(reason: string) {
+    console.log('Rejected:', reason);
+    alert('Request rejected: ' + reason);
+  }
+}
+
+// Usage
+const approval = new ApprovalWorkflow(ductape);
+
+// Submit for approval
+await approval.submitForApproval({
+  type: 'expense',
+  amount: 1000,
+  description: 'New laptop'
+});
+
+// Later: approve
+await approval.approve('Approved for purchase');
+
+// Or: reject
+// await approval.reject('Budget exceeded');
+```
+
+## Multi-Step Workflow with Progress
+
+```typescript
+class MultiStepWorkflow {
+  private ductape: Ductape;
+  private steps: string[] = [
+    'Validating input',
+    'Processing data',
+    'Generating report',
+    'Sending notifications',
+    'Cleanup'
+  ];
+  private currentStep: number = 0;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async execute(input: any) {
+    const execution = await this.ductape.workflows.execute({
+      workflow: 'multi-step-process',
+      input: input
+    });
+
+    // Subscribe to step updates
+    const subscription = this.ductape.workflows.subscribe({
+      executionId: execution.executionId,
+      onChange: (event) => {
+        if (event.type === 'step_completed') {
+          this.currentStep++;
+          this.updateProgress();
+        }
+      }
+    });
+
+    try {
+      const result = await this.waitForCompletion(execution.executionId);
+      subscription.unsubscribe();
+      return result;
+    } catch (error) {
+      subscription.unsubscribe();
+      throw error;
+    }
+  }
+
+  private async waitForCompletion(executionId: string): Promise<any> {
+    while (true) {
+      const status = await this.ductape.workflows.getStatus({ executionId });
+
+      if (status.status === 'completed') {
+        return status.result;
+      }
+
+      if (status.status === 'failed') {
+        throw new Error(status.error);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  private updateProgress() {
+    const percentage = (this.currentStep / this.steps.length) * 100;
+    const currentStepName = this.steps[this.currentStep - 1] || 'Starting...';
+
+    document.getElementById('progress-bar').style.width = `${percentage}%`;
+    document.getElementById('progress-text').textContent =
+      `${currentStepName} (${this.currentStep}/${this.steps.length})`;
+  }
+}
+
+// Usage
+const workflow = new MultiStepWorkflow(ductape);
+const result = await workflow.execute({ dataId: '123' });
+```
+
+## Workflow Dashboard
+
+```typescript
+class WorkflowDashboard {
+  private ductape: Ductape;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async loadWorkflows() {
+    const [running, completed, failed] = await Promise.all([
+      this.ductape.workflows.list({ status: 'running', limit: 10 }),
+      this.ductape.workflows.list({ status: 'completed', limit: 10 }),
+      this.ductape.workflows.list({ status: 'failed', limit: 10 })
+    ]);
+
+    this.renderSection('running', running.executions);
+    this.renderSection('completed', completed.executions);
+    this.renderSection('failed', failed.executions);
+  }
+
+  private renderSection(status: string, executions: any[]) {
+    const container = document.getElementById(`${status}-workflows`);
+    container.innerHTML = '';
+
+    executions.forEach(exec => {
+      const item = document.createElement('div');
+      item.className = 'workflow-item';
+      item.innerHTML = `
+        <div class="workflow-info">
+          <strong>${exec.workflow}</strong>
+          <span>${exec.executionId}</span>
+          <span>${new Date(exec.startedAt).toLocaleString()}</span>
+        </div>
+        <button onclick="dashboard.viewDetails('${exec.executionId}')">
+          View Details
+        </button>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  async viewDetails(executionId: string) {
+    const [status, history] = await Promise.all([
+      this.ductape.workflows.getStatus({ executionId }),
+      this.ductape.workflows.getHistory({ executionId })
+    ]);
+
+    console.log('Status:', status);
+    console.log('History:', history);
+
+    // Show in modal or details panel
+    this.showDetailsModal(status, history);
+  }
+
+  private showDetailsModal(status: any, history: any) {
+    // Implementation for showing details
+    console.log('Showing details:', status, history);
+  }
+}
+
+// Usage
+const dashboard = new WorkflowDashboard(ductape);
+await dashboard.loadWorkflows();
+```
+
+## Best Practices
+
+1. **Handle errors gracefully**: Always wrap workflow execution in try-catch
+2. **Use subscriptions**: Subscribe to workflow updates for real-time feedback
+3. **Implement timeouts**: Set reasonable timeouts for workflow execution
+4. **Store execution IDs**: Save execution IDs in your database for tracking
+5. **Show progress**: Provide visual feedback during long-running workflows
+6. **Handle cancellation**: Allow users to cancel long-running operations
+7. **Retry logic**: Implement retry logic for transient failures
+8. **Log events**: Log workflow events for debugging and monitoring
+
+## Next Steps
+
+- [Agents](./agents)
+- [Sessions & Authentication](./sessions)
+- [Real-time Subscriptions](./subscriptions)

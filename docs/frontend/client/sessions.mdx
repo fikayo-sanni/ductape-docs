@@ -1,0 +1,623 @@
+---
+sidebar_position: 5
+title: Sessions & Authentication
+---
+
+# Sessions & Authentication
+
+Sessions provide user authentication and authorization for your Ductape application. Manage user sessions, verify tokens, and handle authentication flows directly from the frontend.
+
+## Starting a Session
+
+### Basic Session Start
+
+```typescript
+const session = await ductape.sessions.start({
+  userId: 'user-123',
+  metadata: {
+    role: 'user',
+    email: 'user@example.com'
+  }
+});
+
+console.log('Session token:', session.token);
+console.log('Session ID:', session.sessionId);
+console.log('Expires at:', session.expiresAt);
+
+// Store token for future requests
+localStorage.setItem('ductape_token', session.token);
+```
+
+### Session with Custom Duration
+
+```typescript
+const session = await ductape.sessions.start({
+  userId: 'user-123',
+  expiresIn: 86400, // 24 hours in seconds
+  metadata: {
+    role: 'admin',
+    permissions: ['read', 'write', 'delete']
+  }
+});
+```
+
+## Verifying Sessions
+
+### Verify Token
+
+```typescript
+const token = localStorage.getItem('ductape_token');
+
+try {
+  const result = await ductape.sessions.verify({
+    token: token
+  });
+
+  console.log('Session valid');
+  console.log('User ID:', result.userId);
+  console.log('Metadata:', result.metadata);
+} catch (error) {
+  console.log('Session invalid or expired');
+  // Redirect to login
+}
+```
+
+### Auto-verify on App Load
+
+```typescript
+async function initializeAuth() {
+  const token = localStorage.getItem('ductape_token');
+
+  if (!token) {
+    // No token, show login
+    showLoginPage();
+    return;
+  }
+
+  try {
+    const result = await ductape.sessions.verify({ token });
+
+    // Token valid, load app
+    loadApp(result.userId, result.metadata);
+  } catch (error) {
+    // Token invalid, clear and show login
+    localStorage.removeItem('ductape_token');
+    showLoginPage();
+  }
+}
+
+// Call on app load
+initializeAuth();
+```
+
+## Refreshing Sessions
+
+### Manual Refresh
+
+```typescript
+const token = localStorage.getItem('ductape_token');
+
+const refreshed = await ductape.sessions.refresh({
+  token: token
+});
+
+// Update stored token
+localStorage.setItem('ductape_token', refreshed.token);
+console.log('Session refreshed, new expiry:', refreshed.expiresAt);
+```
+
+### Auto-refresh Before Expiry
+
+```typescript
+class SessionManager {
+  private token: string | null = null;
+  private refreshTimer: number | null = null;
+
+  async login(userId: string, metadata: any) {
+    const session = await ductape.sessions.start({
+      userId,
+      metadata,
+      expiresIn: 3600 // 1 hour
+    });
+
+    this.token = session.token;
+    localStorage.setItem('ductape_token', session.token);
+
+    // Schedule refresh 5 minutes before expiry
+    this.scheduleRefresh(session.expiresAt);
+  }
+
+  private scheduleRefresh(expiresAt: Date) {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    const expiryTime = new Date(expiresAt).getTime();
+    const now = Date.now();
+    const refreshTime = expiryTime - (5 * 60 * 1000); // 5 minutes before
+    const delay = refreshTime - now;
+
+    if (delay > 0) {
+      this.refreshTimer = setTimeout(() => {
+        this.refreshSession();
+      }, delay);
+    }
+  }
+
+  private async refreshSession() {
+    try {
+      const refreshed = await ductape.sessions.refresh({
+        token: this.token!
+      });
+
+      this.token = refreshed.token;
+      localStorage.setItem('ductape_token', refreshed.token);
+      this.scheduleRefresh(refreshed.expiresAt);
+
+      console.log('Session refreshed automatically');
+    } catch (error) {
+      console.error('Failed to refresh session:', error);
+      this.logout();
+    }
+  }
+
+  async logout() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    if (this.token) {
+      try {
+        await ductape.sessions.revoke({ token: this.token });
+      } catch (error) {
+        console.error('Failed to revoke session:', error);
+      }
+    }
+
+    this.token = null;
+    localStorage.removeItem('ductape_token');
+
+    // Redirect to login
+    window.location.href = '/login';
+  }
+}
+
+// Usage
+const sessionManager = new SessionManager();
+await sessionManager.login('user-123', { role: 'user' });
+```
+
+## Revoking Sessions
+
+### Revoke Current Session (Logout)
+
+```typescript
+const token = localStorage.getItem('ductape_token');
+
+await ductape.sessions.revoke({
+  token: token
+});
+
+localStorage.removeItem('ductape_token');
+
+// Redirect to login
+window.location.href = '/login';
+```
+
+### Revoke All Sessions
+
+```typescript
+await ductape.sessions.revokeAll({
+  userId: 'user-123'
+});
+
+// User will be logged out from all devices
+```
+
+## Listing Active Sessions
+
+```typescript
+const result = await ductape.sessions.list({
+  userId: 'user-123'
+});
+
+console.log(`User has ${result.count} active sessions`);
+
+result.sessions.forEach(session => {
+  console.log(`- Session ${session.sessionId}`);
+  console.log(`  Created: ${session.createdAt}`);
+  console.log(`  Expires: ${session.expiresAt}`);
+  console.log(`  Metadata:`, session.metadata);
+});
+```
+
+## Complete Authentication Example
+
+```typescript
+class AuthService {
+  private ductape: Ductape;
+  private currentUser: any = null;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async login(email: string, password: string) {
+    try {
+      // 1. Verify credentials with your backend
+      const user = await this.verifyCredentials(email, password);
+
+      // 2. Create Ductape session
+      const session = await this.ductape.sessions.start({
+        userId: user.id,
+        metadata: {
+          email: user.email,
+          role: user.role,
+          name: user.name
+        },
+        expiresIn: 86400 // 24 hours
+      });
+
+      // 3. Store token
+      localStorage.setItem('ductape_token', session.token);
+      this.currentUser = user;
+
+      // 4. Return user info
+      return user;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
+  }
+
+  async logout() {
+    const token = localStorage.getItem('ductape_token');
+
+    if (token) {
+      try {
+        await this.ductape.sessions.revoke({ token });
+      } catch (error) {
+        console.error('Failed to revoke session:', error);
+      }
+    }
+
+    localStorage.removeItem('ductape_token');
+    this.currentUser = null;
+
+    // Redirect to login
+    window.location.href = '/login';
+  }
+
+  async checkAuth(): Promise<boolean> {
+    const token = localStorage.getItem('ductape_token');
+
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const result = await this.ductape.sessions.verify({ token });
+      this.currentUser = {
+        id: result.userId,
+        ...result.metadata
+      };
+      return true;
+    } catch (error) {
+      localStorage.removeItem('ductape_token');
+      return false;
+    }
+  }
+
+  getCurrentUser() {
+    return this.currentUser;
+  }
+
+  isAuthenticated(): boolean {
+    return this.currentUser !== null;
+  }
+
+  hasRole(role: string): boolean {
+    return this.currentUser?.role === role;
+  }
+
+  private async verifyCredentials(email: string, password: string) {
+    // Implement your credential verification
+    // This could call your backend API
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      throw new Error('Invalid credentials');
+    }
+
+    return await response.json();
+  }
+}
+
+// Usage
+const auth = new AuthService(ductape);
+
+// Login
+try {
+  const user = await auth.login('user@example.com', 'password123');
+  console.log('Logged in as:', user.name);
+} catch (error) {
+  alert('Login failed');
+}
+
+// Check auth on page load
+if (await auth.checkAuth()) {
+  console.log('User is authenticated');
+} else {
+  window.location.href = '/login';
+}
+
+// Logout
+await auth.logout();
+```
+
+## Session-Protected Requests
+
+All database and storage operations automatically include the session token:
+
+```typescript
+// Login first
+await auth.login('user@example.com', 'password');
+
+// Now all requests include session context
+const result = await ductape.databases.query({
+  table: 'user_data',
+  where: { userId: 'current-user' } // Server validates session
+});
+
+// Upload with session
+await ductape.storage.upload({
+  file: file,
+  path: 'user-uploads' // Server validates permissions based on session
+});
+```
+
+## Role-Based Access Control
+
+```typescript
+class PermissionGuard {
+  private auth: AuthService;
+
+  constructor(auth: AuthService) {
+    this.auth = auth;
+  }
+
+  requireAuth() {
+    if (!this.auth.isAuthenticated()) {
+      window.location.href = '/login';
+      throw new Error('Not authenticated');
+    }
+  }
+
+  requireRole(role: string) {
+    this.requireAuth();
+
+    if (!this.auth.hasRole(role)) {
+      window.location.href = '/forbidden';
+      throw new Error('Insufficient permissions');
+    }
+  }
+
+  requireAnyRole(roles: string[]) {
+    this.requireAuth();
+
+    const user = this.auth.getCurrentUser();
+    if (!roles.includes(user.role)) {
+      window.location.href = '/forbidden';
+      throw new Error('Insufficient permissions');
+    }
+  }
+}
+
+// Usage
+const guard = new PermissionGuard(auth);
+
+// Protect a function
+async function deleteUser(userId: string) {
+  guard.requireRole('admin');
+
+  await ductape.databases.delete({
+    table: 'users',
+    where: { id: userId }
+  });
+}
+
+// Protect a page
+function loadAdminPage() {
+  guard.requireRole('admin');
+
+  // Load admin page content
+}
+```
+
+## Session Activity Dashboard
+
+```typescript
+class SessionDashboard {
+  private ductape: Ductape;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async loadSessions(userId: string) {
+    const result = await this.ductape.sessions.list({ userId });
+
+    this.renderSessions(result.sessions);
+  }
+
+  async revokeSession(sessionId: string) {
+    if (!confirm('Revoke this session?')) {
+      return;
+    }
+
+    const token = localStorage.getItem('ductape_token');
+    await this.ductape.sessions.revoke({ token });
+
+    // Reload sessions
+    await this.loadSessions('current-user-id');
+  }
+
+  async revokeAllOthers(userId: string) {
+    if (!confirm('Revoke all other sessions? This will log you out from all other devices.')) {
+      return;
+    }
+
+    const currentToken = localStorage.getItem('ductape_token');
+
+    // Get all sessions
+    const result = await this.ductape.sessions.list({ userId });
+
+    // Revoke all except current
+    const currentSession = await this.ductape.sessions.verify({ token: currentToken });
+
+    for (const session of result.sessions) {
+      if (session.sessionId !== currentSession.sessionId) {
+        await this.ductape.sessions.revoke({ sessionId: session.sessionId });
+      }
+    }
+
+    alert('All other sessions revoked');
+    await this.loadSessions(userId);
+  }
+
+  private renderSessions(sessions: any[]) {
+    const container = document.getElementById('sessions-list');
+    container.innerHTML = '';
+
+    sessions.forEach(session => {
+      const item = document.createElement('div');
+      item.className = 'session-item';
+
+      const isCurrentSession = this.isCurrentSession(session);
+
+      item.innerHTML = `
+        <div class="session-info">
+          <strong>${isCurrentSession ? 'Current Session' : 'Session'}</strong>
+          <span>Created: ${new Date(session.createdAt).toLocaleString()}</span>
+          <span>Expires: ${new Date(session.expiresAt).toLocaleString()}</span>
+          ${session.metadata?.device ? `<span>Device: ${session.metadata.device}</span>` : ''}
+        </div>
+        ${!isCurrentSession ? `
+          <button onclick="dashboard.revokeSession('${session.sessionId}')">
+            Revoke
+          </button>
+        ` : ''}
+      `;
+
+      container.appendChild(item);
+    });
+  }
+
+  private isCurrentSession(session: any): boolean {
+    // Implementation to check if this is the current session
+    return false;
+  }
+}
+
+// Usage
+const dashboard = new SessionDashboard(ductape);
+await dashboard.loadSessions('user-123');
+```
+
+## SSO Integration Example
+
+```typescript
+class SSOAuth {
+  private ductape: Ductape;
+
+  constructor(ductape: Ductape) {
+    this.ductape = ductape;
+  }
+
+  async loginWithGoogle() {
+    // 1. Redirect to Google OAuth
+    const googleAuthUrl = this.buildGoogleAuthUrl();
+    window.location.href = googleAuthUrl;
+  }
+
+  async handleOAuthCallback(code: string) {
+    try {
+      // 2. Exchange code for tokens with your backend
+      const response = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      const { user, googleTokens } = await response.json();
+
+      // 3. Create Ductape session
+      const session = await this.ductape.sessions.start({
+        userId: user.id,
+        metadata: {
+          email: user.email,
+          name: user.name,
+          provider: 'google',
+          avatar: user.avatar
+        }
+      });
+
+      // 4. Store token
+      localStorage.setItem('ductape_token', session.token);
+
+      // 5. Redirect to app
+      window.location.href = '/dashboard';
+    } catch (error) {
+      console.error('OAuth callback failed:', error);
+      window.location.href = '/login?error=oauth_failed';
+    }
+  }
+
+  private buildGoogleAuthUrl(): string {
+    const params = new URLSearchParams({
+      client_id: 'YOUR_GOOGLE_CLIENT_ID',
+      redirect_uri: `${window.location.origin}/auth/callback`,
+      response_type: 'code',
+      scope: 'email profile'
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  }
+}
+
+// Usage
+const sso = new SSOAuth(ductape);
+
+// On login page
+document.getElementById('google-login').onclick = () => {
+  sso.loginWithGoogle();
+};
+
+// On callback page
+const urlParams = new URLSearchParams(window.location.search);
+const code = urlParams.get('code');
+if (code) {
+  sso.handleOAuthCallback(code);
+}
+```
+
+## Best Practices
+
+1. **Store tokens securely**: Use httpOnly cookies in production when possible
+2. **Implement auto-refresh**: Refresh tokens before they expire
+3. **Handle token expiry**: Gracefully handle expired tokens
+4. **Use HTTPS**: Always use HTTPS in production
+5. **Implement CSRF protection**: Protect against cross-site request forgery
+6. **Limit session duration**: Use reasonable expiry times
+7. **Revoke on logout**: Always revoke sessions on logout
+8. **Monitor active sessions**: Allow users to view and revoke sessions
+
+## Next Steps
+
+- [Real-time Subscriptions](./subscriptions)
+- [React Integration](../react/getting-started)
+- [Vue Integration](../vue/getting-started)

@@ -1,0 +1,641 @@
+---
+sidebar_position: 2
+title: Database Hooks
+---
+
+# Database Hooks
+
+React hooks for working with Ductape databases. These hooks provide automatic loading states, error handling, and React-specific optimizations.
+
+## useDatabase
+
+Connect to a database and get the connection state.
+
+```tsx
+import { useDatabase } from '@ductape/react';
+
+function MyComponent() {
+  const { isConnected, connect, disconnect, error } = useDatabase();
+
+  useEffect(() => {
+    connect({ database: 'main' });
+  }, []);
+
+  if (error) return <div>Error connecting: {error.message}</div>;
+  if (!isConnected) return <div>Connecting...</div>;
+
+  return <div>Connected to database</div>;
+}
+```
+
+## useDatabaseQuery
+
+Query data from a database table with automatic loading and error states.
+
+### Basic Query
+
+```tsx
+import { useDatabaseQuery } from '@ductape/react';
+
+function UsersList() {
+  const { data, isLoading, error, refetch } = useDatabaseQuery(
+    'users', // Query key
+    {
+      table: 'users',
+      limit: 10
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      <button onClick={() => refetch()}>Refresh</button>
+      <ul>
+        {data?.rows.map(user => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Query with Filters
+
+```tsx
+function ActiveUsers() {
+  const { data, isLoading } = useDatabaseQuery(
+    ['users', 'active'],
+    {
+      table: 'users',
+      where: { active: true, role: 'user' },
+      orderBy: [{ column: 'createdAt', order: 'desc' }],
+      limit: 20
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h2>Active Users ({data?.count})</h2>
+      <ul>
+        {data?.rows.map(user => (
+          <li key={user.id}>
+            {user.name} - {user.email}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Reactive Query with Dependencies
+
+```tsx
+function ProductList() {
+  const [category, setCategory] = useState('electronics');
+  const [priceLimit, setPriceLimit] = useState(1000);
+
+  const { data, isLoading } = useDatabaseQuery(
+    ['products', category, priceLimit],
+    {
+      table: 'products',
+      where: {
+        category: category,
+        price: { $lt: priceLimit }
+      },
+      orderBy: [{ column: 'price', order: 'asc' }]
+    }
+  );
+
+  return (
+    <div>
+      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <option value="electronics">Electronics</option>
+        <option value="books">Books</option>
+        <option value="clothing">Clothing</option>
+      </select>
+
+      <input
+        type="number"
+        value={priceLimit}
+        onChange={(e) => setPriceLimit(Number(e.target.value))}
+        placeholder="Max price"
+      />
+
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <div>
+          {data?.rows.map(product => (
+            <div key={product.id}>
+              <h3>{product.name}</h3>
+              <p>${product.price}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### With TypeScript
+
+```tsx
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+function TypedUsersList() {
+  const { data, isLoading } = useDatabaseQuery<User>(
+    'users',
+    {
+      table: 'users',
+      limit: 10
+    }
+  );
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <ul>
+      {data?.rows.map(user => (
+        <li key={user.id}>
+          {user.name} ({user.role})
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## useDatabaseInsert
+
+Insert data into a database table.
+
+### Basic Insert
+
+```tsx
+import { useDatabaseInsert } from '@ductape/react';
+import { useState } from 'react';
+
+function CreateUser() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+
+  const { mutate, isLoading, error } = useDatabaseInsert({
+    onSuccess: (data) => {
+      console.log('User created:', data.rows[0]);
+      setName('');
+      setEmail('');
+      alert('User created successfully!');
+    },
+    onError: (err) => {
+      alert('Failed to create user: ' + err.message);
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutate({
+      table: 'users',
+      data: { name, email, role: 'user' }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+        required
+      />
+      <input
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        type="email"
+        required
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create User'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+    </form>
+  );
+}
+```
+
+### Bulk Insert
+
+```tsx
+function BulkUserImport() {
+  const { mutate, isLoading } = useDatabaseInsert({
+    onSuccess: (data) => {
+      alert(`Imported ${data.rows.length} users`);
+    }
+  });
+
+  const handleImport = () => {
+    const users = [
+      { name: 'Alice', email: 'alice@example.com' },
+      { name: 'Bob', email: 'bob@example.com' },
+      { name: 'Charlie', email: 'charlie@example.com' }
+    ];
+
+    mutate({
+      table: 'users',
+      data: users
+    });
+  };
+
+  return (
+    <button onClick={handleImport} disabled={isLoading}>
+      {isLoading ? 'Importing...' : 'Import Users'}
+    </button>
+  );
+}
+```
+
+### With Optimistic Updates
+
+```tsx
+function CreateTodo() {
+  const [text, setText] = useState('');
+
+  const { mutate } = useDatabaseInsert({
+    onMutate: async (variables) => {
+      // Optimistically add to UI
+      const newTodo = {
+        id: `temp-${Date.now()}`,
+        text: variables.data.text,
+        completed: false
+      };
+
+      // Return context for rollback
+      return { newTodo };
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('Todo created:', data.rows[0]);
+    },
+    onError: (error, variables, context) => {
+      // Rollback optimistic update
+      console.error('Failed, rolling back:', error);
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutate({
+      table: 'todos',
+      data: { text, completed: false }
+    });
+    setText('');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="New todo"
+      />
+      <button type="submit">Add</button>
+    </form>
+  );
+}
+```
+
+## useDatabaseUpdate
+
+Update existing records in a database table.
+
+```tsx
+import { useDatabaseUpdate } from '@ductape/react';
+
+function UpdateUserForm({ userId }: { userId: string }) {
+  const [name, setName] = useState('');
+
+  const { mutate, isLoading, error } = useDatabaseUpdate({
+    onSuccess: () => {
+      alert('User updated!');
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutate({
+      table: 'users',
+      where: { id: userId },
+      data: { name, updatedAt: new Date() }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="New name"
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Updating...' : 'Update'}
+      </button>
+      {error && <p>{error.message}</p>}
+    </form>
+  );
+}
+```
+
+### Toggle Todo Example
+
+```tsx
+function TodoItem({ todo }: { todo: any }) {
+  const { mutate } = useDatabaseUpdate({
+    onSuccess: () => {
+      console.log('Todo updated');
+    }
+  });
+
+  const handleToggle = () => {
+    mutate({
+      table: 'todos',
+      where: { id: todo.id },
+      data: { completed: !todo.completed }
+    });
+  };
+
+  return (
+    <div>
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        onChange={handleToggle}
+      />
+      <span style={{ textDecoration: todo.completed ? 'line-through' : 'none' }}>
+        {todo.text}
+      </span>
+    </div>
+  );
+}
+```
+
+## useDatabaseDelete
+
+Delete records from a database table.
+
+```tsx
+import { useDatabaseDelete } from '@ductape/react';
+
+function DeleteUserButton({ userId }: { userId: string }) {
+  const { mutate, isLoading } = useDatabaseDelete({
+    onSuccess: () => {
+      alert('User deleted');
+    }
+  });
+
+  const handleDelete = () => {
+    if (confirm('Are you sure?')) {
+      mutate({
+        table: 'users',
+        where: { id: userId }
+      });
+    }
+  };
+
+  return (
+    <button onClick={handleDelete} disabled={isLoading}>
+      {isLoading ? 'Deleting...' : 'Delete'}
+    </button>
+  );
+}
+```
+
+### Bulk Delete
+
+```tsx
+function DeleteCompleted() {
+  const { mutate, isLoading } = useDatabaseDelete({
+    onSuccess: (result) => {
+      alert(`Deleted ${result.count} completed todos`);
+    }
+  });
+
+  const handleDeleteCompleted = () => {
+    if (confirm('Delete all completed todos?')) {
+      mutate({
+        table: 'todos',
+        where: { completed: true }
+      });
+    }
+  };
+
+  return (
+    <button onClick={handleDeleteCompleted} disabled={isLoading}>
+      {isLoading ? 'Deleting...' : 'Delete Completed'}
+    </button>
+  );
+}
+```
+
+## useDatabaseSubscription
+
+Subscribe to real-time database changes.
+
+```tsx
+import { useDatabaseSubscription } from '@ductape/react';
+import { useState } from 'react';
+
+function LiveMessages() {
+  const [messages, setMessages] = useState([]);
+
+  useDatabaseSubscription({
+    table: 'messages',
+    where: { channel: 'general' },
+    onChange: (event) => {
+      if (event.type === 'insert') {
+        setMessages(prev => [...prev, event.data.new]);
+      } else if (event.type === 'update') {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === event.data.new.id ? event.data.new : msg
+          )
+        );
+      } else if (event.type === 'delete') {
+        setMessages(prev =>
+          prev.filter(msg => msg.id !== event.data.old.id)
+        );
+      }
+    }
+  });
+
+  return (
+    <ul>
+      {messages.map(msg => (
+        <li key={msg.id}>{msg.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Subscription with Initial Data
+
+```tsx
+function RealtimeTodoList() {
+  const { data: initialData, isLoading } = useDatabaseQuery(
+    'todos',
+    {
+      table: 'todos',
+      where: { completed: false }
+    }
+  );
+
+  const [todos, setTodos] = useState([]);
+
+  // Initialize with query data
+  useEffect(() => {
+    if (initialData) {
+      setTodos(initialData.rows);
+    }
+  }, [initialData]);
+
+  // Subscribe to changes
+  useDatabaseSubscription({
+    table: 'todos',
+    where: { completed: false },
+    onChange: (event) => {
+      if (event.type === 'insert') {
+        setTodos(prev => [...prev, event.data.new]);
+      }
+    }
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <ul>
+      {todos.map(todo => (
+        <li key={todo.id}>{todo.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## Complete CRUD Example
+
+```tsx
+interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+function TodoApp() {
+  const [newTodoText, setNewTodoText] = useState('');
+
+  // Query todos
+  const { data, isLoading, refetch } = useDatabaseQuery<Todo>(
+    'todos',
+    {
+      table: 'todos',
+      orderBy: [{ column: 'createdAt', order: 'desc' }]
+    }
+  );
+
+  // Create mutation
+  const { mutate: createTodo } = useDatabaseInsert({
+    onSuccess: () => {
+      refetch();
+      setNewTodoText('');
+    }
+  });
+
+  // Update mutation
+  const { mutate: updateTodo } = useDatabaseUpdate({
+    onSuccess: () => refetch()
+  });
+
+  // Delete mutation
+  const { mutate: deleteTodo } = useDatabaseDelete({
+    onSuccess: () => refetch()
+  });
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    createTodo({
+      table: 'todos',
+      data: { text: newTodoText, completed: false }
+    });
+  };
+
+  const handleToggle = (todo: Todo) => {
+    updateTodo({
+      table: 'todos',
+      where: { id: todo.id },
+      data: { completed: !todo.completed }
+    });
+  };
+
+  const handleDelete = (todoId: string) => {
+    if (confirm('Delete this todo?')) {
+      deleteTodo({
+        table: 'todos',
+        where: { id: todoId }
+      });
+    }
+  };
+
+  if (isLoading) return <div>Loading todos...</div>;
+
+  return (
+    <div>
+      <form onSubmit={handleCreate}>
+        <input
+          value={newTodoText}
+          onChange={(e) => setNewTodoText(e.target.value)}
+          placeholder="New todo"
+          required
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      <ul>
+        {data?.rows.map(todo => (
+          <li key={todo.id}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => handleToggle(todo)}
+            />
+            <span
+              style={{
+                textDecoration: todo.completed ? 'line-through' : 'none'
+              }}
+            >
+              {todo.text}
+            </span>
+            <button onClick={() => handleDelete(todo.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Next Steps
+
+- [Storage Hooks](./storage-hooks)
+- [Workflow Hooks](./workflow-hooks)
+- [Session Hooks](./session-hooks)
