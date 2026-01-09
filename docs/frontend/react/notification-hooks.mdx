@@ -1,0 +1,478 @@
+---
+sidebar_position: 7
+title: Notification Hooks
+---
+
+# Notification Hooks
+
+React hooks for sending notifications through email, SMS, and push notification channels.
+
+## useNotification
+
+Send notifications with automatic loading states and error handling.
+
+### Send Email Notification
+
+```tsx
+import { useNotification } from '@ductape/react';
+
+function WelcomeEmail({ userEmail, userName }: { userEmail: string; userName: string }) {
+  const { mutate: sendNotification, isLoading, error } = useNotification({
+    onSuccess: () => {
+      alert('Welcome email sent!');
+    }
+  });
+
+  const handleSend = () => {
+    sendNotification({
+      channel: 'email',
+      to: userEmail,
+      template: 'welcome-email',
+      data: {
+        name: userName,
+        loginLink: 'https://app.com/login'
+      }
+    });
+  };
+
+  return (
+    <button onClick={handleSend} disabled={isLoading}>
+      {isLoading ? 'Sending...' : 'Send Welcome Email'}
+    </button>
+  );
+}
+```
+
+### Send SMS Notification
+
+```tsx
+function SendVerificationCode({ phoneNumber }: { phoneNumber: string }) {
+  const [code] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
+
+  const { mutate, isLoading } = useNotification({
+    onSuccess: () => {
+      alert('Verification code sent!');
+    }
+  });
+
+  const handleSend = () => {
+    mutate({
+      channel: 'sms',
+      to: phoneNumber,
+      template: 'verification-code',
+      data: {
+        code,
+        expiresIn: '10 minutes'
+      }
+    });
+  };
+
+  return (
+    <button onClick={handleSend} disabled={isLoading}>
+      {isLoading ? 'Sending...' : 'Send Code'}
+    </button>
+  );
+}
+```
+
+### Send Push Notification
+
+```tsx
+function SendPushNotification({ deviceToken, message }: { deviceToken: string; message: string }) {
+  const { mutate, isLoading } = useNotification();
+
+  const handleSend = () => {
+    mutate({
+      channel: 'push',
+      to: deviceToken,
+      data: {
+        title: 'New Message',
+        body: message,
+        badge: 1,
+        sound: 'default'
+      }
+    });
+  };
+
+  return (
+    <button onClick={handleSend} disabled={isLoading}>
+      Send Push
+    </button>
+  );
+}
+```
+
+## useNotificationBatch
+
+Send notifications to multiple recipients.
+
+```tsx
+function BulkEmailSender() {
+  const [recipients, setRecipients] = useState<string[]>([]);
+
+  const { mutate: sendBatch, isLoading } = useNotificationBatch({
+    onSuccess: (result) => {
+      alert(`Sent ${result.successCount} emails successfully`);
+    }
+  });
+
+  const handleSendAll = () => {
+    sendBatch({
+      channel: 'email',
+      template: 'newsletter',
+      recipients: recipients.map(email => ({
+        to: email,
+        data: {
+          unsubscribeLink: `https://app.com/unsubscribe?email=${email}`
+        }
+      }))
+    });
+  };
+
+  return (
+    <div>
+      <textarea
+        placeholder="Enter emails (one per line)"
+        onChange={(e) => setRecipients(e.target.value.split('\n').filter(Boolean))}
+      />
+      <button onClick={handleSendAll} disabled={isLoading || recipients.length === 0}>
+        {isLoading ? `Sending to ${recipients.length} recipients...` : 'Send Newsletter'}
+      </button>
+    </div>
+  );
+}
+```
+
+## useNotificationStatus
+
+Track notification delivery status.
+
+```tsx
+function NotificationTracker({ notificationId }: { notificationId: string }) {
+  const { data: status, isLoading } = useNotificationStatus(notificationId, {
+    refetchInterval: 5000 // Poll every 5 seconds
+  });
+
+  if (isLoading) return <div>Loading status...</div>;
+
+  return (
+    <div className="notification-status">
+      <h3>Notification Status</h3>
+      <div>
+        <span>Sent:</span> {status?.sent ? '✓' : '✗'}
+      </div>
+      <div>
+        <span>Delivered:</span> {status?.delivered ? '✓' : '✗'}
+      </div>
+      <div>
+        <span>Opened:</span> {status?.opened ? '✓' : '✗'}
+      </div>
+      <div>
+        <span>Clicked:</span> {status?.clicked ? '✓' : '✗'}
+      </div>
+      {status?.deliveredAt && (
+        <div>
+          <span>Delivered at:</span> {new Date(status.deliveredAt).toLocaleString()}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Complete Examples
+
+### Order Confirmation
+
+```tsx
+function OrderConfirmation({ order }: { order: any }) {
+  const { mutate: sendEmail } = useNotification();
+  const { mutate: sendSMS } = useNotification();
+  const { mutate: sendPush } = useNotification();
+
+  useEffect(() => {
+    sendOrderNotifications();
+  }, [order.id]);
+
+  const sendOrderNotifications = async () => {
+    // Send email
+    await sendEmail({
+      channel: 'email',
+      to: order.customerEmail,
+      template: 'order-confirmation',
+      data: {
+        orderNumber: order.id,
+        items: order.items,
+        total: order.total,
+        trackingLink: order.trackingUrl
+      }
+    });
+
+    // Send SMS
+    if (order.customerPhone) {
+      await sendSMS({
+        channel: 'sms',
+        to: order.customerPhone,
+        template: 'order-sms',
+        data: {
+          orderNumber: order.id,
+          trackingLink: order.trackingUrl
+        }
+      });
+    }
+
+    // Send push notification
+    if (order.deviceToken) {
+      await sendPush({
+        channel: 'push',
+        to: order.deviceToken,
+        data: {
+          title: 'Order Confirmed',
+          body: `Your order #${order.id} has been confirmed`,
+          badge: 1
+        }
+      });
+    }
+  };
+
+  return (
+    <div className="order-confirmation">
+      <h2>Order Confirmed!</h2>
+      <p>Order #{order.id}</p>
+      <p>Confirmation sent to {order.customerEmail}</p>
+    </div>
+  );
+}
+```
+
+### Password Reset
+
+```tsx
+function ForgotPasswordForm() {
+  const [email, setEmail] = useState('');
+
+  const { mutate: sendReset, isLoading, error } = useNotification({
+    onSuccess: () => {
+      alert('Password reset link sent! Check your email.');
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Generate reset token (in real app, do this on server)
+    const resetToken = Math.random().toString(36).substring(2);
+
+    sendReset({
+      channel: 'email',
+      to: email,
+      template: 'password-reset',
+      data: {
+        resetLink: `https://app.com/reset-password?token=${resetToken}`,
+        expiresIn: '1 hour'
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Forgot Password</h2>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        required
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Sending...' : 'Send Reset Link'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+    </form>
+  );
+}
+```
+
+### Team Invitation
+
+```tsx
+function InviteTeamMember() {
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('member');
+  const { session } = useSession();
+
+  const { mutate: sendInvite, isLoading } = useNotification({
+    onSuccess: () => {
+      alert('Invitation sent!');
+      setEmail('');
+    }
+  });
+
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    sendInvite({
+      channel: 'email',
+      to: email,
+      template: 'team-invitation',
+      data: {
+        inviterName: session.user.name,
+        teamName: session.team.name,
+        role,
+        acceptLink: `https://app.com/invitations/accept?email=${email}&role=${role}`
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleInvite}>
+      <h3>Invite Team Member</h3>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email address"
+        required
+      />
+      <select value={role} onChange={(e) => setRole(e.target.value)}>
+        <option value="member">Member</option>
+        <option value="admin">Admin</option>
+        <option value="owner">Owner</option>
+      </select>
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Sending...' : 'Send Invitation'}
+      </button>
+    </form>
+  );
+}
+```
+
+### Scheduled Notification
+
+```tsx
+function ScheduleReminder() {
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+
+  const { mutate, isLoading } = useNotification({
+    onSuccess: () => {
+      alert('Reminder scheduled!');
+    }
+  });
+
+  const handleSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    mutate({
+      channel: 'email',
+      to: email,
+      template: 'reminder',
+      data: {
+        message,
+        scheduledFor: scheduledTime
+      },
+      scheduledFor: new Date(scheduledTime)
+    });
+  };
+
+  return (
+    <form onSubmit={handleSchedule}>
+      <h3>Schedule Reminder</h3>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Reminder message"
+        required
+      />
+      <input
+        type="datetime-local"
+        value={scheduledTime}
+        onChange={(e) => setScheduledTime(e.target.value)}
+        required
+      />
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Scheduling...' : 'Schedule Reminder'}
+      </button>
+    </form>
+  );
+}
+```
+
+### Multi-Channel Notification
+
+```tsx
+function MultiChannelAlert({ userId, message }: { userId: string; message: string }) {
+  const { data: user } = useQuery(['user', userId], () => fetchUser(userId));
+
+  const { mutate: sendEmail } = useNotification();
+  const { mutate: sendSMS } = useNotification();
+  const { mutate: sendPush } = useNotification();
+
+  const sendAlert = async () => {
+    const promises = [];
+
+    // Email
+    if (user?.email) {
+      promises.push(
+        sendEmail({
+          channel: 'email',
+          to: user.email,
+          subject: 'Important Alert',
+          body: message
+        })
+      );
+    }
+
+    // SMS
+    if (user?.phone) {
+      promises.push(
+        sendSMS({
+          channel: 'sms',
+          to: user.phone,
+          template: 'alert-sms',
+          data: { message }
+        })
+      );
+    }
+
+    // Push
+    if (user?.deviceTokens?.length > 0) {
+      user.deviceTokens.forEach(token => {
+        promises.push(
+          sendPush({
+            channel: 'push',
+            to: token,
+            data: {
+              title: 'Alert',
+              body: message,
+              priority: 'high'
+            }
+          })
+        );
+      });
+    }
+
+    await Promise.all(promises);
+  };
+
+  return (
+    <button onClick={sendAlert}>
+      Send Multi-Channel Alert
+    </button>
+  );
+}
+```
+
+## Next Steps
+
+- [Action Hooks](./action-hooks)
+- [Database Hooks](./database-hooks)
+- [Session Hooks](./session-hooks)

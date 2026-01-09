@@ -1,0 +1,464 @@
+---
+sidebar_position: 4
+title: Workflow Composables
+---
+
+# Workflow Composables
+
+Vue 3 composables for executing and managing Ductape Workflows.
+
+## useWorkflowExecution
+
+Execute a workflow and track its progress.
+
+### Basic Workflow Execution
+
+```vue
+<script setup lang="ts">
+import { useWorkflowExecution } from '@ductape/vue';
+
+const { mutate, isLoading, data, error } = useWorkflowExecution({
+  onSuccess: (result) => {
+    console.log('Workflow completed:', result);
+    alert('Order processed successfully!');
+  }
+});
+
+const handleProcessOrder = (orderId: string) => {
+  mutate({
+    workflow: 'process-order',
+    input: {
+      orderId,
+      priority: 'high'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleProcessOrder('order-123')" :disabled="isLoading">
+      {{ isLoading ? 'Processing...' : 'Process Order' }}
+    </button>
+    <p v-if="error" class="error">{{ error.message }}</p>
+    <p v-if="data">Result: {{ JSON.stringify(data.output) }}</p>
+  </div>
+</template>
+```
+
+### Workflow with Real-time Status
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useWorkflowExecution } from '@ductape/vue';
+import WorkflowStatus from './WorkflowStatus.vue';
+
+const executionId = ref<string | null>(null);
+
+const { mutate, isLoading } = useWorkflowExecution({
+  onSuccess: (result) => {
+    executionId.value = result.executionId;
+  }
+});
+
+const handleStart = () => {
+  mutate({
+    workflow: 'data-pipeline',
+    input: {
+      source: 'database',
+      destination: 's3'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleStart" :disabled="isLoading">
+      Start Pipeline
+    </button>
+    <WorkflowStatus v-if="executionId" :execution-id="executionId" />
+  </div>
+</template>
+```
+
+## useWorkflowStatus
+
+Monitor the status of a running workflow.
+
+```vue
+<script setup lang="ts">
+import { useWorkflowStatus } from '@ductape/vue';
+
+const props = defineProps<{ executionId: string }>();
+
+const { data: status, isLoading } = useWorkflowStatus(props.executionId, {
+  refetchInterval: 2000 // Poll every 2 seconds
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading status...</div>
+  <div v-else class="workflow-status">
+    <h3>Workflow Status</h3>
+    <div>
+      <strong>Status:</strong> {{ status?.status }}
+    </div>
+    <div>
+      <strong>Current Step:</strong> {{ status?.currentStep }}
+    </div>
+    <div>
+      <strong>Progress:</strong> {{ status?.progress }}%
+    </div>
+
+    <div v-if="status?.status === 'running'" class="progress-bar">
+      <div :style="{ width: `${status.progress}%` }" />
+    </div>
+
+    <div v-if="status?.status === 'completed'" class="success">
+      Workflow completed successfully!
+    </div>
+
+    <div v-if="status?.status === 'failed'" class="error">
+      Error: {{ status.error }}
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.progress-bar {
+  height: 4px;
+  background: #e0e0e0;
+  margin-top: 1rem;
+}
+
+.progress-bar > div {
+  height: 100%;
+  background: #4CAF50;
+  transition: width 0.3s;
+}
+</style>
+```
+
+## useWorkflowSubscription
+
+Subscribe to real-time workflow events.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useWorkflowSubscription } from '@ductape/vue';
+
+const props = defineProps<{ executionId: string }>();
+const events = ref<any[]>([]);
+
+useWorkflowSubscription({
+  executionId: props.executionId,
+  onEvent: (event) => {
+    events.value.push(event);
+
+    if (event.type === 'step_completed') {
+      console.log(`Step ${event.step} completed`);
+    } else if (event.type === 'workflow_completed') {
+      console.log('Workflow finished!');
+    }
+  }
+});
+</script>
+
+<template>
+  <div>
+    <h3>Workflow Events</h3>
+    <ul>
+      <li v-for="(event, idx) in events" :key="idx">
+        <strong>{{ event.type }}:</strong> {{ event.message }}
+        <span class="timestamp">
+          {{ new Date(event.timestamp).toLocaleTimeString() }}
+        </span>
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+## useWorkflowSignal
+
+Send signals to a running workflow.
+
+```vue
+<script setup lang="ts">
+import { useWorkflowSignal } from '@ductape/vue';
+
+const props = defineProps<{ executionId: string }>();
+
+const { mutate: sendSignal, isLoading } = useWorkflowSignal({
+  onSuccess: () => {
+    alert('Signal sent successfully');
+  }
+});
+
+const handleApprove = () => {
+  sendSignal({
+    executionId: props.executionId,
+    signal: 'approve',
+    data: {
+      approvedBy: 'user-123',
+      timestamp: new Date().toISOString()
+    }
+  });
+};
+
+const handleReject = () => {
+  sendSignal({
+    executionId: props.executionId,
+    signal: 'reject',
+    data: { reason: 'Does not meet criteria' }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleApprove" :disabled="isLoading">
+      Approve
+    </button>
+    <button @click="handleReject" :disabled="isLoading">
+      Reject
+    </button>
+  </div>
+</template>
+```
+
+## useWorkflowCancel
+
+Cancel a running workflow.
+
+```vue
+<script setup lang="ts">
+import { useWorkflowCancel } from '@ductape/vue';
+
+const props = defineProps<{ executionId: string }>();
+
+const { mutate: cancel, isLoading } = useWorkflowCancel({
+  onSuccess: () => {
+    alert('Workflow cancelled');
+  }
+});
+
+const handleCancel = () => {
+  if (confirm('Are you sure you want to cancel this workflow?')) {
+    cancel({ executionId: props.executionId });
+  }
+};
+</script>
+
+<template>
+  <button @click="handleCancel" :disabled="isLoading" class="danger">
+    {{ isLoading ? 'Cancelling...' : 'Cancel Workflow' }}
+  </button>
+</template>
+```
+
+## useWorkflowHistory
+
+View workflow execution history.
+
+```vue
+<script setup lang="ts">
+import { useWorkflowHistory } from '@ductape/vue';
+
+const { data, isLoading } = useWorkflowHistory({
+  workflow: 'process-order',
+  limit: 20
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading history...</div>
+  <div v-else>
+    <h2>Workflow History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Execution ID</th>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="execution in data?.executions" :key="execution.id">
+          <td>{{ execution.id }}</td>
+          <td>
+            <span :class="`status-${execution.status}`">
+              {{ execution.status }}
+            </span>
+          </td>
+          <td>{{ new Date(execution.startedAt).toLocaleString() }}</td>
+          <td>{{ execution.duration }}ms</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+```
+
+## Complete Approval Workflow Example
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import {
+  useWorkflowExecution,
+  useWorkflowSignal,
+  useWorkflowSubscription
+} from '@ductape/vue';
+
+interface ApprovalRequest {
+  id: string;
+  title: string;
+  description: string;
+  requestedBy: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+const props = defineProps<{ request: ApprovalRequest }>();
+
+const executionId = ref<string | null>(null);
+const workflowStatus = ref<string>('idle');
+
+// Start workflow
+const { mutate: startWorkflow, isLoading: isStarting } = useWorkflowExecution({
+  onSuccess: (result) => {
+    executionId.value = result.executionId;
+    workflowStatus.value = 'running';
+  }
+});
+
+// Send approval signal
+const { mutate: sendSignal } = useWorkflowSignal({
+  onSuccess: () => {
+    workflowStatus.value = 'completed';
+  }
+});
+
+// Monitor status
+useWorkflowSubscription({
+  executionId: executionId.value || '',
+  enabled: !!executionId.value,
+  onEvent: (event) => {
+    if (event.type === 'workflow_completed') {
+      workflowStatus.value = 'completed';
+    } else if (event.type === 'workflow_failed') {
+      workflowStatus.value = 'failed';
+    }
+  }
+});
+
+const handleStart = () => {
+  startWorkflow({
+    workflow: 'approval-process',
+    input: {
+      requestId: props.request.id,
+      requestData: props.request
+    }
+  });
+};
+
+const handleApprove = () => {
+  if (!executionId.value) return;
+  sendSignal({
+    executionId: executionId.value,
+    signal: 'approve',
+    data: {
+      comments: 'Approved by manager',
+      timestamp: new Date().toISOString()
+    }
+  });
+};
+
+const handleReject = () => {
+  if (!executionId.value) return;
+  sendSignal({
+    executionId: executionId.value,
+    signal: 'reject',
+    data: {
+      reason: 'Does not meet requirements'
+    }
+  });
+};
+</script>
+
+<template>
+  <div class="approval-workflow">
+    <div class="request-details">
+      <h3>{{ request.title }}</h3>
+      <p>{{ request.description }}</p>
+      <p>Requested by: {{ request.requestedBy }}</p>
+    </div>
+
+    <button
+      v-if="workflowStatus === 'idle'"
+      @click="handleStart"
+      :disabled="isStarting"
+    >
+      {{ isStarting ? 'Starting...' : 'Start Approval Process' }}
+    </button>
+
+    <div v-if="workflowStatus === 'running' && executionId" class="workflow-controls">
+      <WorkflowStatus :execution-id="executionId" />
+      <div class="actions">
+        <button @click="handleApprove" class="approve">
+          Approve
+        </button>
+        <button @click="handleReject" class="reject">
+          Reject
+        </button>
+      </div>
+    </div>
+
+    <div v-if="workflowStatus === 'completed'" class="success">
+      Approval process completed!
+    </div>
+
+    <div v-if="workflowStatus === 'failed'" class="error">
+      Approval process failed. Please try again.
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.approval-workflow {
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.workflow-controls {
+  margin-top: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.approve {
+  background: #4CAF50;
+  color: white;
+}
+
+.reject {
+  background: #f44336;
+  color: white;
+}
+</style>
+```
+
+## Next Steps
+
+- [Session Composables](./session-composables)
+- [Notification Composables](./notification-composables)
+- [Complete Tutorial](../tutorials/building-a-todo-app)

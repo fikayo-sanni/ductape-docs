@@ -1,0 +1,411 @@
+---
+sidebar_position: 3
+title: Storage Hooks
+---
+
+# Storage Hooks
+
+React hooks for working with Ductape Storage. Upload, download, and manage files with automatic progress tracking and error handling.
+
+## useStorageUpload
+
+Upload files to Ductape Storage with progress tracking.
+
+### Basic Upload
+
+```tsx
+import { useStorageUpload } from '@ductape/react';
+import { useState } from 'react';
+
+function FileUploader() {
+  const [file, setFile] = useState<File | null>(null);
+
+  const { mutate, isLoading, progress, error } = useStorageUpload({
+    onSuccess: (data) => {
+      console.log('File uploaded:', data.url);
+      alert('Upload successful!');
+    },
+    onError: (err) => {
+      alert('Upload failed: ' + err.message);
+    }
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = () => {
+    if (!file) return;
+
+    mutate({
+      file,
+      path: 'uploads/documents'
+    });
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload} disabled={isLoading || !file}>
+        {isLoading ? `Uploading ${progress}%` : 'Upload'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+    </div>
+  );
+}
+```
+
+### Upload with Progress Bar
+
+```tsx
+function UploadWithProgress() {
+  const [file, setFile] = useState<File | null>(null);
+
+  const { mutate, isLoading, progress } = useStorageUpload({
+    onSuccess: (data) => {
+      console.log('Uploaded:', data);
+    }
+  });
+
+  const handleUpload = () => {
+    if (!file) return;
+    mutate({
+      file,
+      path: 'uploads/images',
+      metadata: {
+        uploadedBy: 'user-123',
+        category: 'profile-pictures'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
+      <button onClick={handleUpload} disabled={isLoading}>
+        Upload
+      </button>
+
+      {isLoading && (
+        <div className="progress-container">
+          <div
+            className="progress-bar"
+            style={{ width: `${progress}%` }}
+          />
+          <span>{progress}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Multiple File Upload
+
+```tsx
+function MultiFileUploader() {
+  const [files, setFiles] = useState<FileList | null>(null);
+  const [uploads, setUploads] = useState<any[]>([]);
+
+  const { mutate, isLoading } = useStorageUpload({
+    onSuccess: (data) => {
+      setUploads(prev => [...prev, data]);
+    }
+  });
+
+  const handleUpload = async () => {
+    if (!files) return;
+
+    for (let i = 0; i < files.length; i++) {
+      mutate({
+        file: files[i],
+        path: 'uploads/batch'
+      });
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        multiple
+        onChange={(e) => setFiles(e.target.files)}
+      />
+      <button onClick={handleUpload} disabled={isLoading}>
+        Upload {files?.length || 0} Files
+      </button>
+
+      <div>
+        <h3>Uploaded Files:</h3>
+        <ul>
+          {uploads.map((upload, idx) => (
+            <li key={idx}>{upload.filename}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+```
+
+## useStorageDownload
+
+Download files from Ductape Storage.
+
+```tsx
+import { useStorageDownload } from '@ductape/react';
+
+function FileDownloader({ fileId }: { fileId: string }) {
+  const { mutate, isLoading, progress } = useStorageDownload({
+    onSuccess: (blob) => {
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'downloaded-file.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  const handleDownload = () => {
+    mutate({ fileId });
+  };
+
+  return (
+    <button onClick={handleDownload} disabled={isLoading}>
+      {isLoading ? `Downloading ${progress}%` : 'Download'}
+    </button>
+  );
+}
+```
+
+## useStorageDelete
+
+Delete files from storage.
+
+```tsx
+import { useStorageDelete } from '@ductape/react';
+
+function FileDeleter({ fileId, filename }: { fileId: string; filename: string }) {
+  const { mutate, isLoading } = useStorageDelete({
+    onSuccess: () => {
+      alert('File deleted successfully');
+    }
+  });
+
+  const handleDelete = () => {
+    if (confirm(`Delete ${filename}?`)) {
+      mutate({ fileId });
+    }
+  };
+
+  return (
+    <button onClick={handleDelete} disabled={isLoading}>
+      {isLoading ? 'Deleting...' : 'Delete'}
+    </button>
+  );
+}
+```
+
+## useStorageList
+
+List files in storage with filtering and pagination.
+
+```tsx
+import { useStorageList } from '@ductape/react';
+
+function FileGallery() {
+  const { data, isLoading, refetch } = useStorageList({
+    path: 'uploads/images',
+    limit: 20
+  });
+
+  if (isLoading) return <div>Loading files...</div>;
+
+  return (
+    <div>
+      <button onClick={() => refetch()}>Refresh</button>
+      <div className="file-grid">
+        {data?.files.map(file => (
+          <div key={file.id} className="file-card">
+            <img src={file.url} alt={file.filename} />
+            <p>{file.filename}</p>
+            <p>{(file.size / 1024).toFixed(2)} KB</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+### With Filters
+
+```tsx
+function FilteredFileList() {
+  const [fileType, setFileType] = useState('image');
+
+  const { data, isLoading } = useStorageList({
+    path: 'uploads',
+    filter: {
+      mimeType: fileType === 'image' ? 'image/*' : 'application/pdf'
+    },
+    orderBy: { field: 'createdAt', direction: 'desc' }
+  });
+
+  return (
+    <div>
+      <select value={fileType} onChange={(e) => setFileType(e.target.value)}>
+        <option value="image">Images</option>
+        <option value="pdf">PDFs</option>
+      </select>
+
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <ul>
+          {data?.files.map(file => (
+            <li key={file.id}>
+              {file.filename} - {new Date(file.createdAt).toLocaleDateString()}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+## useStorageURL
+
+Get a signed URL for a file.
+
+```tsx
+import { useStorageURL } from '@ductape/react';
+
+function SecureImageDisplay({ fileId }: { fileId: string }) {
+  const { data: url, isLoading } = useStorageURL({
+    fileId,
+    expiresIn: 3600 // 1 hour
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return <img src={url} alt="Secure file" />;
+}
+```
+
+## Complete File Manager Example
+
+```tsx
+interface FileItem {
+  id: string;
+  filename: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+function FileManager() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // List files
+  const { data: files, isLoading: isLoadingFiles, refetch } = useStorageList({
+    path: 'uploads',
+    limit: 50
+  });
+
+  // Upload
+  const { mutate: upload, isLoading: isUploading, progress } = useStorageUpload({
+    onSuccess: () => {
+      setSelectedFile(null);
+      refetch();
+    }
+  });
+
+  // Delete
+  const { mutate: deleteFile } = useStorageDelete({
+    onSuccess: () => refetch()
+  });
+
+  const handleUpload = () => {
+    if (!selectedFile) return;
+    upload({
+      file: selectedFile,
+      path: 'uploads'
+    });
+  };
+
+  const handleDelete = (fileId: string, filename: string) => {
+    if (confirm(`Delete ${filename}?`)) {
+      deleteFile({ fileId });
+    }
+  };
+
+  return (
+    <div className="file-manager">
+      <div className="upload-section">
+        <h2>Upload File</h2>
+        <input
+          type="file"
+          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+        />
+        <button
+          onClick={handleUpload}
+          disabled={!selectedFile || isUploading}
+        >
+          {isUploading ? `Uploading ${progress}%` : 'Upload'}
+        </button>
+      </div>
+
+      <div className="files-section">
+        <h2>Files</h2>
+        {isLoadingFiles ? (
+          <div>Loading files...</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Filename</th>
+                <th>Size</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {files?.files.map((file: FileItem) => (
+                <tr key={file.id}>
+                  <td>{file.filename}</td>
+                  <td>{(file.size / 1024).toFixed(2)} KB</td>
+                  <td>{new Date(file.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <a href={file.url} target="_blank" rel="noopener noreferrer">
+                      View
+                    </a>
+                    <button onClick={() => handleDelete(file.id, file.filename)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+## Next Steps
+
+- [Workflow Hooks](./workflow-hooks)
+- [Session Hooks](./session-hooks)
+- [Action Hooks](./action-hooks)

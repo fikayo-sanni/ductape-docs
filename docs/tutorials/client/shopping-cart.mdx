@@ -1,0 +1,1223 @@
+---
+sidebar_position: 2
+title: Building a Shopping Cart
+---
+
+# Building a Shopping Cart
+
+Learn how to build a complete shopping cart system with product management, cart state, checkout flow, and payment integration using Ductape Client SDKs.
+
+## What You'll Build
+
+- Product catalog with search and filtering
+- Shopping cart with add/remove/update quantity
+- Persistent cart state across sessions
+- Checkout flow with Stripe payment
+- Order history and tracking
+- Real-time inventory updates
+
+## Prerequisites
+
+- Basic understanding of JavaScript/TypeScript
+- Node.js and npm installed
+- Ductape account and API credentials
+
+## Setup
+
+```bash
+npm install @ductape/client
+# For React
+npm install @ductape/react
+
+# For Vue 3
+npm install @ductape/vue
+```
+
+## Database Schema
+
+First, create the database tables for products, cart items, and orders.
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+
+// Products table
+await ductape.databases.schema.create('products', {
+  name: { type: 'String', required: true },
+  slug: { type: 'String', unique: true, required: true },
+  description: { type: 'String' },
+  price: { type: 'Number', required: true },
+  compare_at_price: { type: 'Number' },
+  currency: { type: 'String', default: 'USD' },
+  image_url: { type: 'String' },
+  images: { type: 'Array' },
+  category: { type: 'String' },
+  tags: { type: 'Array' },
+  inventory_quantity: { type: 'Number', default: 0 },
+  sku: { type: 'String', unique: true },
+  is_active: { type: 'Boolean', default: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Cart items table
+await ductape.databases.schema.create('cart_items', {
+  user_id: { type: 'String', required: true },
+  product_id: { type: 'String', required: true },
+  quantity: { type: 'Number', required: true, default: 1 },
+  price_at_add: { type: 'Number', required: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Orders table
+await ductape.databases.schema.create('orders', {
+  user_id: { type: 'String', required: true },
+  order_number: { type: 'String', unique: true, required: true },
+  items: { type: 'Array', required: true },
+  subtotal: { type: 'Number', required: true },
+  tax: { type: 'Number', default: 0 },
+  shipping: { type: 'Number', default: 0 },
+  total: { type: 'Number', required: true },
+  currency: { type: 'String', default: 'USD' },
+  status: { type: 'String', default: 'pending' },
+  payment_status: { type: 'String', default: 'pending' },
+  payment_intent_id: { type: 'String' },
+  shipping_address: { type: 'JSON' },
+  billing_address: { type: 'JSON' },
+  customer_email: { type: 'String', required: true },
+  customer_name: { type: 'String', required: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes
+await ductape.databases.schema.createIndex('cart_items', ['user_id']);
+await ductape.databases.schema.createIndex('cart_items', ['product_id']);
+await ductape.databases.schema.createIndex('orders', ['user_id']);
+await ductape.databases.schema.createIndex('orders', ['order_number']);
+await ductape.databases.schema.createIndex('products', ['category']);
+await ductape.databases.schema.createIndex('products', ['is_active']);
+```
+
+## Vanilla JavaScript Implementation
+
+### Initialize Ductape Client
+
+```typescript
+import { DuctapeClient } from '@ductape/client';
+
+const client = new DuctapeClient({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+```
+
+### Product Catalog
+
+```typescript
+// Fetch all products
+async function getProducts(filters?: {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+}) {
+  const query: any = { is_active: true };
+
+  if (filters?.category) {
+    query.category = filters.category;
+  }
+
+  if (filters?.minPrice || filters?.maxPrice) {
+    query.price = {};
+    if (filters.minPrice) query.price.$gte = filters.minPrice;
+    if (filters.maxPrice) query.price.$lte = filters.maxPrice;
+  }
+
+  if (filters?.search) {
+    query.$or = [
+      { name: { $regex: filters.search, $options: 'i' } },
+      { description: { $regex: filters.search, $options: 'i' } }
+    ];
+  }
+
+  const result = await client.databases.find({
+    table: 'products',
+    where: query,
+    orderBy: { created_at: 'desc' }
+  });
+
+  return result.rows;
+}
+
+// Get single product
+async function getProduct(slug: string) {
+  const result = await client.databases.findOne({
+    table: 'products',
+    where: { slug, is_active: true }
+  });
+
+  return result.row;
+}
+```
+
+### Cart Management
+
+```typescript
+// Add item to cart
+async function addToCart(userId: string, productId: string, quantity: number = 1) {
+  // Get product details
+  const product = await client.databases.findOne({
+    table: 'products',
+    where: { id: productId }
+  });
+
+  if (!product.row) {
+    throw new Error('Product not found');
+  }
+
+  if (product.row.inventory_quantity < quantity) {
+    throw new Error('Insufficient inventory');
+  }
+
+  // Check if item already in cart
+  const existingItem = await client.databases.findOne({
+    table: 'cart_items',
+    where: { user_id: userId, product_id: productId }
+  });
+
+  if (existingItem.row) {
+    // Update quantity
+    const newQuantity = existingItem.row.quantity + quantity;
+
+    if (product.row.inventory_quantity < newQuantity) {
+      throw new Error('Insufficient inventory');
+    }
+
+    return await client.databases.update({
+      table: 'cart_items',
+      where: { id: existingItem.row.id },
+      data: {
+        quantity: newQuantity,
+        updated_at: new Date()
+      }
+    });
+  }
+
+  // Add new item
+  return await client.databases.insert({
+    table: 'cart_items',
+    data: {
+      user_id: userId,
+      product_id: productId,
+      quantity,
+      price_at_add: product.row.price
+    }
+  });
+}
+
+// Get cart items
+async function getCartItems(userId: string) {
+  const result = await client.databases.find({
+    table: 'cart_items',
+    where: { user_id: userId }
+  });
+
+  // Fetch product details for each cart item
+  const itemsWithProducts = await Promise.all(
+    result.rows.map(async (item: any) => {
+      const product = await client.databases.findOne({
+        table: 'products',
+        where: { id: item.product_id }
+      });
+
+      return {
+        ...item,
+        product: product.row
+      };
+    })
+  );
+
+  return itemsWithProducts;
+}
+
+// Update cart item quantity
+async function updateCartItemQuantity(
+  userId: string,
+  cartItemId: string,
+  quantity: number
+) {
+  if (quantity <= 0) {
+    return await removeFromCart(userId, cartItemId);
+  }
+
+  // Get cart item
+  const cartItem = await client.databases.findOne({
+    table: 'cart_items',
+    where: { id: cartItemId, user_id: userId }
+  });
+
+  if (!cartItem.row) {
+    throw new Error('Cart item not found');
+  }
+
+  // Check inventory
+  const product = await client.databases.findOne({
+    table: 'products',
+    where: { id: cartItem.row.product_id }
+  });
+
+  if (product.row.inventory_quantity < quantity) {
+    throw new Error('Insufficient inventory');
+  }
+
+  return await client.databases.update({
+    table: 'cart_items',
+    where: { id: cartItemId, user_id: userId },
+    data: {
+      quantity,
+      updated_at: new Date()
+    }
+  });
+}
+
+// Remove item from cart
+async function removeFromCart(userId: string, cartItemId: string) {
+  return await client.databases.delete({
+    table: 'cart_items',
+    where: { id: cartItemId, user_id: userId }
+  });
+}
+
+// Clear cart
+async function clearCart(userId: string) {
+  return await client.databases.delete({
+    table: 'cart_items',
+    where: { user_id: userId }
+  });
+}
+
+// Calculate cart totals
+async function calculateCartTotals(userId: string) {
+  const items = await getCartItems(userId);
+
+  const subtotal = items.reduce((sum, item) => {
+    return sum + (item.product.price * item.quantity);
+  }, 0);
+
+  const tax = subtotal * 0.1; // 10% tax
+  const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
+  const total = subtotal + tax + shipping;
+
+  return {
+    subtotal,
+    tax,
+    shipping,
+    total,
+    itemCount: items.reduce((sum, item) => sum + item.quantity, 0)
+  };
+}
+```
+
+### Checkout and Payment
+
+```typescript
+// Create order
+async function createOrder(userId: string, orderData: {
+  customerEmail: string;
+  customerName: string;
+  shippingAddress: any;
+  billingAddress: any;
+}) {
+  const items = await getCartItems(userId);
+
+  if (items.length === 0) {
+    throw new Error('Cart is empty');
+  }
+
+  const totals = await calculateCartTotals(userId);
+
+  // Generate order number
+  const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+  // Create order
+  const order = await client.databases.insert({
+    table: 'orders',
+    data: {
+      user_id: userId,
+      order_number: orderNumber,
+      items: items.map(item => ({
+        product_id: item.product_id,
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+        total: item.product.price * item.quantity
+      })),
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      shipping: totals.shipping,
+      total: totals.total,
+      customer_email: orderData.customerEmail,
+      customer_name: orderData.customerName,
+      shipping_address: orderData.shippingAddress,
+      billing_address: orderData.billingAddress,
+      status: 'pending',
+      payment_status: 'pending'
+    }
+  });
+
+  return order.rows[0];
+}
+
+// Process payment with Stripe
+async function processPayment(orderId: string) {
+  // Get order details
+  const order = await client.databases.findOne({
+    table: 'orders',
+    where: { id: orderId }
+  });
+
+  if (!order.row) {
+    throw new Error('Order not found');
+  }
+
+  // Create Stripe payment intent
+  const paymentIntent = await client.actions.execute({
+    action: 'stripe.create-payment-intent',
+    input: {
+      amount: Math.round(order.row.total * 100), // Convert to cents
+      currency: order.row.currency.toLowerCase(),
+      metadata: {
+        order_id: orderId,
+        order_number: order.row.order_number
+      },
+      receipt_email: order.row.customer_email
+    }
+  });
+
+  // Update order with payment intent
+  await client.databases.update({
+    table: 'orders',
+    where: { id: orderId },
+    data: {
+      payment_intent_id: paymentIntent.id,
+      updated_at: new Date()
+    }
+  });
+
+  return paymentIntent;
+}
+
+// Complete order after successful payment
+async function completeOrder(orderId: string) {
+  const order = await client.databases.findOne({
+    table: 'orders',
+    where: { id: orderId }
+  });
+
+  if (!order.row) {
+    throw new Error('Order not found');
+  }
+
+  // Update inventory
+  for (const item of order.row.items) {
+    await client.databases.update({
+      table: 'products',
+      where: { id: item.product_id },
+      data: {
+        inventory_quantity: { $decrement: item.quantity }
+      }
+    });
+  }
+
+  // Clear cart
+  await clearCart(order.row.user_id);
+
+  // Update order status
+  await client.databases.update({
+    table: 'orders',
+    where: { id: orderId },
+    data: {
+      status: 'completed',
+      payment_status: 'paid',
+      updated_at: new Date()
+    }
+  });
+
+  // Send confirmation email
+  await client.notifications.send({
+    channel: 'email',
+    to: order.row.customer_email,
+    template: 'order-confirmation',
+    data: {
+      order_number: order.row.order_number,
+      customer_name: order.row.customer_name,
+      items: order.row.items,
+      total: order.row.total,
+      shipping_address: order.row.shipping_address
+    }
+  });
+
+  return order.row;
+}
+
+// Get order history
+async function getOrderHistory(userId: string) {
+  const result = await client.databases.find({
+    table: 'orders',
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' }
+  });
+
+  return result.rows;
+}
+```
+
+## React Implementation
+
+### Cart Context and Hooks
+
+```tsx
+import React, { createContext, useContext, useState } from 'react';
+import {
+  useQuery,
+  useMutation,
+  useAction,
+  useNotification
+} from '@ductape/react';
+
+interface CartItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  product: any;
+}
+
+interface CartContextType {
+  items: CartItem[];
+  itemCount: number;
+  totals: any;
+  addToCart: (productId: string, quantity: number) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  removeItem: (itemId: string) => void;
+  clearCart: () => void;
+  isLoading: boolean;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export function CartProvider({ children, userId }: { children: React.ReactNode; userId: string }) {
+  // Fetch cart items
+  const { data: items = [], isLoading, refetch } = useQuery(
+    ['cart', userId],
+    {
+      table: 'cart_items',
+      where: { user_id: userId }
+    }
+  );
+
+  // Add to cart
+  const { mutate: addToCart } = useMutation({
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  // Update quantity
+  const { mutate: updateQuantityMutation } = useMutation({
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  // Remove item
+  const { mutate: removeItemMutation } = useMutation({
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  // Calculate totals
+  const totals = React.useMemo(() => {
+    const subtotal = items.reduce((sum: number, item: CartItem) => {
+      return sum + (item.product.price * item.quantity);
+    }, 0);
+
+    const tax = subtotal * 0.1;
+    const shipping = subtotal > 100 ? 0 : 10;
+    const total = subtotal + tax + shipping;
+
+    return { subtotal, tax, shipping, total };
+  }, [items]);
+
+  const itemCount = items.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
+
+  const updateQuantity = (itemId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItemMutation({
+        table: 'cart_items',
+        where: { id: itemId, user_id: userId }
+      });
+    } else {
+      updateQuantityMutation({
+        table: 'cart_items',
+        where: { id: itemId, user_id: userId },
+        data: { quantity, updated_at: new Date() }
+      });
+    }
+  };
+
+  const removeItem = (itemId: string) => {
+    removeItemMutation({
+      table: 'cart_items',
+      where: { id: itemId, user_id: userId }
+    });
+  };
+
+  const clearCart = () => {
+    removeItemMutation({
+      table: 'cart_items',
+      where: { user_id: userId }
+    });
+  };
+
+  return (
+    <CartContext.Provider
+      value={{
+        items,
+        itemCount,
+        totals,
+        addToCart,
+        updateQuantity,
+        removeItem,
+        clearCart,
+        isLoading
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within CartProvider');
+  }
+  return context;
+}
+```
+
+### Product List Component
+
+```tsx
+import React, { useState } from 'react';
+import { useQuery } from '@ductape/react';
+import { useCart } from './CartContext';
+
+export function ProductList() {
+  const [filters, setFilters] = useState({
+    category: '',
+    search: '',
+    minPrice: 0,
+    maxPrice: 1000
+  });
+
+  const { data: products = [], isLoading } = useQuery(
+    ['products', filters],
+    {
+      table: 'products',
+      where: {
+        is_active: true,
+        ...(filters.category && { category: filters.category }),
+        ...(filters.search && {
+          $or: [
+            { name: { $regex: filters.search, $options: 'i' } },
+            { description: { $regex: filters.search, $options: 'i' } }
+          ]
+        }),
+        price: {
+          $gte: filters.minPrice,
+          $lte: filters.maxPrice
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    }
+  );
+
+  const { addToCart } = useCart();
+
+  if (isLoading) {
+    return <div>Loading products...</div>;
+  }
+
+  return (
+    <div className="product-list">
+      <div className="filters">
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={filters.search}
+          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+        />
+        <select
+          value={filters.category}
+          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+        >
+          <option value="">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="clothing">Clothing</option>
+          <option value="books">Books</option>
+        </select>
+      </div>
+
+      <div className="products-grid">
+        {products.map((product: any) => (
+          <div key={product.id} className="product-card">
+            <img src={product.image_url} alt={product.name} />
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <div className="price">
+              <span className="current-price">${product.price}</span>
+              {product.compare_at_price && (
+                <span className="compare-price">${product.compare_at_price}</span>
+              )}
+            </div>
+            <div className="inventory">
+              {product.inventory_quantity > 0 ? (
+                <span className="in-stock">In Stock ({product.inventory_quantity})</span>
+              ) : (
+                <span className="out-of-stock">Out of Stock</span>
+              )}
+            </div>
+            <button
+              onClick={() => addToCart(product.id, 1)}
+              disabled={product.inventory_quantity === 0}
+            >
+              Add to Cart
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+### Shopping Cart Component
+
+```tsx
+import React from 'react';
+import { useCart } from './CartContext';
+import { Link } from 'react-router-dom';
+
+export function ShoppingCart() {
+  const { items, totals, updateQuantity, removeItem, clearCart, isLoading } = useCart();
+
+  if (isLoading) {
+    return <div>Loading cart...</div>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="empty-cart">
+        <h2>Your cart is empty</h2>
+        <Link to="/products">Continue Shopping</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shopping-cart">
+      <h2>Shopping Cart</h2>
+
+      <div className="cart-items">
+        {items.map((item: any) => (
+          <div key={item.id} className="cart-item">
+            <img src={item.product.image_url} alt={item.product.name} />
+            <div className="item-details">
+              <h3>{item.product.name}</h3>
+              <p>${item.product.price}</p>
+            </div>
+            <div className="quantity-controls">
+              <button
+                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+              >
+                -
+              </button>
+              <span>{item.quantity}</span>
+              <button
+                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                disabled={item.quantity >= item.product.inventory_quantity}
+              >
+                +
+              </button>
+            </div>
+            <div className="item-total">
+              ${(item.product.price * item.quantity).toFixed(2)}
+            </div>
+            <button
+              className="remove-btn"
+              onClick={() => removeItem(item.id)}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="cart-summary">
+        <div className="summary-row">
+          <span>Subtotal:</span>
+          <span>${totals.subtotal.toFixed(2)}</span>
+        </div>
+        <div className="summary-row">
+          <span>Tax:</span>
+          <span>${totals.tax.toFixed(2)}</span>
+        </div>
+        <div className="summary-row">
+          <span>Shipping:</span>
+          <span>{totals.shipping === 0 ? 'FREE' : `$${totals.shipping.toFixed(2)}`}</span>
+        </div>
+        <div className="summary-row total">
+          <span>Total:</span>
+          <span>${totals.total.toFixed(2)}</span>
+        </div>
+
+        <Link to="/checkout" className="checkout-btn">
+          Proceed to Checkout
+        </Link>
+        <button onClick={clearCart} className="clear-btn">
+          Clear Cart
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Checkout Component
+
+```tsx
+import React, { useState } from 'react';
+import { useMutation, useAction } from '@ductape/react';
+import { useCart } from './CartContext';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY!);
+
+function CheckoutForm({ userId }: { userId: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { items, totals, clearCart } = useCart();
+
+  const [formData, setFormData] = useState({
+    email: '',
+    name: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'US'
+  });
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
+
+  const { mutate: createOrder } = useMutation();
+  const { mutate: createPaymentIntent } = useAction();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setError('');
+
+    try {
+      // Create order
+      const order = await createOrder({
+        table: 'orders',
+        data: {
+          user_id: userId,
+          order_number: `ORD-${Date.now()}`,
+          items: items.map((item: any) => ({
+            product_id: item.product_id,
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
+          })),
+          subtotal: totals.subtotal,
+          tax: totals.tax,
+          shipping: totals.shipping,
+          total: totals.total,
+          customer_email: formData.email,
+          customer_name: formData.name,
+          shipping_address: formData,
+          billing_address: formData,
+          status: 'pending',
+          payment_status: 'pending'
+        }
+      });
+
+      // Create payment intent
+      const paymentIntent = await createPaymentIntent({
+        action: 'stripe.create-payment-intent',
+        input: {
+          amount: Math.round(totals.total * 100),
+          currency: 'usd',
+          metadata: {
+            order_id: order.rows[0].id,
+            order_number: order.rows[0].order_number
+          },
+          receipt_email: formData.email
+        }
+      });
+
+      // Confirm payment
+      const { error: stripeError } = await stripe.confirmCardPayment(
+        paymentIntent.client_secret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement)!,
+            billing_details: {
+              name: formData.name,
+              email: formData.email,
+              address: {
+                line1: formData.address,
+                city: formData.city,
+                state: formData.state,
+                postal_code: formData.zip,
+                country: formData.country
+              }
+            }
+          }
+        }
+      );
+
+      if (stripeError) {
+        setError(stripeError.message || 'Payment failed');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Update order status and clear cart
+      await createOrder({
+        table: 'orders',
+        where: { id: order.rows[0].id },
+        data: {
+          status: 'completed',
+          payment_status: 'paid',
+          payment_intent_id: paymentIntent.id
+        }
+      });
+
+      clearCart();
+
+      // Redirect to success page
+      window.location.href = `/order-success?order=${order.rows[0].order_number}`;
+    } catch (err: any) {
+      setError(err.message || 'Checkout failed');
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="checkout-form">
+      <h2>Checkout</h2>
+
+      <div className="form-section">
+        <h3>Contact Information</h3>
+        <input
+          type="email"
+          placeholder="Email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          required
+        />
+        <input
+          type="text"
+          placeholder="Full Name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="form-section">
+        <h3>Shipping Address</h3>
+        <input
+          type="text"
+          placeholder="Address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          required
+        />
+        <input
+          type="text"
+          placeholder="City"
+          value={formData.city}
+          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+          required
+        />
+        <input
+          type="text"
+          placeholder="State"
+          value={formData.state}
+          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+          required
+        />
+        <input
+          type="text"
+          placeholder="ZIP Code"
+          value={formData.zip}
+          onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="form-section">
+        <h3>Payment Information</h3>
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                  color: '#aab7c4',
+                },
+              },
+            },
+          }}
+        />
+      </div>
+
+      <div className="order-summary">
+        <h3>Order Summary</h3>
+        <div className="summary-row">
+          <span>Subtotal:</span>
+          <span>${totals.subtotal.toFixed(2)}</span>
+        </div>
+        <div className="summary-row">
+          <span>Tax:</span>
+          <span>${totals.tax.toFixed(2)}</span>
+        </div>
+        <div className="summary-row">
+          <span>Shipping:</span>
+          <span>{totals.shipping === 0 ? 'FREE' : `$${totals.shipping.toFixed(2)}`}</span>
+        </div>
+        <div className="summary-row total">
+          <span>Total:</span>
+          <span>${totals.total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      <button
+        type="submit"
+        disabled={!stripe || isProcessing}
+        className="submit-btn"
+      >
+        {isProcessing ? 'Processing...' : `Pay $${totals.total.toFixed(2)}`}
+      </button>
+    </form>
+  );
+}
+
+export function Checkout({ userId }: { userId: string }) {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm userId={userId} />
+    </Elements>
+  );
+}
+```
+
+## Vue 3 Implementation
+
+### Cart Store (Composable)
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue';
+import {
+  useQuery,
+  useMutation,
+  useAction,
+  useNotification
+} from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+
+// Fetch cart items
+const { data: items, isLoading, refetch } = useQuery(
+  ['cart', props.userId],
+  {
+    table: 'cart_items',
+    where: { user_id: props.userId }
+  }
+);
+
+// Add to cart mutation
+const { mutate: addToCart } = useMutation({
+  onSuccess: () => {
+    refetch();
+  }
+});
+
+// Update quantity mutation
+const { mutate: updateQuantity } = useMutation({
+  onSuccess: () => {
+    refetch();
+  }
+});
+
+// Remove item mutation
+const { mutate: removeItem } = useMutation({
+  onSuccess: () => {
+    refetch();
+  }
+});
+
+// Calculate totals
+const totals = computed(() => {
+  if (!items.value) return { subtotal: 0, tax: 0, shipping: 0, total: 0 };
+
+  const subtotal = items.value.reduce((sum: number, item: any) => {
+    return sum + (item.product.price * item.quantity);
+  }, 0);
+
+  const tax = subtotal * 0.1;
+  const shipping = subtotal > 100 ? 0 : 10;
+  const total = subtotal + tax + shipping;
+
+  return { subtotal, tax, shipping, total };
+});
+
+const itemCount = computed(() => {
+  if (!items.value) return 0;
+  return items.value.reduce((sum: number, item: any) => sum + item.quantity, 0);
+});
+
+defineExpose({
+  items,
+  itemCount,
+  totals,
+  addToCart,
+  updateQuantity,
+  removeItem,
+  isLoading,
+  refetch
+});
+</script>
+```
+
+### Product List (Vue)
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useQuery } from '@ductape/vue';
+
+const filters = ref({
+  category: '',
+  search: '',
+  minPrice: 0,
+  maxPrice: 1000
+});
+
+const { data: products, isLoading } = useQuery(
+  ['products', filters],
+  {
+    table: 'products',
+    where: {
+      is_active: true,
+      ...(filters.value.category && { category: filters.value.category }),
+      price: {
+        $gte: filters.value.minPrice,
+        $lte: filters.value.maxPrice
+      }
+    },
+    orderBy: { created_at: 'desc' }
+  }
+);
+
+const emit = defineEmits<{
+  addToCart: [productId: string, quantity: number]
+}>();
+</script>
+
+<template>
+  <div class="product-list">
+    <div class="filters">
+      <input
+        v-model="filters.search"
+        type="text"
+        placeholder="Search products..."
+      />
+      <select v-model="filters.category">
+        <option value="">All Categories</option>
+        <option value="electronics">Electronics</option>
+        <option value="clothing">Clothing</option>
+        <option value="books">Books</option>
+      </select>
+    </div>
+
+    <div v-if="isLoading">Loading products...</div>
+
+    <div v-else class="products-grid">
+      <div
+        v-for="product in products"
+        :key="product.id"
+        class="product-card"
+      >
+        <img :src="product.image_url" :alt="product.name" />
+        <h3>{{ product.name }}</h3>
+        <p>{{ product.description }}</p>
+        <div class="price">
+          <span class="current-price">${{ product.price }}</span>
+          <span v-if="product.compare_at_price" class="compare-price">
+            ${{ product.compare_at_price }}
+          </span>
+        </div>
+        <div class="inventory">
+          <span v-if="product.inventory_quantity > 0" class="in-stock">
+            In Stock ({{ product.inventory_quantity }})
+          </span>
+          <span v-else class="out-of-stock">Out of Stock</span>
+        </div>
+        <button
+          @click="emit('addToCart', product.id, 1)"
+          :disabled="product.inventory_quantity === 0"
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+## Next Steps
+
+- Add product reviews and ratings
+- Implement wishlists
+- Add discount codes and promotions
+- Set up abandoned cart recovery
+- Add order tracking and shipping integration
+- Implement product recommendations
+- Add inventory alerts
+
+## Related Tutorials
+
+- [Building a Todo App](./building-a-todo-app)
+- [Social Media Feed](./social-media-feed)

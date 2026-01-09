@@ -1,0 +1,345 @@
+---
+sidebar_position: 6
+title: Notifications
+---
+
+# Notifications
+
+Send notifications through various channels (email, SMS, push notifications) using Ductape's unified notification system.
+
+## Sending Notifications
+
+### Send Email Notification
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'your-product',
+  env: 'prd'
+});
+
+// Send email notification
+await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  template: 'welcome-email',
+  data: {
+    name: 'John Doe',
+    verificationLink: 'https://app.com/verify?token=abc123'
+  }
+});
+```
+
+### Send SMS Notification
+
+```typescript
+await ductape.notifications.send({
+  channel: 'sms',
+  to: '+1234567890',
+  template: 'verification-code',
+  data: {
+    code: '123456',
+    expiresIn: '10 minutes'
+  }
+});
+```
+
+### Send Push Notification
+
+```typescript
+await ductape.notifications.send({
+  channel: 'push',
+  to: 'user-device-token',
+  template: 'new-message',
+  data: {
+    title: 'New Message',
+    body: 'You have a new message from John',
+    badge: 1,
+    sound: 'default'
+  }
+});
+```
+
+## Multiple Recipients
+
+```typescript
+// Send to multiple recipients
+await ductape.notifications.send({
+  channel: 'email',
+  to: ['user1@example.com', 'user2@example.com', 'user3@example.com'],
+  template: 'team-announcement',
+  data: {
+    announcement: 'New features released!',
+    link: 'https://app.com/releases'
+  }
+});
+```
+
+## Custom Templates
+
+```typescript
+// Send with inline template
+await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  subject: 'Welcome to Our App',
+  body: `
+    <h1>Welcome {{name}}!</h1>
+    <p>Thank you for joining us.</p>
+    <a href="{{link}}">Get Started</a>
+  `,
+  data: {
+    name: 'John Doe',
+    link: 'https://app.com/onboarding'
+  }
+});
+```
+
+## Notification with Attachments
+
+```typescript
+// Email with attachments
+await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  template: 'invoice',
+  data: {
+    invoiceNumber: 'INV-001',
+    amount: 99.99
+  },
+  attachments: [
+    {
+      filename: 'invoice.pdf',
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }
+  ]
+});
+```
+
+## Scheduled Notifications
+
+```typescript
+// Schedule notification for later
+await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  template: 'reminder',
+  data: {
+    eventName: 'Team Meeting',
+    eventTime: '2pm today'
+  },
+  scheduledFor: new Date('2024-01-15T13:00:00Z')
+});
+```
+
+## Notification Preferences
+
+```typescript
+// Send with user preferences
+await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  template: 'newsletter',
+  data: {
+    articles: [...]
+  },
+  respectUserPreferences: true, // Won't send if user opted out
+  userId: 'user-123'
+});
+```
+
+## Track Notification Status
+
+```typescript
+// Send and get notification ID
+const notification = await ductape.notifications.send({
+  channel: 'email',
+  to: 'user@example.com',
+  template: 'order-confirmation',
+  data: {
+    orderId: 'ORDER-123',
+    total: 299.99
+  }
+});
+
+// Check notification status
+const status = await ductape.notifications.getStatus(notification.id);
+console.log(status.delivered); // true/false
+console.log(status.opened); // true/false
+console.log(status.clicked); // true/false
+```
+
+## Batch Notifications
+
+```typescript
+// Send batch notifications efficiently
+const recipients = [
+  { email: 'user1@example.com', name: 'User 1' },
+  { email: 'user2@example.com', name: 'User 2' },
+  { email: 'user3@example.com', name: 'User 3' }
+];
+
+await ductape.notifications.sendBatch({
+  channel: 'email',
+  template: 'promotional-offer',
+  recipients: recipients.map(user => ({
+    to: user.email,
+    data: {
+      name: user.name,
+      offer: '20% OFF',
+      code: `SAVE20-${user.email.split('@')[0].toUpperCase()}`
+    }
+  }))
+});
+```
+
+## Rich Notifications
+
+```typescript
+// Send rich push notification
+await ductape.notifications.send({
+  channel: 'push',
+  to: 'device-token',
+  data: {
+    title: 'New Photo',
+    body: 'John shared a photo with you',
+    image: 'https://cdn.example.com/photo.jpg',
+    actions: [
+      { action: 'view', title: 'View Photo' },
+      { action: 'like', title: 'Like' }
+    ],
+    data: {
+      photoId: 'photo-123',
+      userId: 'john-456'
+    }
+  }
+});
+```
+
+## Error Handling
+
+```typescript
+try {
+  await ductape.notifications.send({
+    channel: 'email',
+    to: 'invalid-email',
+    template: 'welcome'
+  });
+} catch (error) {
+  if (error.code === 'INVALID_EMAIL') {
+    console.error('Invalid email address');
+  } else if (error.code === 'TEMPLATE_NOT_FOUND') {
+    console.error('Template does not exist');
+  } else if (error.code === 'RATE_LIMIT_EXCEEDED') {
+    console.error('Too many notifications sent');
+  }
+}
+```
+
+## Complete Example
+
+```typescript
+class NotificationService {
+  private ductape: Ductape;
+
+  constructor() {
+    this.ductape = new Ductape({
+      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+      product: 'my-app',
+      env: 'prd'
+    });
+  }
+
+  async sendWelcomeEmail(userEmail: string, userName: string) {
+    await this.ductape.notifications.send({
+      channel: 'email',
+      to: userEmail,
+      template: 'welcome-email',
+      data: {
+        name: userName,
+        loginLink: 'https://app.com/login'
+      }
+    });
+  }
+
+  async sendOrderConfirmation(order: any) {
+    // Send email
+    await this.ductape.notifications.send({
+      channel: 'email',
+      to: order.customerEmail,
+      template: 'order-confirmation',
+      data: {
+        orderNumber: order.id,
+        items: order.items,
+        total: order.total,
+        trackingLink: order.trackingUrl
+      }
+    });
+
+    // Send SMS
+    await this.ductape.notifications.send({
+      channel: 'sms',
+      to: order.customerPhone,
+      template: 'order-sms',
+      data: {
+        orderNumber: order.id,
+        trackingLink: order.trackingUrl
+      }
+    });
+
+    // Send push notification
+    if (order.deviceToken) {
+      await this.ductape.notifications.send({
+        channel: 'push',
+        to: order.deviceToken,
+        data: {
+          title: 'Order Confirmed',
+          body: `Your order #${order.id} has been confirmed`,
+          badge: 1
+        }
+      });
+    }
+  }
+
+  async sendPasswordReset(email: string, resetToken: string) {
+    await this.ductape.notifications.send({
+      channel: 'email',
+      to: email,
+      template: 'password-reset',
+      data: {
+        resetLink: `https://app.com/reset-password?token=${resetToken}`,
+        expiresIn: '1 hour'
+      }
+    });
+  }
+
+  async sendTeamInvitation(inviterName: string, inviteeEmail: string, teamName: string) {
+    await this.ductape.notifications.send({
+      channel: 'email',
+      to: inviteeEmail,
+      template: 'team-invitation',
+      data: {
+        inviterName,
+        teamName,
+        acceptLink: `https://app.com/invitations/accept?email=${inviteeEmail}`
+      }
+    });
+  }
+}
+
+// Usage
+const notifications = new NotificationService();
+
+await notifications.sendWelcomeEmail('user@example.com', 'John Doe');
+await notifications.sendOrderConfirmation(orderData);
+await notifications.sendPasswordReset('user@example.com', 'reset-token-123');
+```
+
+## Next Steps
+
+- [Actions](./actions)
+- [Workflows](./workflows)
+- [Sessions](./sessions)

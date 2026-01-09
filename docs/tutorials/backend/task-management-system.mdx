@@ -1,0 +1,1174 @@
+---
+sidebar_position: 4
+title: Building a Task Management System
+---
+
+# Building a Task Management System
+
+Learn how to build a comprehensive task management system with scheduled jobs, file storage, team collaboration, quotas, notifications, and automated workflows using Ductape SDK.
+
+## What You'll Build
+
+- Task CRUD operations
+- Project and workspace management
+- Scheduled tasks and reminders
+- File attachments with storage
+- Task assignments and notifications
+- Automated workflows
+- Team collaboration features
+- Activity logging
+- Usage quotas and limits
+- Recurring tasks
+- Task dependencies
+
+## Prerequisites
+
+- Node.js and npm installed
+- Ductape account and API credentials
+- Basic understanding of TypeScript/JavaScript
+- Express.js knowledge
+
+## Setup
+
+```bash
+npm install @ductape/sdk express multer dotenv
+npm install --save-dev @types/express @types/node @types/multer typescript
+```
+
+Create `.env`:
+
+```env
+DUCTAPE_API_KEY=your_api_key
+PORT=3000
+MAX_FILE_SIZE=10485760
+```
+
+## Initialize Ductape SDK
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+import express from 'express';
+import multer from 'multer';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY!
+});
+
+const app = express();
+app.use(express.json());
+
+// Configure multer for file uploads
+const upload = multer({
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB
+  }
+});
+```
+
+## Database Schema
+
+```typescript
+// Workspaces table
+await ductape.databases.schema.create('workspaces', {
+  name: { type: 'String', required: true },
+  slug: { type: 'String', unique: true, required: true },
+  description: { type: 'String' },
+  owner_id: { type: 'String', required: true },
+  member_ids: { type: 'Array', default: [] },
+  settings: { type: 'JSON', default: {} },
+  storage_used: { type: 'Number', default: 0 },
+  storage_limit: { type: 'Number', default: 5368709120 }, // 5GB
+  task_count: { type: 'Number', default: 0 },
+  is_active: { type: 'Boolean', default: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Projects table
+await ductape.databases.schema.create('projects', {
+  workspace_id: { type: 'String', required: true },
+  name: { type: 'String', required: true },
+  description: { type: 'String' },
+  color: { type: 'String', default: '#3B82F6' },
+  icon: { type: 'String' },
+  status: { type: 'String', default: 'active' }, // active, archived, completed
+  task_count: { type: 'Number', default: 0 },
+  completed_task_count: { type: 'Number', default: 0 },
+  start_date: { type: 'Date' },
+  due_date: { type: 'Date' },
+  created_by: { type: 'String', required: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Tasks table
+await ductape.databases.schema.create('tasks', {
+  workspace_id: { type: 'String', required: true },
+  project_id: { type: 'String', required: true },
+  title: { type: 'String', required: true },
+  description: { type: 'String' },
+  status: { type: 'String', default: 'todo' }, // todo, in_progress, review, completed
+  priority: { type: 'String', default: 'medium' }, // low, medium, high, urgent
+  assignee_id: { type: 'String' },
+  reporter_id: { type: 'String', required: true },
+  parent_task_id: { type: 'String' }, // For subtasks
+  depends_on: { type: 'Array', default: [] }, // Task dependencies
+  tags: { type: 'Array', default: [] },
+  due_date: { type: 'Date' },
+  start_date: { type: 'Date' },
+  completed_at: { type: 'Date' },
+  estimated_hours: { type: 'Number' },
+  actual_hours: { type: 'Number' },
+  reminder_scheduled: { type: 'Boolean', default: false },
+  reminder_job_id: { type: 'String' },
+  recurrence_rule: { type: 'JSON' }, // For recurring tasks
+  attachment_count: { type: 'Number', default: 0 },
+  comment_count: { type: 'Number', default: 0 },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Task attachments table
+await ductape.databases.schema.create('task_attachments', {
+  task_id: { type: 'String', required: true },
+  workspace_id: { type: 'String', required: true },
+  file_name: { type: 'String', required: true },
+  file_size: { type: 'Number', required: true },
+  file_type: { type: 'String', required: true },
+  file_url: { type: 'String', required: true },
+  file_path: { type: 'String', required: true },
+  uploaded_by: { type: 'String', required: true },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Task comments table
+await ductape.databases.schema.create('task_comments', {
+  task_id: { type: 'String', required: true },
+  user_id: { type: 'String', required: true },
+  content: { type: 'String', required: true },
+  mentions: { type: 'Array', default: [] },
+  is_edited: { type: 'Boolean', default: false },
+  edited_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Activity log table
+await ductape.databases.schema.create('activity_log', {
+  workspace_id: { type: 'String', required: true },
+  entity_type: { type: 'String', required: true }, // task, project, comment
+  entity_id: { type: 'String', required: true },
+  action: { type: 'String', required: true }, // created, updated, deleted, assigned, completed
+  user_id: { type: 'String', required: true },
+  changes: { type: 'JSON' },
+  metadata: { type: 'JSON' },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes
+await ductape.databases.schema.createIndex('workspaces', ['slug']);
+await ductape.databases.schema.createIndex('workspaces', ['owner_id']);
+await ductape.databases.schema.createIndex('projects', ['workspace_id']);
+await ductape.databases.schema.createIndex('tasks', ['workspace_id', 'project_id']);
+await ductape.databases.schema.createIndex('tasks', ['assignee_id']);
+await ductape.databases.schema.createIndex('tasks', ['status']);
+await ductape.databases.schema.createIndex('tasks', ['due_date']);
+await ductape.databases.schema.createIndex('task_attachments', ['task_id']);
+await ductape.databases.schema.createIndex('task_comments', ['task_id']);
+await ductape.databases.schema.createIndex('activity_log', ['workspace_id', 'entity_id']);
+```
+
+## Workspace Management with Quotas
+
+```typescript
+// Create workspace
+async function createWorkspace(data: {
+  name: string;
+  slug: string;
+  owner_id: string;
+  description?: string;
+}) {
+  // Check user's workspace quota
+  const userWorkspaces = await ductape.databases.find({
+    table: 'workspaces',
+    where: { owner_id: data.owner_id }
+  });
+
+  if (userWorkspaces.rows.length >= 5) {
+    throw new Error('Workspace limit reached. Upgrade to create more workspaces.');
+  }
+
+  const workspace = await ductape.databases.insert({
+    table: 'workspaces',
+    data: {
+      name: data.name,
+      slug: data.slug,
+      description: data.description,
+      owner_id: data.owner_id,
+      member_ids: [data.owner_id]
+    }
+  });
+
+  // Configure workspace quotas
+  await ductape.quotas.configure({
+    [`workspace:${workspace.rows[0].id}:tasks`]: {
+      limit: 1000,
+      window: 'unlimited',
+      per: 'workspace'
+    },
+    [`workspace:${workspace.rows[0].id}:api-calls`]: {
+      limit: 10000,
+      window: '1d',
+      per: 'workspace'
+    }
+  });
+
+  return workspace.rows[0];
+}
+
+// Check workspace storage quota
+async function checkStorageQuota(workspaceId: string, fileSize: number): Promise<boolean> {
+  const workspace = await ductape.databases.findOne({
+    table: 'workspaces',
+    where: { id: workspaceId }
+  });
+
+  if (!workspace.row) {
+    throw new Error('Workspace not found');
+  }
+
+  const newStorageUsed = workspace.row.storage_used + fileSize;
+
+  if (newStorageUsed > workspace.row.storage_limit) {
+    throw new Error('Storage limit exceeded. Please upgrade your plan or delete files.');
+  }
+
+  return true;
+}
+```
+
+## Task Management
+
+```typescript
+// Create task
+async function createTask(data: {
+  workspace_id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  assignee_id?: string;
+  reporter_id: string;
+  priority?: string;
+  due_date?: Date;
+  tags?: string[];
+}) {
+  // Check workspace task quota
+  const quotaCheck = await ductape.quotas.check({
+    key: `workspace:${data.workspace_id}:tasks`,
+    identifier: data.workspace_id
+  });
+
+  if (!quotaCheck.allowed) {
+    throw new Error('Task limit reached for this workspace.');
+  }
+
+  // Create task
+  const task = await ductape.databases.insert({
+    table: 'tasks',
+    data: {
+      workspace_id: data.workspace_id,
+      project_id: data.project_id,
+      title: data.title,
+      description: data.description,
+      assignee_id: data.assignee_id,
+      reporter_id: data.reporter_id,
+      priority: data.priority || 'medium',
+      due_date: data.due_date,
+      tags: data.tags || []
+    }
+  });
+
+  // Increment quota
+  await ductape.quotas.increment({
+    key: `workspace:${data.workspace_id}:tasks`,
+    identifier: data.workspace_id
+  });
+
+  // Update project task count
+  await ductape.databases.update({
+    table: 'projects',
+    where: { id: data.project_id },
+    data: {
+      task_count: { $increment: 1 },
+      updated_at: new Date()
+    }
+  });
+
+  // Update workspace task count
+  await ductape.databases.update({
+    table: 'workspaces',
+    where: { id: data.workspace_id },
+    data: {
+      task_count: { $increment: 1 }
+    }
+  });
+
+  // Log activity
+  await logActivity({
+    workspace_id: data.workspace_id,
+    entity_type: 'task',
+    entity_id: task.rows[0].id,
+    action: 'created',
+    user_id: data.reporter_id,
+    metadata: { title: data.title }
+  });
+
+  // Start task workflow
+  await startTaskWorkflow(task.rows[0]);
+
+  return task.rows[0];
+}
+
+// Update task with activity tracking
+async function updateTask(
+  taskId: string,
+  updates: any,
+  userId: string
+) {
+  // Get current task
+  const currentTask = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: taskId }
+  });
+
+  if (!currentTask.row) {
+    throw new Error('Task not found');
+  }
+
+  // Track changes
+  const changes: any = {};
+  Object.keys(updates).forEach(key => {
+    if (currentTask.row[key] !== updates[key]) {
+      changes[key] = {
+        from: currentTask.row[key],
+        to: updates[key]
+      };
+    }
+  });
+
+  // Update task
+  const updated = await ductape.databases.update({
+    table: 'tasks',
+    where: { id: taskId },
+    data: {
+      ...updates,
+      updated_at: new Date()
+    }
+  });
+
+  // Log activity
+  if (Object.keys(changes).length > 0) {
+    await logActivity({
+      workspace_id: currentTask.row.workspace_id,
+      entity_type: 'task',
+      entity_id: taskId,
+      action: 'updated',
+      user_id: userId,
+      changes
+    });
+  }
+
+  // Send notifications for specific changes
+  if (changes.assignee_id && updates.assignee_id) {
+    await notifyTaskAssignment(taskId, updates.assignee_id);
+  }
+
+  if (changes.status?.to === 'completed') {
+    await handleTaskCompletion(taskId);
+  }
+
+  return updated.rows[0];
+}
+
+// Complete task
+async function completeTask(taskId: string, userId: string) {
+  await updateTask(
+    taskId,
+    {
+      status: 'completed',
+      completed_at: new Date()
+    },
+    userId
+  );
+}
+```
+
+## Task Workflow
+
+```typescript
+// Task creation workflow
+async function startTaskWorkflow(task: any) {
+  await ductape.workflows.execute({
+    workflow: 'task-lifecycle',
+    input: {
+      task_id: task.id,
+      workspace_id: task.workspace_id,
+      assignee_id: task.assignee_id,
+      due_date: task.due_date
+    }
+  });
+}
+
+// Create workflow definition
+export const taskLifecycleWorkflow = {
+  name: 'task-lifecycle',
+  version: '1.0.0',
+  steps: [
+    // Step 1: Send assignment notification
+    {
+      name: 'notify-assignment',
+      type: 'function',
+      handler: async (context: any) => {
+        if (context.input.assignee_id) {
+          await ductape.notifications.send({
+            channel: 'email',
+            to: context.input.assignee_id,
+            template: 'task-assigned',
+            data: {
+              task_id: context.input.task_id
+            }
+          });
+
+          // Also send push notification
+          await ductape.notifications.send({
+            channel: 'push',
+            to: context.input.assignee_id,
+            data: {
+              title: 'New Task Assigned',
+              body: 'You have been assigned a new task'
+            }
+          });
+        }
+
+        return { notified: true };
+      }
+    },
+
+    // Step 2: Schedule reminder if due date exists
+    {
+      name: 'schedule-reminder',
+      type: 'function',
+      handler: async (context: any) => {
+        if (context.input.due_date) {
+          const dueDate = new Date(context.input.due_date);
+          const reminderDate = new Date(dueDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before
+
+          if (reminderDate > new Date()) {
+            const job = await ductape.jobs.schedule({
+              name: `task-reminder-${context.input.task_id}`,
+              schedule: reminderDate.toISOString(),
+              data: {
+                task_id: context.input.task_id,
+                assignee_id: context.input.assignee_id
+              },
+              handler: async (data) => {
+                // Send reminder
+                if (data.assignee_id) {
+                  await ductape.notifications.send({
+                    channel: 'email',
+                    to: data.assignee_id,
+                    template: 'task-due-reminder',
+                    data: {
+                      task_id: data.task_id
+                    }
+                  });
+                }
+              }
+            });
+
+            // Store job ID in task
+            await ductape.databases.update({
+              table: 'tasks',
+              where: { id: context.input.task_id },
+              data: {
+                reminder_scheduled: true,
+                reminder_job_id: job.id
+              }
+            });
+
+            return { scheduled: true, job_id: job.id };
+          }
+        }
+
+        return { scheduled: false };
+      }
+    },
+
+    // Step 3: Check for overdue tasks
+    {
+      name: 'schedule-overdue-check',
+      type: 'job',
+      schedule: '+1d', // Check daily
+      handler: async (context: any) => {
+        const task = await ductape.databases.findOne({
+          table: 'tasks',
+          where: { id: context.input.task_id }
+        });
+
+        if (task.row && task.row.status !== 'completed') {
+          if (task.row.due_date && new Date(task.row.due_date) < new Date()) {
+            // Send overdue notification
+            if (task.row.assignee_id) {
+              await ductape.notifications.send({
+                channel: 'email',
+                to: task.row.assignee_id,
+                template: 'task-overdue',
+                data: {
+                  task_id: task.row.id,
+                  days_overdue: Math.floor(
+                    (Date.now() - new Date(task.row.due_date).getTime()) /
+                    (1000 * 60 * 60 * 24)
+                  )
+                }
+              });
+            }
+          }
+        }
+      }
+    }
+  ]
+};
+```
+
+## File Attachments with Storage
+
+```typescript
+// Upload attachment
+app.post('/tasks/:taskId/attachments', upload.single('file'), async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { workspace_id, user_id } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    // Check storage quota
+    await checkStorageQuota(workspace_id, file.size);
+
+    // Upload to storage
+    const uploadResult = await ductape.storage.upload({
+      file: file as any,
+      path: `workspaces/${workspace_id}/tasks/${taskId}`,
+      metadata: {
+        task_id: taskId,
+        workspace_id: workspace_id,
+        uploaded_by: user_id
+      }
+    });
+
+    // Save attachment record
+    const attachment = await ductape.databases.insert({
+      table: 'task_attachments',
+      data: {
+        task_id: taskId,
+        workspace_id: workspace_id,
+        file_name: file.originalname,
+        file_size: file.size,
+        file_type: file.mimetype,
+        file_url: uploadResult.url,
+        file_path: uploadResult.path,
+        uploaded_by: user_id
+      }
+    });
+
+    // Update task attachment count
+    await ductape.databases.update({
+      table: 'tasks',
+      where: { id: taskId },
+      data: {
+        attachment_count: { $increment: 1 }
+      }
+    });
+
+    // Update workspace storage used
+    await ductape.databases.update({
+      table: 'workspaces',
+      where: { id: workspace_id },
+      data: {
+        storage_used: { $increment: file.size }
+      }
+    });
+
+    // Log activity
+    await logActivity({
+      workspace_id,
+      entity_type: 'task',
+      entity_id: taskId,
+      action: 'attachment_added',
+      user_id,
+      metadata: {
+        file_name: file.originalname,
+        file_size: file.size
+      }
+    });
+
+    res.json(attachment.rows[0]);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete attachment
+app.delete('/attachments/:attachmentId', async (req, res) => {
+  try {
+    const attachment = await ductape.databases.findOne({
+      table: 'task_attachments',
+      where: { id: req.params.attachmentId }
+    });
+
+    if (!attachment.row) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    // Delete from storage
+    await ductape.storage.delete({
+      path: attachment.row.file_path
+    });
+
+    // Delete record
+    await ductape.databases.delete({
+      table: 'task_attachments',
+      where: { id: req.params.attachmentId }
+    });
+
+    // Update task attachment count
+    await ductape.databases.update({
+      table: 'tasks',
+      where: { id: attachment.row.task_id },
+      data: {
+        attachment_count: { $decrement: 1 }
+      }
+    });
+
+    // Update workspace storage
+    await ductape.databases.update({
+      table: 'workspaces',
+      where: { id: attachment.row.workspace_id },
+      data: {
+        storage_used: { $decrement: attachment.row.file_size }
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get attachment with signed URL
+app.get('/attachments/:attachmentId/download', async (req, res) => {
+  try {
+    const attachment = await ductape.databases.findOne({
+      table: 'task_attachments',
+      where: { id: req.params.attachmentId }
+    });
+
+    if (!attachment.row) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    const signedUrl = await ductape.storage.getSignedUrl({
+      path: attachment.row.file_path,
+      expiresIn: 3600 // 1 hour
+    });
+
+    res.json({ url: signedUrl, filename: attachment.row.file_name });
+  } catch (error: any) {
+    res.status(404).json({ error: error.message });
+  }
+});
+```
+
+## Recurring Tasks with Jobs
+
+```typescript
+// Create recurring task
+async function createRecurringTask(data: {
+  workspace_id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  assignee_id?: string;
+  reporter_id: string;
+  recurrence_rule: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    interval: number;
+    end_date?: Date;
+  };
+}) {
+  // Create initial task
+  const task = await createTask(data);
+
+  // Schedule recurring job
+  let cronExpression: string;
+  switch (data.recurrence_rule.frequency) {
+    case 'daily':
+      cronExpression = `0 9 */${data.recurrence_rule.interval} * *`; // 9 AM every N days
+      break;
+    case 'weekly':
+      cronExpression = `0 9 * * ${data.recurrence_rule.interval}`; // 9 AM every N weeks
+      break;
+    case 'monthly':
+      cronExpression = `0 9 1 */${data.recurrence_rule.interval} *`; // 9 AM 1st of every N months
+      break;
+  }
+
+  await ductape.jobs.schedule({
+    name: `recurring-task-${task.id}`,
+    schedule: cronExpression,
+    data: {
+      template_task_id: task.id,
+      workspace_id: data.workspace_id,
+      project_id: data.project_id,
+      end_date: data.recurrence_rule.end_date
+    },
+    handler: async (jobData) => {
+      // Check if we should stop recurring
+      if (jobData.end_date && new Date() > new Date(jobData.end_date)) {
+        return;
+      }
+
+      // Get template task
+      const template = await ductape.databases.findOne({
+        table: 'tasks',
+        where: { id: jobData.template_task_id }
+      });
+
+      // Create new task instance
+      await createTask({
+        workspace_id: jobData.workspace_id,
+        project_id: jobData.project_id,
+        title: template.row.title,
+        description: template.row.description,
+        assignee_id: template.row.assignee_id,
+        reporter_id: template.row.reporter_id,
+        priority: template.row.priority,
+        tags: template.row.tags
+      });
+    }
+  });
+
+  return task;
+}
+```
+
+## Task Dependencies
+
+```typescript
+// Add task dependency
+async function addTaskDependency(taskId: string, dependsOnTaskId: string) {
+  const task = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: taskId }
+  });
+
+  if (!task.row) {
+    throw new Error('Task not found');
+  }
+
+  // Check for circular dependencies
+  const hasCircularDependency = await checkCircularDependency(taskId, dependsOnTaskId);
+  if (hasCircularDependency) {
+    throw new Error('Cannot add dependency: would create circular dependency');
+  }
+
+  // Add dependency
+  const dependencies = task.row.depends_on || [];
+  if (!dependencies.includes(dependsOnTaskId)) {
+    dependencies.push(dependsOnTaskId);
+
+    await ductape.databases.update({
+      table: 'tasks',
+      where: { id: taskId },
+      data: {
+        depends_on: dependencies
+      }
+    });
+  }
+}
+
+// Check if dependencies are met
+async function canStartTask(taskId: string): Promise<boolean> {
+  const task = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: taskId }
+  });
+
+  if (!task.row || !task.row.depends_on || task.row.depends_on.length === 0) {
+    return true;
+  }
+
+  // Check all dependencies are completed
+  for (const depId of task.row.depends_on) {
+    const depTask = await ductape.databases.findOne({
+      table: 'tasks',
+      where: { id: depId }
+    });
+
+    if (!depTask.row || depTask.row.status !== 'completed') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Check for circular dependencies
+async function checkCircularDependency(
+  taskId: string,
+  newDependencyId: string,
+  visited: Set<string> = new Set()
+): Promise<boolean> {
+  if (visited.has(newDependencyId)) {
+    return true;
+  }
+
+  visited.add(newDependencyId);
+
+  const task = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: newDependencyId }
+  });
+
+  if (!task.row || !task.row.depends_on) {
+    return false;
+  }
+
+  for (const depId of task.row.depends_on) {
+    if (depId === taskId) {
+      return true;
+    }
+
+    if (await checkCircularDependency(taskId, depId, visited)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+```
+
+## Activity Logging
+
+```typescript
+// Log activity
+async function logActivity(data: {
+  workspace_id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  user_id: string;
+  changes?: any;
+  metadata?: any;
+}) {
+  await ductape.databases.insert({
+    table: 'activity_log',
+    data: {
+      workspace_id: data.workspace_id,
+      entity_type: data.entity_type,
+      entity_id: data.entity_id,
+      action: data.action,
+      user_id: data.user_id,
+      changes: data.changes || {},
+      metadata: data.metadata || {}
+    }
+  });
+}
+
+// Get activity feed
+app.get('/workspaces/:workspaceId/activity', async (req, res) => {
+  const { limit = 50, offset = 0 } = req.query;
+
+  const activities = await ductape.databases.find({
+    table: 'activity_log',
+    where: { workspace_id: req.params.workspaceId },
+    limit: Number(limit),
+    offset: Number(offset),
+    orderBy: { created_at: 'desc' }
+  });
+
+  res.json(activities.rows);
+});
+```
+
+## Notifications
+
+```typescript
+// Notify task assignment
+async function notifyTaskAssignment(taskId: string, assigneeId: string) {
+  const task = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: taskId }
+  });
+
+  if (!task.row) return;
+
+  // Send email
+  await ductape.notifications.send({
+    channel: 'email',
+    to: assigneeId,
+    template: 'task-assigned',
+    data: {
+      task_title: task.row.title,
+      task_id: taskId,
+      due_date: task.row.due_date
+    }
+  });
+
+  // Send push notification
+  await ductape.notifications.send({
+    channel: 'push',
+    to: assigneeId,
+    data: {
+      title: 'New Task Assigned',
+      body: task.row.title
+    }
+  });
+}
+
+// Handle task completion
+async function handleTaskCompletion(taskId: string) {
+  const task = await ductape.databases.findOne({
+    table: 'tasks',
+    where: { id: taskId }
+  });
+
+  if (!task.row) return;
+
+  // Cancel reminder if scheduled
+  if (task.row.reminder_job_id) {
+    await ductape.jobs.cancel({
+      id: task.row.reminder_job_id
+    });
+  }
+
+  // Update project completed count
+  await ductape.databases.update({
+    table: 'projects',
+    where: { id: task.row.project_id },
+    data: {
+      completed_task_count: { $increment: 1 }
+    }
+  });
+
+  // Notify reporter
+  if (task.row.reporter_id !== task.row.assignee_id) {
+    await ductape.notifications.send({
+      channel: 'email',
+      to: task.row.reporter_id,
+      template: 'task-completed',
+      data: {
+        task_title: task.row.title,
+        task_id: taskId,
+        completed_by: task.row.assignee_id
+      }
+    });
+  }
+
+  // Check if dependent tasks can now start
+  const dependentTasks = await ductape.databases.find({
+    table: 'tasks',
+    where: {
+      depends_on: { $in: [taskId] },
+      status: 'todo'
+    }
+  });
+
+  for (const depTask of dependentTasks.rows) {
+    const canStart = await canStartTask(depTask.id);
+    if (canStart && depTask.assignee_id) {
+      await ductape.notifications.send({
+        channel: 'email',
+        to: depTask.assignee_id,
+        template: 'task-ready',
+        data: {
+          task_title: depTask.title,
+          task_id: depTask.id
+        }
+      });
+    }
+  }
+}
+```
+
+## Automated Cleanup Jobs
+
+```typescript
+// Archive completed projects
+await ductape.jobs.schedule({
+  name: 'archive-completed-projects',
+  schedule: '0 0 * * 0', // Weekly on Sunday at midnight
+  handler: async () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Find projects with all tasks completed for 30+ days
+    const projects = await ductape.databases.find({
+      table: 'projects',
+      where: {
+        status: 'active',
+        updated_at: { $lt: thirtyDaysAgo }
+      }
+    });
+
+    for (const project of projects.rows) {
+      // Check if all tasks are completed
+      const incompleteTasks = await ductape.databases.find({
+        table: 'tasks',
+        where: {
+          project_id: project.id,
+          status: { $ne: 'completed' }
+        }
+      });
+
+      if (incompleteTasks.rows.length === 0) {
+        await ductape.databases.update({
+          table: 'projects',
+          where: { id: project.id },
+          data: {
+            status: 'archived',
+            updated_at: new Date()
+          }
+        });
+      }
+    }
+  }
+});
+
+// Send daily digest
+await ductape.jobs.schedule({
+  name: 'daily-task-digest',
+  schedule: '0 8 * * *', // Every day at 8 AM
+  handler: async () => {
+    const workspaces = await ductape.databases.find({
+      table: 'workspaces',
+      where: { is_active: true }
+    });
+
+    for (const workspace of workspaces.rows) {
+      // Get tasks due today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const tasksDueToday = await ductape.databases.find({
+        table: 'tasks',
+        where: {
+          workspace_id: workspace.id,
+          due_date: {
+            $gte: today,
+            $lt: tomorrow
+          },
+          status: { $ne: 'completed' }
+        }
+      });
+
+      if (tasksDueToday.rows.length > 0) {
+        // Send digest to all members
+        for (const memberId of workspace.member_ids) {
+          await ductape.notifications.send({
+            channel: 'email',
+            to: memberId,
+            template: 'daily-digest',
+            data: {
+              workspace_name: workspace.name,
+              tasks: tasksDueToday.rows
+            }
+          });
+        }
+      }
+    }
+  }
+});
+```
+
+## Express API Endpoints
+
+```typescript
+// Get tasks with filters
+app.get('/workspaces/:workspaceId/tasks', async (req, res) => {
+  const { status, assignee_id, priority, project_id, limit = 20, offset = 0 } = req.query;
+
+  const where: any = { workspace_id: req.params.workspaceId };
+
+  if (status) where.status = status;
+  if (assignee_id) where.assignee_id = assignee_id;
+  if (priority) where.priority = priority;
+  if (project_id) where.project_id = project_id;
+
+  const tasks = await ductape.databases.find({
+    table: 'tasks',
+    where,
+    limit: Number(limit),
+    offset: Number(offset),
+    orderBy: { created_at: 'desc' }
+  });
+
+  res.json(tasks.rows);
+});
+
+// Create task
+app.post('/tasks', async (req, res) => {
+  try {
+    const task = await createTask(req.body);
+    res.json(task);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update task
+app.patch('/tasks/:taskId', async (req, res) => {
+  try {
+    const task = await updateTask(req.params.taskId, req.body, req.body.user_id);
+    res.json(task);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Complete task
+app.post('/tasks/:taskId/complete', async (req, res) => {
+  try {
+    await completeTask(req.params.taskId, req.body.user_id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Task management API running on port ${PORT}`);
+});
+```
+
+## Next Steps
+
+- Implement time tracking
+- Add Kanban board views
+- Create sprint management
+- Add reporting and analytics
+- Implement custom fields
+- Create automation rules
+- Add calendar integration
+- Set up webhooks for external tools
+- Implement advanced search
+
+## Related Tutorials
+
+- [Building a Blog API](./building-a-blog-api)
+- [E-commerce Backend](./e-commerce-backend)
+- [Real-time Chat Backend](./real-time-chat)

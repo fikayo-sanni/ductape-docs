@@ -36,6 +36,11 @@ import {
   GitBranch,
   Boxes,
   Bot,
+  Cpu,
+  Monitor,
+  Smartphone,
+  GraduationCap,
+  Network,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -50,6 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
   'Features': Workflow,
   'Workflows': GitBranch,
   'Vectors': Boxes,
+  'Vector Stores': Boxes,
   'Agents': Bot,
   'Jobs': Box,
   'Sessions': KeyRound,
@@ -68,6 +74,9 @@ const iconMap: Record<string, LucideIcon> = {
   'Event Types': Layers,
   'Caching': Layers,
   'Databases': Database,
+  'Core Databases': Database,
+  'Graph Databases': Share2,
+  'Warehouse': HardDrive,
   'Notification Messages': Bell,
   'Graphs': Share2,
   'Resilience': Shield,
@@ -75,6 +84,12 @@ const iconMap: Record<string, LucideIcon> = {
   'Templates': Bell,
   'Healthchecks': Activity,
   'Secrets': Key,
+  'Backend SDK': Cpu,
+  'Client SDKs': Monitor,
+  'Frontend Usage': Smartphone,
+  '@ductape/client': Code2,
+  'React': Zap,
+  'Vue 3': Network,
 };
 
 // Clean emoji prefix and (Preview) suffix from label if present
@@ -161,16 +176,14 @@ export default function DocSidebarItemCategory({
         }}
         {...props}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {isTopLevel && (
-            <IconComponent
-              size={18}
-              className="sidebar-icon"
-              style={{
-                opacity: 0.9,
-                flexShrink: 0,
-              }}
-            />
-          )}
+          <IconComponent
+            size={isTopLevel ? 18 : 16}
+            className="sidebar-icon"
+            style={{
+              opacity: isTopLevel ? 0.9 : 0.7,
+              flexShrink: 0,
+            }}
+          />
           <span className="sidebar-label">{cleanedLabel}</span>
         </span>
         {item.collapsible && (

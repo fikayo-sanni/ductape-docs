@@ -5,38 +5,76 @@ title: Sessions & Authentication
 
 # Sessions & Authentication
 
-Sessions provide user authentication and authorization for your Ductape application. Manage user sessions, verify tokens, and handle authentication flows directly from the frontend.
+Sessions provide secure user authentication and authorization for your Ductape application. Create JWT-based sessions with encrypted data, verify tokens, and handle authentication flows directly from the frontend.
 
 ## Starting a Session
 
 ### Basic Session Start
 
 ```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'your-product',
+  env: 'prd'
+});
+
 const session = await ductape.sessions.start({
-  userId: 'user-123',
-  metadata: {
-    role: 'user',
-    email: 'user@example.com'
+  tag: 'user-session',
+  data: {
+    userId: 'user-123',
+    email: 'user@example.com',
+    role: 'user'
   }
 });
 
 console.log('Session token:', session.token);
-console.log('Session ID:', session.sessionId);
-console.log('Expires at:', session.expiresAt);
+console.log('Refresh token:', session.refreshToken);
 
-// Store token for future requests
+// Store tokens securely
 localStorage.setItem('ductape_token', session.token);
+localStorage.setItem('ductape_refresh', session.refreshToken);
 ```
 
 ### Session with Custom Duration
 
 ```typescript
 const session = await ductape.sessions.start({
-  userId: 'user-123',
-  expiresIn: 86400, // 24 hours in seconds
-  metadata: {
+  tag: 'admin-session',
+  data: {
+    userId: 'admin-456',
+    email: 'admin@example.com',
     role: 'admin',
     permissions: ['read', 'write', 'delete']
+  },
+  expiresIn: 86400 // 24 hours in seconds
+});
+```
+
+### Different Session Types
+
+Use different tags for different authentication flows:
+
+```typescript
+// Checkout flow session
+const checkoutSession = await ductape.sessions.start({
+  tag: 'checkout-session',
+  data: {
+    userId: 'user-123',
+    cartId: 'cart-789',
+    shippingAddress: '123 Main St'
+  },
+  expiresIn: 1800 // 30 minutes
+});
+
+// Support chat session
+const supportSession = await ductape.sessions.start({
+  tag: 'support-chat',
+  data: {
+    userId: 'user-123',
+    ticketId: 'ticket-456',
+    agent: 'agent-789'
   }
 });
 ```
@@ -50,15 +88,20 @@ const token = localStorage.getItem('ductape_token');
 
 try {
   const result = await ductape.sessions.verify({
+    tag: 'user-session',
     token: token
   });
 
   console.log('Session valid');
-  console.log('User ID:', result.userId);
-  console.log('Metadata:', result.metadata);
+  console.log('Decrypted data:', result.data);
+  // Access encrypted session data
+  console.log('User ID:', result.data.userId);
+  console.log('Email:', result.data.email);
+  console.log('Role:', result.data.role);
 } catch (error) {
   console.log('Session invalid or expired');
   // Redirect to login
+  window.location.href = '/login';
 }
 ```
 
@@ -75,13 +118,17 @@ async function initializeAuth() {
   }
 
   try {
-    const result = await ductape.sessions.verify({ token });
+    const result = await ductape.sessions.verify({
+      tag: 'user-session',
+      token
+    });
 
-    // Token valid, load app
-    loadApp(result.userId, result.metadata);
+    // Token valid, load app with decrypted session data
+    loadApp(result.data);
   } catch (error) {
     // Token invalid, clear and show login
     localStorage.removeItem('ductape_token');
+    localStorage.removeItem('ductape_refresh');
     showLoginPage();
   }
 }
@@ -95,64 +142,68 @@ initializeAuth();
 ### Manual Refresh
 
 ```typescript
-const token = localStorage.getItem('ductape_token');
+const refreshToken = localStorage.getItem('ductape_refresh');
 
 const refreshed = await ductape.sessions.refresh({
-  token: token
+  tag: 'user-session',
+  refreshToken: refreshToken
 });
 
-// Update stored token
+// Update stored tokens
 localStorage.setItem('ductape_token', refreshed.token);
-console.log('Session refreshed, new expiry:', refreshed.expiresAt);
+localStorage.setItem('ductape_refresh', refreshed.refreshToken);
+console.log('Session refreshed');
 ```
 
-### Auto-refresh Before Expiry
+### Auto-refresh with Interceptor
 
 ```typescript
 class SessionManager {
   private token: string | null = null;
+  private refreshToken: string | null = null;
   private refreshTimer: number | null = null;
+  private sessionTag: string = 'user-session';
 
-  async login(userId: string, metadata: any) {
+  async login(userData: { userId: string; email: string; role: string }) {
     const session = await ductape.sessions.start({
-      userId,
-      metadata,
+      tag: this.sessionTag,
+      data: userData,
       expiresIn: 3600 // 1 hour
     });
 
     this.token = session.token;
+    this.refreshToken = session.refreshToken;
     localStorage.setItem('ductape_token', session.token);
+    localStorage.setItem('ductape_refresh', session.refreshToken);
 
     // Schedule refresh 5 minutes before expiry
-    this.scheduleRefresh(session.expiresAt);
+    this.scheduleRefresh(3600 - 300); // 55 minutes
   }
 
-  private scheduleRefresh(expiresAt: Date) {
+  private scheduleRefresh(delaySeconds: number) {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
     }
 
-    const expiryTime = new Date(expiresAt).getTime();
-    const now = Date.now();
-    const refreshTime = expiryTime - (5 * 60 * 1000); // 5 minutes before
-    const delay = refreshTime - now;
-
-    if (delay > 0) {
-      this.refreshTimer = setTimeout(() => {
-        this.refreshSession();
-      }, delay);
-    }
+    this.refreshTimer = setTimeout(() => {
+      this.refreshSession();
+    }, delaySeconds * 1000);
   }
 
   private async refreshSession() {
     try {
       const refreshed = await ductape.sessions.refresh({
-        token: this.token!
+        tag: this.sessionTag,
+        refreshToken: this.refreshToken!
       });
 
       this.token = refreshed.token;
+      this.refreshToken = refreshed.refreshToken;
       localStorage.setItem('ductape_token', refreshed.token);
-      this.scheduleRefresh(refreshed.expiresAt);
+      localStorage.setItem('ductape_refresh', refreshed.refreshToken);
+
+      // Schedule next refresh
+      this.scheduleRefresh(3600 - 300);
 
       console.log('Session refreshed automatically');
     } catch (error) {
@@ -168,14 +219,24 @@ class SessionManager {
 
     if (this.token) {
       try {
-        await ductape.sessions.revoke({ token: this.token });
+        const verified = await ductape.sessions.verify({
+          tag: this.sessionTag,
+          token: this.token
+        });
+
+        await ductape.sessions.revoke({
+          tag: this.sessionTag,
+          sessionId: verified.sessionId
+        });
       } catch (error) {
         console.error('Failed to revoke session:', error);
       }
     }
 
     this.token = null;
+    this.refreshToken = null;
     localStorage.removeItem('ductape_token');
+    localStorage.removeItem('ductape_refresh');
 
     // Redirect to login
     window.location.href = '/login';
@@ -184,7 +245,11 @@ class SessionManager {
 
 // Usage
 const sessionManager = new SessionManager();
-await sessionManager.login('user-123', { role: 'user' });
+await sessionManager.login({
+  userId: 'user-123',
+  email: 'user@example.com',
+  role: 'user'
+});
 ```
 
 ## Revoking Sessions
@@ -194,11 +259,20 @@ await sessionManager.login('user-123', { role: 'user' });
 ```typescript
 const token = localStorage.getItem('ductape_token');
 
+// First verify to get session ID
+const verified = await ductape.sessions.verify({
+  tag: 'user-session',
+  token
+});
+
+// Then revoke
 await ductape.sessions.revoke({
-  token: token
+  tag: 'user-session',
+  sessionId: verified.sessionId
 });
 
 localStorage.removeItem('ductape_token');
+localStorage.removeItem('ductape_refresh');
 
 // Redirect to login
 window.location.href = '/login';
@@ -208,17 +282,38 @@ window.location.href = '/login';
 
 ```typescript
 await ductape.sessions.revokeAll({
-  userId: 'user-123'
+  tag: 'user-session',
+  identifier: 'user-123'
 });
 
 // User will be logged out from all devices
+```
+
+### Revoke All Except Current
+
+```typescript
+const token = localStorage.getItem('ductape_token');
+
+const currentSession = await ductape.sessions.verify({
+  tag: 'user-session',
+  token
+});
+
+await ductape.sessions.revokeAll({
+  tag: 'user-session',
+  identifier: currentSession.data.userId,
+  excludeCurrentSession: currentSession.sessionId
+});
+
+alert('All other sessions have been revoked');
 ```
 
 ## Listing Active Sessions
 
 ```typescript
 const result = await ductape.sessions.list({
-  userId: 'user-123'
+  tag: 'user-session',
+  identifier: 'user-123'
 });
 
 console.log(`User has ${result.count} active sessions`);
@@ -227,16 +322,18 @@ result.sessions.forEach(session => {
   console.log(`- Session ${session.sessionId}`);
   console.log(`  Created: ${session.createdAt}`);
   console.log(`  Expires: ${session.expiresAt}`);
-  console.log(`  Metadata:`, session.metadata);
 });
 ```
 
 ## Complete Authentication Example
 
 ```typescript
+import { Ductape } from '@ductape/client';
+
 class AuthService {
   private ductape: Ductape;
   private currentUser: any = null;
+  private sessionTag = 'user-session';
 
   constructor(ductape: Ductape) {
     this.ductape = ductape;
@@ -247,19 +344,23 @@ class AuthService {
       // 1. Verify credentials with your backend
       const user = await this.verifyCredentials(email, password);
 
-      // 2. Create Ductape session
+      // 2. Create Ductape session with encrypted data
       const session = await this.ductape.sessions.start({
-        userId: user.id,
-        metadata: {
+        tag: this.sessionTag,
+        data: {
+          userId: user.id,
           email: user.email,
           role: user.role,
-          name: user.name
+          name: user.name,
+          // Any other data you want encrypted
+          accountType: user.accountType
         },
         expiresIn: 86400 // 24 hours
       });
 
-      // 3. Store token
+      // 3. Store tokens
       localStorage.setItem('ductape_token', session.token);
+      localStorage.setItem('ductape_refresh', session.refreshToken);
       this.currentUser = user;
 
       // 4. Return user info
@@ -275,13 +376,24 @@ class AuthService {
 
     if (token) {
       try {
-        await this.ductape.sessions.revoke({ token });
+        // Verify to get session ID
+        const verified = await this.ductape.sessions.verify({
+          tag: this.sessionTag,
+          token
+        });
+
+        // Revoke session
+        await this.ductape.sessions.revoke({
+          tag: this.sessionTag,
+          sessionId: verified.sessionId
+        });
       } catch (error) {
         console.error('Failed to revoke session:', error);
       }
     }
 
     localStorage.removeItem('ductape_token');
+    localStorage.removeItem('ductape_refresh');
     this.currentUser = null;
 
     // Redirect to login
@@ -296,14 +408,23 @@ class AuthService {
     }
 
     try {
-      const result = await this.ductape.sessions.verify({ token });
+      const result = await this.ductape.sessions.verify({
+        tag: this.sessionTag,
+        token
+      });
+
+      // Extract user data from decrypted session
       this.currentUser = {
-        id: result.userId,
-        ...result.metadata
+        id: result.data.userId,
+        email: result.data.email,
+        role: result.data.role,
+        name: result.data.name
       };
+
       return true;
     } catch (error) {
       localStorage.removeItem('ductape_token');
+      localStorage.removeItem('ductape_refresh');
       return false;
     }
   }
@@ -338,6 +459,12 @@ class AuthService {
 }
 
 // Usage
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'your-product',
+  env: 'prd'
+});
+
 const auth = new AuthService(ductape);
 
 // Login
@@ -359,25 +486,32 @@ if (await auth.checkAuth()) {
 await auth.logout();
 ```
 
-## Session-Protected Requests
+## Session Data Encryption
 
-All database and storage operations automatically include the session token:
+All data passed in the `data` field is automatically encrypted:
 
 ```typescript
-// Login first
-await auth.login('user@example.com', 'password');
-
-// Now all requests include session context
-const result = await ductape.databases.query({
-  table: 'user_data',
-  where: { userId: 'current-user' } // Server validates session
+// Data is encrypted in the JWT
+const session = await ductape.sessions.start({
+  tag: 'user-session',
+  data: {
+    userId: 'user-123',
+    email: 'user@example.com',
+    // Sensitive data is encrypted
+    creditCardLast4: '4242',
+    subscriptionTier: 'premium'
+  }
 });
 
-// Upload with session
-await ductape.storage.upload({
-  file: file,
-  path: 'user-uploads' // Server validates permissions based on session
+// Data is decrypted when verifying
+const verified = await ductape.sessions.verify({
+  tag: 'user-session',
+  token: session.token
 });
+
+// Access decrypted data
+console.log(verified.data.creditCardLast4); // "4242"
+console.log(verified.data.subscriptionTier); // "premium"
 ```
 
 ## Role-Based Access Control
@@ -443,13 +577,17 @@ function loadAdminPage() {
 ```typescript
 class SessionDashboard {
   private ductape: Ductape;
+  private sessionTag = 'user-session';
 
   constructor(ductape: Ductape) {
     this.ductape = ductape;
   }
 
-  async loadSessions(userId: string) {
-    const result = await this.ductape.sessions.list({ userId });
+  async loadSessions(identifier: string) {
+    const result = await this.ductape.sessions.list({
+      tag: this.sessionTag,
+      identifier
+    });
 
     this.renderSessions(result.sessions);
   }
@@ -459,34 +597,40 @@ class SessionDashboard {
       return;
     }
 
-    const token = localStorage.getItem('ductape_token');
-    await this.ductape.sessions.revoke({ token });
+    await this.ductape.sessions.revoke({
+      tag: this.sessionTag,
+      sessionId
+    });
 
     // Reload sessions
-    await this.loadSessions('current-user-id');
+    const token = localStorage.getItem('ductape_token');
+    const verified = await this.ductape.sessions.verify({
+      tag: this.sessionTag,
+      token
+    });
+
+    await this.loadSessions(verified.data.userId);
   }
 
-  async revokeAllOthers(userId: string) {
+  async revokeAllOthers(identifier: string) {
     if (!confirm('Revoke all other sessions? This will log you out from all other devices.')) {
       return;
     }
 
     const currentToken = localStorage.getItem('ductape_token');
+    const currentSession = await this.ductape.sessions.verify({
+      tag: this.sessionTag,
+      token: currentToken
+    });
 
-    // Get all sessions
-    const result = await this.ductape.sessions.list({ userId });
-
-    // Revoke all except current
-    const currentSession = await this.ductape.sessions.verify({ token: currentToken });
-
-    for (const session of result.sessions) {
-      if (session.sessionId !== currentSession.sessionId) {
-        await this.ductape.sessions.revoke({ sessionId: session.sessionId });
-      }
-    }
+    await this.ductape.sessions.revokeAll({
+      tag: this.sessionTag,
+      identifier,
+      excludeCurrentSession: currentSession.sessionId
+    });
 
     alert('All other sessions revoked');
-    await this.loadSessions(userId);
+    await this.loadSessions(identifier);
   }
 
   private renderSessions(sessions: any[]) {
@@ -504,7 +648,6 @@ class SessionDashboard {
           <strong>${isCurrentSession ? 'Current Session' : 'Session'}</strong>
           <span>Created: ${new Date(session.createdAt).toLocaleString()}</span>
           <span>Expires: ${new Date(session.expiresAt).toLocaleString()}</span>
-          ${session.metadata?.device ? `<span>Device: ${session.metadata.device}</span>` : ''}
         </div>
         ${!isCurrentSession ? `
           <button onclick="dashboard.revokeSession('${session.sessionId}')">
@@ -518,8 +661,9 @@ class SessionDashboard {
   }
 
   private isCurrentSession(session: any): boolean {
-    // Implementation to check if this is the current session
-    return false;
+    const currentToken = localStorage.getItem('ductape_token');
+    // You'd need to decode the JWT to check if it matches
+    return false; // Simplified for example
   }
 }
 
@@ -528,96 +672,57 @@ const dashboard = new SessionDashboard(ductape);
 await dashboard.loadSessions('user-123');
 ```
 
-## SSO Integration Example
+## Best Practices
+
+1. **Always use the `tag` field**: Different session types should have different tags
+2. **Store tokens securely**: Use httpOnly cookies in production when possible
+3. **Encrypt sensitive data**: All data in the `data` field is automatically encrypted
+4. **Implement auto-refresh**: Refresh tokens before they expire
+5. **Handle token expiry**: Gracefully handle expired tokens
+6. **Use HTTPS**: Always use HTTPS in production
+7. **Implement CSRF protection**: Protect against cross-site request forgery
+8. **Limit session duration**: Use reasonable expiry times
+9. **Revoke on logout**: Always revoke sessions on logout
+10. **Monitor active sessions**: Allow users to view and revoke sessions
+
+## API Reference
+
+### Session Start Input
 
 ```typescript
-class SSOAuth {
-  private ductape: Ductape;
-
-  constructor(ductape: Ductape) {
-    this.ductape = ductape;
-  }
-
-  async loginWithGoogle() {
-    // 1. Redirect to Google OAuth
-    const googleAuthUrl = this.buildGoogleAuthUrl();
-    window.location.href = googleAuthUrl;
-  }
-
-  async handleOAuthCallback(code: string) {
-    try {
-      // 2. Exchange code for tokens with your backend
-      const response = await fetch('/api/auth/google/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-
-      const { user, googleTokens } = await response.json();
-
-      // 3. Create Ductape session
-      const session = await this.ductape.sessions.start({
-        userId: user.id,
-        metadata: {
-          email: user.email,
-          name: user.name,
-          provider: 'google',
-          avatar: user.avatar
-        }
-      });
-
-      // 4. Store token
-      localStorage.setItem('ductape_token', session.token);
-
-      // 5. Redirect to app
-      window.location.href = '/dashboard';
-    } catch (error) {
-      console.error('OAuth callback failed:', error);
-      window.location.href = '/login?error=oauth_failed';
-    }
-  }
-
-  private buildGoogleAuthUrl(): string {
-    const params = new URLSearchParams({
-      client_id: 'YOUR_GOOGLE_CLIENT_ID',
-      redirect_uri: `${window.location.origin}/auth/callback`,
-      response_type: 'code',
-      scope: 'email profile'
-    });
-
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  }
-}
-
-// Usage
-const sso = new SSOAuth(ductape);
-
-// On login page
-document.getElementById('google-login').onclick = () => {
-  sso.loginWithGoogle();
-};
-
-// On callback page
-const urlParams = new URLSearchParams(window.location.search);
-const code = urlParams.get('code');
-if (code) {
-  sso.handleOAuthCallback(code);
+interface ISessionStartInput {
+  /** Session tag (required) */
+  tag: string;
+  /** Encrypted session data */
+  data: Record<string, unknown>;
+  /** User identifier for listing/revoking */
+  identifier?: string;
+  /** Session expiration in seconds */
+  expiresIn?: number;
+  /** Product tag (optional, uses default) */
+  product?: string;
+  /** Environment (optional, uses default) */
+  env?: string;
 }
 ```
 
-## Best Practices
+### Session Verify Input
 
-1. **Store tokens securely**: Use httpOnly cookies in production when possible
-2. **Implement auto-refresh**: Refresh tokens before they expire
-3. **Handle token expiry**: Gracefully handle expired tokens
-4. **Use HTTPS**: Always use HTTPS in production
-5. **Implement CSRF protection**: Protect against cross-site request forgery
-6. **Limit session duration**: Use reasonable expiry times
-7. **Revoke on logout**: Always revoke sessions on logout
-8. **Monitor active sessions**: Allow users to view and revoke sessions
+```typescript
+interface ISessionVerifyInput {
+  /** Session tag (required) */
+  tag: string;
+  /** Session token to verify */
+  token: string;
+  /** Product tag (optional, uses default) */
+  product?: string;
+  /** Environment (optional, uses default) */
+  env?: string;
+}
+```
 
 ## Next Steps
 
+- [React Session Hooks](../react/session-hooks)
+- [Vue Session Composables](../vue/session-composables)
 - [Real-time Subscriptions](./subscriptions)
-- [React Integration](../react/getting-started)
-- [Vue Integration](../vue/getting-started)

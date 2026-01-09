@@ -1,0 +1,965 @@
+---
+sidebar_position: 5
+title: Session Composables
+---
+
+# Session Composables
+
+Vue 3 composables for managing JWT-based sessions with automatic encryption, token refresh, and session lifecycle management.
+
+## useSessionStart
+
+Create a new session with encrypted JWT token.
+
+### Basic Session Start
+
+```vue
+<script setup lang="ts">
+import { useSessionStart } from '@ductape/vue';
+
+const { mutate: startSession, isLoading, data, error } = useSessionStart({
+  onSuccess: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    console.log('Session started:', result.sessionId);
+  },
+  onError: (error) => {
+    alert('Failed to start session: ' + error.message);
+  }
+});
+
+const handleLogin = async (userId: string, email: string) => {
+  // After validating credentials, start the session
+  startSession({
+    tag: 'user-session',
+    data: {
+      userId,
+      email,
+      role: 'user'
+    },
+    identifier: userId
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button
+      @click="handleLogin('user-123', 'user@example.com')"
+      :disabled="isLoading"
+    >
+      {{ isLoading ? 'Starting Session...' : 'Log In' }}
+    </button>
+
+    <div v-if="data">
+      <p>Session ID: {{ data.sessionId }}</p>
+      <p>Expires: {{ new Date(data.expiresAt).toLocaleString() }}</p>
+    </div>
+
+    <p v-if="error" style="color: red">{{ error.message }}</p>
+  </div>
+</template>
+```
+
+### With Custom Expiration
+
+```vue
+<script setup lang="ts">
+import { useSessionStart } from '@ductape/vue';
+
+const { mutate: startSession, isLoading } = useSessionStart({
+  onSuccess: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+  }
+});
+
+const handleStartExtendedSession = () => {
+  startSession({
+    tag: 'user-session',
+    data: {
+      userId: 'user-123',
+      email: 'user@example.com',
+      role: 'admin'
+    },
+    identifier: 'user-123',
+    expiresIn: 7 * 24 * 60 * 60 // 7 days in seconds
+  });
+};
+</script>
+
+<template>
+  <button @click="handleStartExtendedSession" :disabled="isLoading">
+    Start 7-Day Session
+  </button>
+</template>
+```
+
+### Admin Session Example
+
+```vue
+<script setup lang="ts">
+import { useSessionStart } from '@ductape/vue';
+
+const { mutate: startSession, data } = useSessionStart({
+  onSuccess: (result) => {
+    localStorage.setItem('adminToken', result.token);
+    localStorage.setItem('adminRefreshToken', result.refreshToken);
+  }
+});
+
+const handleAdminLogin = () => {
+  startSession({
+    tag: 'admin-session',
+    data: {
+      userId: 'admin-456',
+      email: 'admin@company.com',
+      role: 'admin',
+      permissions: ['users.manage', 'content.edit', 'reports.view']
+    },
+    identifier: 'admin-456'
+  });
+};
+</script>
+
+<template>
+  <button @click="handleAdminLogin">
+    Start Admin Session
+  </button>
+</template>
+```
+
+## useSessionVerify
+
+Verify and decode a JWT session token.
+
+### Basic Token Verification
+
+```vue
+<script setup lang="ts">
+import { useSessionVerify } from '@ductape/vue';
+import { onMounted } from 'vue';
+
+const { mutate: verifySession, data, isLoading, error } = useSessionVerify({
+  onSuccess: (result) => {
+    console.log('Session valid:', result.data);
+    console.log('Expires at:', new Date(result.expiresAt));
+  },
+  onError: (error) => {
+    // Token invalid or expired
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+  }
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Verifying session...</div>
+
+  <div v-else-if="error">
+    Session expired. Please log in again.
+  </div>
+
+  <div v-else-if="data">
+    <h2>Welcome back!</h2>
+    <p>User ID: {{ data.data.userId }}</p>
+    <p>Email: {{ data.data.email }}</p>
+    <p>Role: {{ data.data.role }}</p>
+    <p>Session expires: {{ new Date(data.expiresAt).toLocaleString() }}</p>
+  </div>
+</template>
+```
+
+### Protected Route Component
+
+```vue
+<script setup lang="ts">
+import { useSessionVerify } from '@ductape/vue';
+import { useRouter } from 'vue-router';
+import { onMounted, watch } from 'vue';
+
+const router = useRouter();
+const { mutate: verifySession, data, isLoading } = useSessionVerify();
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+  }
+});
+
+watch([isLoading, data], ([loading, sessionData]) => {
+  if (!loading && !sessionData) {
+    router.push('/login');
+  }
+});
+</script>
+
+<template>
+  <div v-if="isLoading">
+    Verifying access...
+  </div>
+  <div v-else-if="data">
+    <slot />
+  </div>
+</template>
+```
+
+### Role-Based Access Control
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useSessionVerify } from '@ductape/vue';
+
+const hasAccess = ref(false);
+const { mutate: verifySession, isLoading } = useSessionVerify({
+  onSuccess: (result) => {
+    if (result.data.role === 'admin') {
+      hasAccess.value = true;
+    } else {
+      alert('Admin access required');
+    }
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'admin-session',
+      token
+    });
+  }
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Checking permissions...</div>
+
+  <div v-else-if="!hasAccess">
+    Access denied. Admin role required.
+  </div>
+
+  <div v-else>
+    <h1>Admin Dashboard</h1>
+    <!-- Admin content -->
+  </div>
+</template>
+```
+
+## useSessionRefresh
+
+Refresh an expiring session token using a refresh token.
+
+### Manual Token Refresh
+
+```vue
+<script setup lang="ts">
+import { useSessionRefresh } from '@ductape/vue';
+
+const { mutate: refreshSession, isLoading } = useSessionRefresh({
+  onSuccess: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    alert('Session refreshed successfully');
+  },
+  onError: (error) => {
+    alert('Failed to refresh session. Please log in again.');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+  }
+});
+
+const handleRefresh = () => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (refreshToken) {
+    refreshSession({
+      tag: 'user-session',
+      refreshToken
+    });
+  }
+};
+</script>
+
+<template>
+  <button @click="handleRefresh" :disabled="isLoading">
+    {{ isLoading ? 'Refreshing...' : 'Refresh Session' }}
+  </button>
+</template>
+```
+
+### Conditional Refresh Based on Expiry
+
+```vue
+<script setup lang="ts">
+import { watch } from 'vue';
+import { useSessionVerify, useSessionRefresh } from '@ductape/vue';
+
+const { mutate: verifySession, data } = useSessionVerify();
+const { mutate: refreshSession } = useSessionRefresh({
+  onSuccess: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+  }
+});
+
+watch(data, (sessionData) => {
+  if (!sessionData) return;
+
+  const expiresAt = new Date(sessionData.expiresAt).getTime();
+  const now = Date.now();
+  const fiveMinutes = 5 * 60 * 1000;
+
+  // Refresh if expires in less than 5 minutes
+  if (expiresAt - now < fiveMinutes) {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      refreshSession({
+        tag: 'user-session',
+        refreshToken
+      });
+    }
+  }
+});
+</script>
+
+<template>
+  <!-- Background component -->
+</template>
+```
+
+## useSessionAutoRefresh
+
+Automatically refresh tokens before they expire.
+
+### Basic Auto-Refresh Setup
+
+```vue
+<script setup lang="ts">
+import { useSessionAutoRefresh } from '@ductape/vue';
+import { onMounted } from 'vue';
+
+const { isActive, currentToken, start, stop } = useSessionAutoRefresh({
+  tag: 'user-session',
+  refreshToken: localStorage.getItem('refreshToken') || '',
+  refreshBefore: 5 * 60, // Refresh 5 minutes before expiry
+  onRefresh: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    console.log('Session auto-refreshed');
+  },
+  onError: (error) => {
+    console.error('Auto-refresh failed:', error);
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    // Redirect to login
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (token && refreshToken) {
+    start();
+  }
+});
+</script>
+
+<template>
+  <slot />
+</template>
+```
+
+### Complete Auth Provider
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import {
+  useSessionStart,
+  useSessionVerify,
+  useSessionAutoRefresh
+} from '@ductape/vue';
+
+const user = ref<any | null>(null);
+
+const { start: startAutoRefresh, stop: stopAutoRefresh } = useSessionAutoRefresh({
+  tag: 'user-session',
+  refreshToken: localStorage.getItem('refreshToken') || '',
+  onRefresh: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+  }
+});
+
+const { mutate: startSession } = useSessionStart();
+const { mutate: verifySession } = useSessionVerify();
+
+onMounted(() => {
+  // Verify existing session on mount
+  const token = localStorage.getItem('token');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (token && refreshToken) {
+    verifySession(
+      {
+        tag: 'user-session',
+        token
+      },
+      {
+        onSuccess: (result) => {
+          user.value = result.data;
+          startAutoRefresh();
+        },
+        onError: () => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+        }
+      }
+    );
+  }
+});
+
+const login = (userId: string, email: string) => {
+  startSession(
+    {
+      tag: 'user-session',
+      data: { userId, email, role: 'user' },
+      identifier: userId
+    },
+    {
+      onSuccess: (result) => {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('refreshToken', result.refreshToken);
+        user.value = { userId, email, role: 'user' };
+        startAutoRefresh();
+      }
+    }
+  );
+};
+
+const logout = () => {
+  stopAutoRefresh();
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  user.value = null;
+};
+
+// Provide these methods to child components via provide/inject if needed
+defineExpose({ user, login, logout });
+</script>
+
+<template>
+  <slot :user="user" :login="login" :logout="logout" />
+</template>
+```
+
+## useSessionRevoke
+
+Revoke a specific session by ID.
+
+### Revoke Single Session
+
+```vue
+<script setup lang="ts">
+import { useSessionRevoke } from '@ductape/vue';
+
+defineProps<{ session: any }>();
+
+const { mutate: revokeSession, isLoading } = useSessionRevoke({
+  onSuccess: () => {
+    alert('Session revoked successfully');
+  }
+});
+
+const handleRevoke = (sessionId: string) => {
+  revokeSession({
+    tag: 'user-session',
+    sessionId
+  });
+};
+</script>
+
+<template>
+  <div>
+    <p>Device: {{ session.device }}</p>
+    <p>Created: {{ new Date(session.createdAt).toLocaleString() }}</p>
+    <button @click="handleRevoke(session.sessionId)" :disabled="isLoading">
+      {{ isLoading ? 'Revoking...' : 'Revoke Session' }}
+    </button>
+  </div>
+</template>
+```
+
+### Revoke Current Session (Logout)
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useSessionVerify, useSessionRevoke } from '@ductape/vue';
+
+const { mutate: verifySession, data } = useSessionVerify();
+const { mutate: revokeSession, isLoading } = useSessionRevoke({
+  onSuccess: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/login';
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+  }
+});
+
+const handleLogout = () => {
+  if (data.value?.sessionId) {
+    revokeSession({
+      tag: 'user-session',
+      sessionId: data.value.sessionId
+    });
+  }
+};
+</script>
+
+<template>
+  <button @click="handleLogout" :disabled="isLoading">
+    {{ isLoading ? 'Logging Out...' : 'Log Out' }}
+  </button>
+</template>
+```
+
+## useSessionRevokeAll
+
+Revoke all sessions for a user.
+
+### Revoke All Sessions
+
+```vue
+<script setup lang="ts">
+import { useSessionRevokeAll } from '@ductape/vue';
+
+defineProps<{ userId: string }>();
+
+const { mutate: revokeAll, isLoading } = useSessionRevokeAll({
+  onSuccess: (result) => {
+    alert(`Revoked ${result.revokedCount} sessions`);
+  }
+});
+
+const handleRevokeAll = (userId: string) => {
+  revokeAll({
+    tag: 'user-session',
+    identifier: userId
+  });
+};
+</script>
+
+<template>
+  <button @click="handleRevokeAll(userId)" :disabled="isLoading">
+    {{ isLoading ? 'Revoking...' : 'Revoke All Sessions' }}
+  </button>
+</template>
+```
+
+### Revoke All Except Current
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useSessionVerify, useSessionRevokeAll } from '@ductape/vue';
+
+const { mutate: verifySession, data: sessionData } = useSessionVerify();
+const { mutate: revokeAll, isLoading } = useSessionRevokeAll({
+  onSuccess: (result) => {
+    alert(`Logged out of ${result.revokedCount} other devices`);
+  }
+});
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+  }
+});
+
+const handleRevokeOthers = () => {
+  if (sessionData.value) {
+    revokeAll({
+      tag: 'user-session',
+      identifier: sessionData.value.data.userId,
+      excludeCurrentSession: sessionData.value.sessionId
+    });
+  }
+};
+</script>
+
+<template>
+  <div>
+    <h3>Security</h3>
+    <button @click="handleRevokeOthers" :disabled="isLoading">
+      {{ isLoading ? 'Logging Out Other Devices...' : 'Log Out All Other Devices' }}
+    </button>
+  </div>
+</template>
+```
+
+## useSessionList
+
+List active sessions for a user.
+
+### List All User Sessions
+
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useSessionList } from '@ductape/vue';
+
+defineProps<{ userId: string }>();
+
+const { mutate: listSessions, data, isLoading } = useSessionList({
+  onSuccess: (result) => {
+    console.log(`Found ${result.sessions.length} active sessions`);
+  }
+});
+
+onMounted(() => {
+  listSessions({
+    tag: 'user-session',
+    identifier: props.userId
+  });
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading sessions...</div>
+
+  <div v-else-if="data">
+    <h3>Active Sessions ({{ data.sessions.length }})</h3>
+    <ul>
+      <li v-for="session in data.sessions" :key="session.sessionId">
+        <p>Session ID: {{ session.sessionId }}</p>
+        <p>Created: {{ new Date(session.createdAt).toLocaleString() }}</p>
+        <p>Expires: {{ new Date(session.expiresAt).toLocaleString() }}</p>
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+### Complete Session Manager
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue';
+import { useSessionList, useSessionRevoke, useSessionRevokeAll } from '@ductape/vue';
+
+const props = defineProps<{
+  userId: string;
+  currentSessionId: string;
+}>();
+
+const { mutate: listSessions, data, isLoading: isLoadingList } = useSessionList();
+
+const { mutate: revokeSession } = useSessionRevoke({
+  onSuccess: () => {
+    // Refresh the list
+    listSessions({
+      tag: 'user-session',
+      identifier: props.userId
+    });
+  }
+});
+
+const { mutate: revokeAll } = useSessionRevokeAll({
+  onSuccess: () => {
+    listSessions({
+      tag: 'user-session',
+      identifier: props.userId
+    });
+  }
+});
+
+onMounted(() => {
+  listSessions({
+    tag: 'user-session',
+    identifier: props.userId
+  });
+});
+
+watch(() => props.userId, (newUserId) => {
+  listSessions({
+    tag: 'user-session',
+    identifier: newUserId
+  });
+});
+
+const handleRevokeSession = (sessionId: string) => {
+  if (confirm('Revoke this session?')) {
+    revokeSession({
+      tag: 'user-session',
+      sessionId
+    });
+  }
+};
+
+const handleRevokeOthers = () => {
+  if (confirm('Log out all other devices?')) {
+    revokeAll({
+      tag: 'user-session',
+      identifier: props.userId,
+      excludeCurrentSession: props.currentSessionId
+    });
+  }
+};
+</script>
+
+<template>
+  <div v-if="isLoadingList">Loading sessions...</div>
+
+  <div v-else>
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <h2>Your Sessions</h2>
+      <button @click="handleRevokeOthers">
+        Log Out Other Devices
+      </button>
+    </div>
+
+    <div v-if="data && data.sessions.length > 0">
+      <div
+        v-for="session in data.sessions"
+        :key="session.sessionId"
+        style="border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 4px"
+      >
+        <div style="display: flex; justify-content: space-between">
+          <div>
+            <p>
+              <strong>Session ID:</strong> {{ session.sessionId }}
+              <span
+                v-if="session.sessionId === currentSessionId"
+                style="color: green; margin-left: 8px"
+              >
+                (Current)
+              </span>
+            </p>
+            <p>Created: {{ new Date(session.createdAt).toLocaleString() }}</p>
+            <p>Expires: {{ new Date(session.expiresAt).toLocaleString() }}</p>
+          </div>
+          <button
+            v-if="session.sessionId !== currentSessionId"
+            @click="handleRevokeSession(session.sessionId)"
+            style="height: fit-content"
+          >
+            Revoke
+          </button>
+        </div>
+      </div>
+    </div>
+    <p v-else>No active sessions found.</p>
+  </div>
+</template>
+```
+
+## Complete Authentication Example
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import {
+  useSessionStart,
+  useSessionVerify,
+  useSessionRevoke,
+  useSessionAutoRefresh
+} from '@ductape/vue';
+
+const user = ref<any | null>(null);
+
+const { start: startAutoRefresh, stop: stopAutoRefresh } = useSessionAutoRefresh({
+  tag: 'user-session',
+  refreshToken: localStorage.getItem('refreshToken') || '',
+  onRefresh: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+  }
+});
+
+const { mutate: startSession, isLoading: isStarting } = useSessionStart({
+  onSuccess: (result) => {
+    localStorage.setItem('token', result.token);
+    localStorage.setItem('refreshToken', result.refreshToken);
+    startAutoRefresh();
+  }
+});
+
+const { mutate: verifySession } = useSessionVerify({
+  onSuccess: (result) => {
+    user.value = result.data;
+  },
+  onError: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    user.value = null;
+  }
+});
+
+const { mutate: revokeSession } = useSessionRevoke({
+  onSuccess: () => {
+    stopAutoRefresh();
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    user.value = null;
+  }
+});
+
+// Verify session on mount
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (token && refreshToken) {
+    verifySession({
+      tag: 'user-session',
+      token
+    });
+
+    startAutoRefresh();
+  }
+});
+
+const handleLogin = () => {
+  startSession({
+    tag: 'user-session',
+    data: {
+      userId: 'user-123',
+      email: 'user@example.com',
+      role: 'user'
+    },
+    identifier: 'user-123'
+  });
+};
+
+const handleLogout = () => {
+  if (user.value?.sessionId) {
+    revokeSession({
+      tag: 'user-session',
+      sessionId: user.value.sessionId
+    });
+  }
+};
+</script>
+
+<template>
+  <div v-if="!user">
+    <h1>Please Log In</h1>
+    <button @click="handleLogin" :disabled="isStarting">
+      {{ isStarting ? 'Logging In...' : 'Log In' }}
+    </button>
+  </div>
+
+  <div v-else>
+    <h1>Welcome, {{ user.email }}!</h1>
+    <p>User ID: {{ user.userId }}</p>
+    <p>Role: {{ user.role }}</p>
+    <button @click="handleLogout">Log Out</button>
+  </div>
+</template>
+```
+
+## Type Safety
+
+All session composables are fully typed:
+
+```vue
+<script setup lang="ts">
+import { useSessionStart, useSessionVerify } from '@ductape/vue';
+
+interface UserSessionData {
+  userId: string;
+  email: string;
+  role: 'user' | 'admin';
+  permissions?: string[];
+}
+
+const { mutate: startSession } = useSessionStart({
+  onSuccess: (result) => {
+    // TypeScript knows result structure
+    console.log(result.token);
+    console.log(result.refreshToken);
+    console.log(result.sessionId);
+  }
+});
+
+const { mutate: verifySession, data } = useSessionVerify({
+  onSuccess: (result) => {
+    // Access encrypted data
+    const userData = result.data as UserSessionData;
+    console.log(userData.userId);
+    console.log(userData.role);
+  }
+});
+
+// Start session with typed data
+const handleStart = () => {
+  startSession({
+    tag: 'user-session',
+    data: {
+      userId: '123',
+      email: 'user@example.com',
+      role: 'admin',
+      permissions: ['users.manage']
+    } as UserSessionData,
+    identifier: '123'
+  });
+};
+</script>
+
+<template>
+  <button @click="handleStart">Start Session</button>
+</template>
+```
+
+## Best Practices
+
+1. **Always Store Both Tokens**: Store both `token` and `refreshToken` for session continuity
+2. **Use Auto-Refresh**: Implement `useSessionAutoRefresh` to avoid session expiration
+3. **Verify on Mount**: Always verify stored tokens when the app loads
+4. **Include Tag Field**: All session operations require the `tag` field to identify session type
+5. **Handle Errors**: Properly handle verification and refresh errors by clearing invalid tokens
+6. **Secure Storage**: Consider using secure storage instead of localStorage for sensitive applications
+7. **Clean Up**: Auto-refresh automatically stops on component unmount
+8. **Session Identifiers**: Use consistent identifiers (e.g., userId) for session management
+9. **Revoke on Logout**: Always revoke the session when logging out, not just clearing tokens
+10. **Type Your Data**: Use TypeScript interfaces for session data for type safety

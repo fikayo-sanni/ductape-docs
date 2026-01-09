@@ -1,0 +1,1032 @@
+---
+sidebar_position: 2
+title: Building an E-commerce Backend
+---
+
+# Building an E-commerce Backend
+
+Learn how to build a complete e-commerce backend with inventory management, order processing, payment integration, notifications, and automated workflows using Ductape SDK.
+
+## What You'll Build
+
+- Product inventory management
+- Shopping cart and order processing
+- Stripe payment integration
+- Email and SMS notifications
+- Order fulfillment workflows
+- Inventory tracking and alerts
+- Customer management
+- Order status updates
+- Automated email campaigns
+
+## Prerequisites
+
+- Node.js and npm installed
+- Ductape account and API credentials
+- Stripe account for payments
+- Basic understanding of TypeScript/JavaScript
+- Express.js knowledge (optional)
+
+## Setup
+
+```bash
+npm install @ductape/sdk express dotenv
+npm install --save-dev @types/express @types/node typescript
+```
+
+Create `.env`:
+
+```env
+DUCTAPE_API_KEY=your_api_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_webhook_secret
+```
+
+## Initialize Ductape SDK
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+import express from 'express';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY!
+});
+
+const app = express();
+app.use(express.json());
+```
+
+## Database Schema
+
+```typescript
+// Products table
+await ductape.databases.schema.create('products', {
+  sku: { type: 'String', unique: true, required: true },
+  name: { type: 'String', required: true },
+  description: { type: 'String' },
+  price: { type: 'Number', required: true },
+  compare_at_price: { type: 'Number' },
+  cost_price: { type: 'Number' },
+  currency: { type: 'String', default: 'USD' },
+  category: { type: 'String' },
+  tags: { type: 'Array' },
+  images: { type: 'Array' },
+  inventory_quantity: { type: 'Number', default: 0 },
+  low_stock_threshold: { type: 'Number', default: 10 },
+  is_active: { type: 'Boolean', default: true },
+  is_featured: { type: 'Boolean', default: false },
+  weight: { type: 'Number' }, // in grams
+  dimensions: { type: 'JSON' }, // { length, width, height }
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Customers table
+await ductape.databases.schema.create('customers', {
+  email: { type: 'String', unique: true, required: true },
+  first_name: { type: 'String', required: true },
+  last_name: { type: 'String', required: true },
+  phone: { type: 'String' },
+  stripe_customer_id: { type: 'String', unique: true },
+  addresses: { type: 'Array' },
+  default_address_index: { type: 'Number', default: 0 },
+  total_orders: { type: 'Number', default: 0 },
+  total_spent: { type: 'Number', default: 0 },
+  marketing_opt_in: { type: 'Boolean', default: false },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Orders table
+await ductape.databases.schema.create('orders', {
+  order_number: { type: 'String', unique: true, required: true },
+  customer_id: { type: 'String', required: true },
+  email: { type: 'String', required: true },
+  line_items: { type: 'Array', required: true },
+  subtotal: { type: 'Number', required: true },
+  tax: { type: 'Number', default: 0 },
+  shipping_cost: { type: 'Number', default: 0 },
+  discount: { type: 'Number', default: 0 },
+  total: { type: 'Number', required: true },
+  currency: { type: 'String', default: 'USD' },
+  status: { type: 'String', default: 'pending' }, // pending, processing, fulfilled, cancelled
+  payment_status: { type: 'String', default: 'pending' }, // pending, paid, refunded, failed
+  fulfillment_status: { type: 'String', default: 'unfulfilled' },
+  stripe_payment_intent_id: { type: 'String' },
+  shipping_address: { type: 'JSON', required: true },
+  billing_address: { type: 'JSON', required: true },
+  tracking_number: { type: 'String' },
+  shipped_at: { type: 'Date' },
+  delivered_at: { type: 'Date' },
+  notes: { type: 'String' },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Inventory transactions table
+await ductape.databases.schema.create('inventory_transactions', {
+  product_id: { type: 'String', required: true },
+  sku: { type: 'String', required: true },
+  quantity_change: { type: 'Number', required: true },
+  type: { type: 'String', required: true }, // sale, restock, adjustment, return
+  reference_id: { type: 'String' }, // order_id or purchase_order_id
+  notes: { type: 'String' },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes
+await ductape.databases.schema.createIndex('products', ['sku']);
+await ductape.databases.schema.createIndex('products', ['category']);
+await ductape.databases.schema.createIndex('products', ['is_active']);
+await ductape.databases.schema.createIndex('customers', ['email']);
+await ductape.databases.schema.createIndex('customers', ['stripe_customer_id']);
+await ductape.databases.schema.createIndex('orders', ['order_number']);
+await ductape.databases.schema.createIndex('orders', ['customer_id']);
+await ductape.databases.schema.createIndex('orders', ['status']);
+await ductape.databases.schema.createIndex('inventory_transactions', ['product_id']);
+```
+
+## Product Management
+
+```typescript
+// Create product
+async function createProduct(productData: {
+  sku: string;
+  name: string;
+  description: string;
+  price: number;
+  cost_price?: number;
+  category?: string;
+  inventory_quantity?: number;
+  images?: string[];
+}) {
+  const result = await ductape.databases.insert({
+    table: 'products',
+    data: {
+      sku: productData.sku,
+      name: productData.name,
+      description: productData.description,
+      price: productData.price,
+      cost_price: productData.cost_price,
+      category: productData.category,
+      inventory_quantity: productData.inventory_quantity || 0,
+      images: productData.images || [],
+      low_stock_threshold: 10
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Update inventory with transaction tracking
+async function updateInventory(
+  productId: string,
+  quantityChange: number,
+  type: 'sale' | 'restock' | 'adjustment' | 'return',
+  referenceId?: string,
+  notes?: string
+) {
+  // Get current product
+  const product = await ductape.databases.findOne({
+    table: 'products',
+    where: { id: productId }
+  });
+
+  if (!product.row) {
+    throw new Error('Product not found');
+  }
+
+  const newQuantity = product.row.inventory_quantity + quantityChange;
+
+  if (newQuantity < 0) {
+    throw new Error('Insufficient inventory');
+  }
+
+  // Update product inventory
+  await ductape.databases.update({
+    table: 'products',
+    where: { id: productId },
+    data: {
+      inventory_quantity: newQuantity,
+      updated_at: new Date()
+    }
+  });
+
+  // Create inventory transaction record
+  await ductape.databases.insert({
+    table: 'inventory_transactions',
+    data: {
+      product_id: productId,
+      sku: product.row.sku,
+      quantity_change: quantityChange,
+      type,
+      reference_id: referenceId,
+      notes
+    }
+  });
+
+  // Check for low stock and send notification
+  if (newQuantity <= product.row.low_stock_threshold && quantityChange < 0) {
+    await sendLowStockNotification(product.row);
+  }
+
+  return newQuantity;
+}
+
+// Low stock notification
+async function sendLowStockNotification(product: any) {
+  await ductape.notifications.send({
+    channel: 'email',
+    to: 'inventory@yourstore.com',
+    template: 'low-stock-alert',
+    data: {
+      product_name: product.name,
+      sku: product.sku,
+      current_quantity: product.inventory_quantity,
+      threshold: product.low_stock_threshold
+    }
+  });
+}
+```
+
+## Customer Management with Stripe
+
+```typescript
+// Create or get customer
+async function createOrGetCustomer(customerData: {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  address?: any;
+}) {
+  // Check if customer exists
+  const existing = await ductape.databases.findOne({
+    table: 'customers',
+    where: { email: customerData.email }
+  });
+
+  if (existing.row) {
+    return existing.row;
+  }
+
+  // Create Stripe customer
+  const stripeCustomer = await ductape.actions.execute({
+    action: 'stripe.create-customer',
+    input: {
+      email: customerData.email,
+      name: `${customerData.first_name} ${customerData.last_name}`,
+      phone: customerData.phone,
+      address: customerData.address,
+      metadata: {
+        source: 'ecommerce-api'
+      }
+    }
+  });
+
+  // Create customer in database
+  const customer = await ductape.databases.insert({
+    table: 'customers',
+    data: {
+      email: customerData.email,
+      first_name: customerData.first_name,
+      last_name: customerData.last_name,
+      phone: customerData.phone,
+      stripe_customer_id: stripeCustomer.id,
+      addresses: customerData.address ? [customerData.address] : []
+    }
+  });
+
+  return customer.rows[0];
+}
+```
+
+## Order Processing with Workflow
+
+```typescript
+// Create order
+async function createOrder(orderData: {
+  customer_email: string;
+  line_items: Array<{ product_id: string; quantity: number; price: number }>;
+  shipping_address: any;
+  billing_address: any;
+}) {
+  // Calculate totals
+  const subtotal = orderData.line_items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const tax = subtotal * 0.1; // 10% tax
+  const shipping_cost = subtotal > 100 ? 0 : 10; // Free shipping over $100
+  const total = subtotal + tax + shipping_cost;
+
+  // Generate order number
+  const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+  // Get or create customer
+  const customer = await createOrGetCustomer({
+    email: orderData.customer_email,
+    first_name: orderData.shipping_address.first_name,
+    last_name: orderData.shipping_address.last_name,
+    phone: orderData.shipping_address.phone,
+    address: orderData.shipping_address
+  });
+
+  // Create order
+  const order = await ductape.databases.insert({
+    table: 'orders',
+    data: {
+      order_number: orderNumber,
+      customer_id: customer.id,
+      email: orderData.customer_email,
+      line_items: orderData.line_items,
+      subtotal,
+      tax,
+      shipping_cost,
+      total,
+      shipping_address: orderData.shipping_address,
+      billing_address: orderData.billing_address,
+      status: 'pending',
+      payment_status: 'pending'
+    }
+  });
+
+  // Start order processing workflow
+  await startOrderWorkflow(order.rows[0]);
+
+  return order.rows[0];
+}
+
+// Order processing workflow
+async function startOrderWorkflow(order: any) {
+  await ductape.workflows.execute({
+    workflow: 'process-order',
+    input: {
+      order_id: order.id,
+      order_number: order.order_number,
+      customer_email: order.email,
+      total: order.total
+    }
+  });
+}
+```
+
+## Create Order Workflow
+
+Create a workflow file `workflows/process-order.ts`:
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY!
+});
+
+export const processOrderWorkflow = {
+  name: 'process-order',
+  version: '1.0.0',
+  steps: [
+    // Step 1: Validate inventory
+    {
+      name: 'validate-inventory',
+      type: 'function',
+      handler: async (context: any) => {
+        const order = await ductape.databases.findOne({
+          table: 'orders',
+          where: { id: context.input.order_id }
+        });
+
+        // Check inventory for all items
+        for (const item of order.row.line_items) {
+          const product = await ductape.databases.findOne({
+            table: 'products',
+            where: { id: item.product_id }
+          });
+
+          if (product.row.inventory_quantity < item.quantity) {
+            throw new Error(`Insufficient inventory for ${product.row.name}`);
+          }
+        }
+
+        return { valid: true };
+      }
+    },
+
+    // Step 2: Create Stripe payment intent
+    {
+      name: 'create-payment-intent',
+      type: 'action',
+      action: 'stripe.create-payment-intent',
+      input: {
+        amount: '{{ input.total * 100 }}', // Convert to cents
+        currency: 'usd',
+        customer: '{{ customer.stripe_customer_id }}',
+        metadata: {
+          order_id: '{{ input.order_id }}',
+          order_number: '{{ input.order_number }}'
+        },
+        receipt_email: '{{ input.customer_email }}'
+      }
+    },
+
+    // Step 3: Wait for payment confirmation
+    {
+      name: 'wait-for-payment',
+      type: 'wait',
+      event: 'payment.confirmed',
+      timeout: 3600 // 1 hour
+    },
+
+    // Step 4: Reserve inventory
+    {
+      name: 'reserve-inventory',
+      type: 'function',
+      handler: async (context: any) => {
+        const order = await ductape.databases.findOne({
+          table: 'orders',
+          where: { id: context.input.order_id }
+        });
+
+        // Reduce inventory for all items
+        for (const item of order.row.line_items) {
+          await updateInventory(
+            item.product_id,
+            -item.quantity,
+            'sale',
+            order.row.id,
+            `Order ${order.row.order_number}`
+          );
+        }
+
+        // Update order status
+        await ductape.databases.update({
+          table: 'orders',
+          where: { id: order.row.id },
+          data: {
+            status: 'processing',
+            payment_status: 'paid',
+            updated_at: new Date()
+          }
+        });
+
+        return { reserved: true };
+      }
+    },
+
+    // Step 5: Send order confirmation email
+    {
+      name: 'send-confirmation',
+      type: 'notification',
+      channel: 'email',
+      to: '{{ input.customer_email }}',
+      template: 'order-confirmation',
+      data: {
+        order_number: '{{ input.order_number }}',
+        order_id: '{{ input.order_id }}'
+      }
+    },
+
+    // Step 6: Update customer stats
+    {
+      name: 'update-customer-stats',
+      type: 'function',
+      handler: async (context: any) => {
+        const order = await ductape.databases.findOne({
+          table: 'orders',
+          where: { id: context.input.order_id }
+        });
+
+        await ductape.databases.update({
+          table: 'customers',
+          where: { id: order.row.customer_id },
+          data: {
+            total_orders: { $increment: 1 },
+            total_spent: { $increment: order.row.total },
+            updated_at: new Date()
+          }
+        });
+
+        return { updated: true };
+      }
+    },
+
+    // Step 7: Schedule fulfillment check
+    {
+      name: 'schedule-fulfillment',
+      type: 'job',
+      schedule: '+2h', // Check in 2 hours
+      handler: async (context: any) => {
+        // Check if order needs fulfillment reminder
+        const order = await ductape.databases.findOne({
+          table: 'orders',
+          where: { id: context.input.order_id }
+        });
+
+        if (order.row.fulfillment_status === 'unfulfilled') {
+          // Send notification to warehouse
+          await ductape.notifications.send({
+            channel: 'email',
+            to: 'warehouse@yourstore.com',
+            template: 'fulfillment-reminder',
+            data: {
+              order_number: order.row.order_number,
+              order_id: order.row.id
+            }
+          });
+        }
+      }
+    }
+  ],
+
+  errorHandlers: [
+    {
+      step: 'validate-inventory',
+      handler: async (context: any, error: any) => {
+        // Send out of stock notification
+        await ductape.notifications.send({
+          channel: 'email',
+          to: context.input.customer_email,
+          template: 'order-failed-inventory',
+          data: {
+            order_number: context.input.order_number,
+            reason: error.message
+          }
+        });
+
+        // Update order status
+        await ductape.databases.update({
+          table: 'orders',
+          where: { id: context.input.order_id },
+          data: {
+            status: 'cancelled',
+            notes: error.message
+          }
+        });
+      }
+    },
+
+    {
+      step: 'wait-for-payment',
+      handler: async (context: any, error: any) => {
+        // Payment timeout
+        await ductape.notifications.send({
+          channel: 'email',
+          to: context.input.customer_email,
+          template: 'payment-timeout',
+          data: {
+            order_number: context.input.order_number
+          }
+        });
+
+        await ductape.databases.update({
+          table: 'orders',
+          where: { id: context.input.order_id },
+          data: {
+            status: 'cancelled',
+            notes: 'Payment timeout'
+          }
+        });
+      }
+    }
+  ]
+};
+```
+
+## Stripe Webhook Handler
+
+```typescript
+// Handle Stripe webhooks
+app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'] as string;
+
+  let event;
+  try {
+    // Verify webhook signature
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object;
+
+      // Find order
+      const order = await ductape.databases.findOne({
+        table: 'orders',
+        where: { stripe_payment_intent_id: paymentIntent.id }
+      });
+
+      if (order.row) {
+        // Trigger workflow continuation
+        await ductape.workflows.signal({
+          workflow: 'process-order',
+          executionId: order.row.workflow_execution_id,
+          signal: 'payment.confirmed',
+          data: {
+            payment_intent_id: paymentIntent.id,
+            amount: paymentIntent.amount
+          }
+        });
+      }
+      break;
+
+    case 'payment_intent.payment_failed':
+      const failedPayment = event.data.object;
+
+      const failedOrder = await ductape.databases.findOne({
+        table: 'orders',
+        where: { stripe_payment_intent_id: failedPayment.id }
+      });
+
+      if (failedOrder.row) {
+        await ductape.databases.update({
+          table: 'orders',
+          where: { id: failedOrder.row.id },
+          data: {
+            payment_status: 'failed',
+            status: 'cancelled',
+            notes: 'Payment failed'
+          }
+        });
+
+        // Send notification
+        await ductape.notifications.send({
+          channel: 'email',
+          to: failedOrder.row.email,
+          template: 'payment-failed',
+          data: {
+            order_number: failedOrder.row.order_number
+          }
+        });
+      }
+      break;
+  }
+
+  res.json({ received: true });
+});
+```
+
+## Message Broker for Real-time Updates
+
+```typescript
+// Publish order status updates
+async function publishOrderUpdate(orderId: string, status: string) {
+  await ductape.messageBrokers.publish({
+    topic: 'order-updates',
+    message: {
+      order_id: orderId,
+      status,
+      timestamp: new Date().toISOString()
+    }
+  });
+}
+
+// Subscribe to order updates (for admin dashboard)
+async function subscribeToOrderUpdates(callback: (message: any) => void) {
+  await ductape.messageBrokers.subscribe({
+    topic: 'order-updates',
+    handler: async (message) => {
+      callback(message);
+    }
+  });
+}
+```
+
+## Quotas and Rate Limiting
+
+```typescript
+// Configure quotas for API endpoints
+await ductape.quotas.configure({
+  'api:create-order': {
+    limit: 100,
+    window: '1h',
+    per: 'customer_id'
+  },
+  'api:search-products': {
+    limit: 1000,
+    window: '1h',
+    per: 'ip_address'
+  }
+});
+
+// Check quota before creating order
+app.post('/orders', async (req, res) => {
+  const customerId = req.body.customer_id;
+
+  // Check quota
+  const quotaCheck = await ductape.quotas.check({
+    key: 'api:create-order',
+    identifier: customerId
+  });
+
+  if (!quotaCheck.allowed) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      retryAfter: quotaCheck.retryAfter
+    });
+  }
+
+  // Process order
+  const order = await createOrder(req.body);
+
+  // Increment quota
+  await ductape.quotas.increment({
+    key: 'api:create-order',
+    identifier: customerId
+  });
+
+  res.json(order);
+});
+```
+
+## Storage for Product Images
+
+```typescript
+// Upload product images
+async function uploadProductImages(files: File[], productId: string): Promise<string[]> {
+  const uploadPromises = files.map(file =>
+    ductape.storage.upload({
+      file,
+      path: `products/${productId}`,
+      metadata: {
+        product_id: productId
+      }
+    })
+  );
+
+  const uploads = await Promise.all(uploadPromises);
+  return uploads.map(upload => upload.url);
+}
+
+// Generate signed URL for temporary access
+async function getProductImageUrl(imagePath: string): Promise<string> {
+  const signedUrl = await ductape.storage.getSignedUrl({
+    path: imagePath,
+    expiresIn: 3600 // 1 hour
+  });
+
+  return signedUrl;
+}
+```
+
+## Automated Marketing with Jobs
+
+```typescript
+// Schedule abandoned cart recovery
+async function scheduleAbandonedCartEmail(cartId: string, customerEmail: string) {
+  await ductape.jobs.schedule({
+    name: 'abandoned-cart-recovery',
+    schedule: '+24h', // Send after 24 hours
+    data: {
+      cart_id: cartId,
+      customer_email: customerEmail
+    },
+    handler: async (data) => {
+      // Check if cart is still abandoned
+      const order = await ductape.databases.findOne({
+        table: 'orders',
+        where: { cart_id: data.cart_id }
+      });
+
+      if (!order.row) {
+        // Send recovery email
+        await ductape.notifications.send({
+          channel: 'email',
+          to: data.customer_email,
+          template: 'abandoned-cart',
+          data: {
+            cart_id: data.cart_id,
+            recovery_link: `https://yourstore.com/cart/${data.cart_id}`
+          }
+        });
+      }
+    }
+  });
+}
+
+// Schedule post-purchase follow-up
+async function scheduleFollowUpEmail(orderId: string, customerEmail: string) {
+  await ductape.jobs.schedule({
+    name: 'post-purchase-followup',
+    schedule: '+7d', // Send 7 days after purchase
+    data: {
+      order_id: orderId,
+      customer_email: customerEmail
+    },
+    handler: async (data) => {
+      await ductape.notifications.send({
+        channel: 'email',
+        to: data.customer_email,
+        template: 'review-request',
+        data: {
+          order_id: data.order_id
+        }
+      });
+    }
+  });
+}
+
+// Daily inventory report
+await ductape.jobs.schedule({
+  name: 'daily-inventory-report',
+  schedule: '0 9 * * *', // Every day at 9 AM
+  handler: async () => {
+    // Get low stock products
+    const lowStockProducts = await ductape.databases.find({
+      table: 'products',
+      where: {
+        inventory_quantity: { $lte: 10 }
+      }
+    });
+
+    if (lowStockProducts.rows.length > 0) {
+      await ductape.notifications.send({
+        channel: 'email',
+        to: 'inventory@yourstore.com',
+        template: 'daily-inventory-report',
+        data: {
+          low_stock_products: lowStockProducts.rows,
+          date: new Date().toISOString()
+        }
+      });
+    }
+  }
+});
+```
+
+## Order Fulfillment
+
+```typescript
+// Mark order as fulfilled
+async function fulfillOrder(orderId: string, trackingNumber: string) {
+  const order = await ductape.databases.findOne({
+    table: 'orders',
+    where: { id: orderId }
+  });
+
+  if (!order.row) {
+    throw new Error('Order not found');
+  }
+
+  // Update order
+  await ductape.databases.update({
+    table: 'orders',
+    where: { id: orderId },
+    data: {
+      status: 'fulfilled',
+      fulfillment_status: 'fulfilled',
+      tracking_number: trackingNumber,
+      shipped_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+
+  // Send shipping notification
+  await ductape.notifications.send({
+    channel: 'email',
+    to: order.row.email,
+    template: 'order-shipped',
+    data: {
+      order_number: order.row.order_number,
+      tracking_number: trackingNumber,
+      tracking_url: `https://tracking.com/${trackingNumber}`
+    }
+  });
+
+  // Send SMS notification if customer has phone
+  const customer = await ductape.databases.findOne({
+    table: 'customers',
+    where: { id: order.row.customer_id }
+  });
+
+  if (customer.row?.phone) {
+    await ductape.notifications.send({
+      channel: 'sms',
+      to: customer.row.phone,
+      template: 'order-shipped-sms',
+      data: {
+        order_number: order.row.order_number,
+        tracking_number: trackingNumber
+      }
+    });
+  }
+
+  // Publish to message broker
+  await publishOrderUpdate(orderId, 'fulfilled');
+
+  // Schedule delivery follow-up
+  await ductape.jobs.schedule({
+    name: 'delivery-followup',
+    schedule: '+3d', // 3 days after shipping
+    data: { order_id: orderId },
+    handler: async (data) => {
+      await ductape.notifications.send({
+        channel: 'email',
+        to: order.row.email,
+        template: 'delivery-confirmation',
+        data: {
+          order_number: order.row.order_number
+        }
+      });
+    }
+  });
+}
+```
+
+## Complete Express API
+
+```typescript
+// Get products
+app.get('/products', async (req, res) => {
+  const { category, search, page = 1, limit = 20 } = req.query;
+
+  const where: any = { is_active: true };
+
+  if (category) {
+    where.category = category;
+  }
+
+  if (search) {
+    where.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  const products = await ductape.databases.find({
+    table: 'products',
+    where,
+    limit: Number(limit),
+    offset: (Number(page) - 1) * Number(limit),
+    orderBy: { created_at: 'desc' }
+  });
+
+  res.json(products.rows);
+});
+
+// Create order
+app.post('/orders', async (req, res) => {
+  try {
+    const order = await createOrder(req.body);
+    res.json(order);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get order status
+app.get('/orders/:orderNumber', async (req, res) => {
+  const order = await ductape.databases.findOne({
+    table: 'orders',
+    where: { order_number: req.params.orderNumber }
+  });
+
+  if (!order.row) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  res.json(order.row);
+});
+
+// Fulfill order (admin endpoint)
+app.post('/admin/orders/:orderId/fulfill', async (req, res) => {
+  const { tracking_number } = req.body;
+
+  try {
+    await fulfillOrder(req.params.orderId, tracking_number);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`E-commerce API running on port ${PORT}`);
+});
+```
+
+## Next Steps
+
+- Implement refunds and returns workflow
+- Add product reviews and ratings
+- Create discount codes and promotions
+- Set up analytics and reporting
+- Implement multi-currency support
+- Add gift cards and store credit
+- Create admin dashboard
+- Set up monitoring and alerts
+
+## Related Tutorials
+
+- [Building a Blog API](./building-a-blog-api)
+- [Real-time Chat Backend](./real-time-chat)
+- [Task Management System](./task-management-system)

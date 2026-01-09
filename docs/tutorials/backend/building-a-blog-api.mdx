@@ -1,0 +1,690 @@
+---
+sidebar_position: 1
+title: Building a Blog API
+---
+
+# Building a Blog API with Ductape
+
+Learn how to build a complete blog API with Ductape, including posts, comments, user management, and file uploads.
+
+## What You'll Build
+
+- User authentication and sessions
+- CRUD operations for blog posts
+- Comment system with nested replies
+- File uploads for post images
+- Search and filtering
+- Real-time notifications
+
+## Prerequisites
+
+```bash
+npm install @ductape/sdk
+```
+
+## Step 1: Initialize Your Product
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY!,
+  product: 'my-blog',
+  env: 'prd'
+});
+```
+
+## Step 2: Set Up Database Schema
+
+```typescript
+import { DatabaseType } from '@ductape/sdk';
+
+// Create database
+await ductape.databases.create({
+  product: 'my-blog',
+  name: 'BlogDB',
+  tag: 'blog-db',
+  type: DatabaseType.POSTGRESQL,
+  envs: [
+    {
+      slug: 'prd',
+      connection_url: process.env.DATABASE_URL!
+    }
+  ]
+});
+
+// Connect to database
+await ductape.databases.connect({
+  env: 'prd',
+  product: 'my-blog',
+  database: 'blog-db'
+});
+
+// Create users table
+await ductape.databases.schema.create('users', {
+  name: { type: 'String', required: true },
+  email: { type: 'String', unique: true, required: true },
+  password: { type: 'String', required: true },
+  bio: { type: 'String' },
+  avatar_url: { type: 'String' },
+  role: { type: 'String', default: 'user' }, // user, editor, admin
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Create posts table
+await ductape.databases.schema.create('posts', {
+  title: { type: 'String', required: true },
+  slug: { type: 'String', unique: true, required: true },
+  content: { type: 'String', required: true },
+  excerpt: { type: 'String' },
+  featured_image: { type: 'String' },
+  author_id: { type: 'String', required: true },
+  status: { type: 'String', default: 'draft' }, // draft, published, archived
+  tags: { type: 'Array' },
+  view_count: { type: 'Number', default: 0 },
+  published_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Create comments table
+await ductape.databases.schema.create('comments', {
+  post_id: { type: 'String', required: true },
+  user_id: { type: 'String', required: true },
+  content: { type: 'String', required: true },
+  parent_id: { type: 'String' }, // For nested replies
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes for better performance
+await ductape.databases.schema.createIndex('posts', ['author_id']);
+await ductape.databases.schema.createIndex('posts', ['slug'], { unique: true });
+await ductape.databases.schema.createIndex('posts', ['status', 'published_at']);
+await ductape.databases.schema.createIndex('comments', ['post_id']);
+await ductape.databases.schema.createIndex('comments', ['user_id']);
+```
+
+## Step 3: Implement User Authentication
+
+```typescript
+import bcrypt from 'bcrypt';
+
+// Register new user
+export async function registerUser(data: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  // Hash password
+  const hashedPassword = await bcrypt.hash(data.password, 10);
+
+  // Create user
+  const result = await ductape.databases.insert({
+    table: 'users',
+    data: {
+      name: data.name,
+      email: data.email,
+      password: hashedPassword,
+      role: 'user'
+    }
+  });
+
+  const user = result.rows[0];
+
+  // Create session
+  const session = await ductape.sessions.create({
+    userId: user.id,
+    data: {
+      name: user.name,
+      email: user.email,
+      role: user.role
+    },
+    expiresIn: '7d'
+  });
+
+  return { user, session };
+}
+
+// Login user
+export async function loginUser(email: string, password: string) {
+  // Find user
+  const result = await ductape.databases.query({
+    table: 'users',
+    where: { email },
+    limit: 1
+  });
+
+  if (result.count === 0) {
+    throw new Error('Invalid credentials');
+  }
+
+  const user = result.rows[0];
+
+  // Verify password
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
+    throw new Error('Invalid credentials');
+  }
+
+  // Create session
+  const session = await ductape.sessions.create({
+    userId: user.id,
+    data: {
+      name: user.name,
+      email: user.email,
+      role: user.role
+    },
+    expiresIn: '7d'
+  });
+
+  return { user, session };
+}
+
+// Verify session middleware
+export async function verifySession(sessionToken: string) {
+  try {
+    const session = await ductape.sessions.verify(sessionToken);
+    return session;
+  } catch (error) {
+    throw new Error('Invalid or expired session');
+  }
+}
+```
+
+## Step 4: Create Blog Post Endpoints
+
+```typescript
+// Create a new post
+export async function createPost(
+  userId: string,
+  data: {
+    title: string;
+    content: string;
+    excerpt?: string;
+    tags?: string[];
+    featured_image?: string;
+  }
+) {
+  // Generate slug from title
+  const slug = data.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  // Insert post
+  const result = await ductape.databases.insert({
+    table: 'posts',
+    data: {
+      title: data.title,
+      slug,
+      content: data.content,
+      excerpt: data.excerpt || data.content.substring(0, 200),
+      featured_image: data.featured_image,
+      author_id: userId,
+      tags: data.tags || [],
+      status: 'draft'
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Publish a post
+export async function publishPost(postId: string, userId: string) {
+  // Verify ownership
+  const post = await ductape.databases.query({
+    table: 'posts',
+    where: { id: postId, author_id: userId },
+    limit: 1
+  });
+
+  if (post.count === 0) {
+    throw new Error('Post not found or access denied');
+  }
+
+  // Update status
+  await ductape.databases.update({
+    table: 'posts',
+    where: { id: postId },
+    data: {
+      status: 'published',
+      published_at: new Date()
+    }
+  });
+
+  return { success: true };
+}
+
+// Get published posts with pagination
+export async function getPosts(page: number = 1, limit: number = 10) {
+  const offset = (page - 1) * limit;
+
+  const result = await ductape.databases.query({
+    table: 'posts',
+    where: { status: 'published' },
+    orderBy: [{ column: 'published_at', order: 'desc' }],
+    limit,
+    offset
+  });
+
+  return {
+    posts: result.rows,
+    total: result.count,
+    page,
+    pages: Math.ceil(result.count / limit)
+  };
+}
+
+// Get single post by slug
+export async function getPostBySlug(slug: string) {
+  const result = await ductape.databases.query({
+    table: 'posts',
+    where: { slug, status: 'published' },
+    limit: 1
+  });
+
+  if (result.count === 0) {
+    throw new Error('Post not found');
+  }
+
+  const post = result.rows[0];
+
+  // Increment view count
+  await ductape.databases.update({
+    table: 'posts',
+    where: { id: post.id },
+    data: {
+      view_count: post.view_count + 1
+    }
+  });
+
+  // Get author info
+  const authorResult = await ductape.databases.query({
+    table: 'users',
+    where: { id: post.author_id },
+    limit: 1
+  });
+
+  return {
+    ...post,
+    author: authorResult.rows[0]
+  };
+}
+
+// Update post
+export async function updatePost(
+  postId: string,
+  userId: string,
+  data: Partial<{
+    title: string;
+    content: string;
+    excerpt: string;
+    tags: string[];
+    featured_image: string;
+  }>
+) {
+  // Verify ownership
+  const post = await ductape.databases.query({
+    table: 'posts',
+    where: { id: postId, author_id: userId },
+    limit: 1
+  });
+
+  if (post.count === 0) {
+    throw new Error('Post not found or access denied');
+  }
+
+  await ductape.databases.update({
+    table: 'posts',
+    where: { id: postId },
+    data: {
+      ...data,
+      updated_at: new Date()
+    }
+  });
+
+  return { success: true };
+}
+
+// Delete post
+export async function deletePost(postId: string, userId: string) {
+  // Verify ownership or admin role
+  const post = await ductape.databases.query({
+    table: 'posts',
+    where: { id: postId, author_id: userId },
+    limit: 1
+  });
+
+  if (post.count === 0) {
+    throw new Error('Post not found or access denied');
+  }
+
+  // Delete associated comments first
+  await ductape.databases.delete({
+    table: 'comments',
+    where: { post_id: postId }
+  });
+
+  // Delete post
+  await ductape.databases.delete({
+    table: 'posts',
+    where: { id: postId }
+  });
+
+  return { success: true };
+}
+```
+
+## Step 5: Implement Comment System
+
+```typescript
+// Add comment to post
+export async function addComment(
+  userId: string,
+  postId: string,
+  content: string,
+  parentId?: string
+) {
+  // Verify post exists
+  const post = await ductape.databases.query({
+    table: 'posts',
+    where: { id: postId, status: 'published' },
+    limit: 1
+  });
+
+  if (post.count === 0) {
+    throw new Error('Post not found');
+  }
+
+  const result = await ductape.databases.insert({
+    table: 'comments',
+    data: {
+      post_id: postId,
+      user_id: userId,
+      content,
+      parent_id: parentId
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Get comments for post
+export async function getComments(postId: string) {
+  const result = await ductape.databases.query({
+    table: 'comments',
+    where: { post_id: postId },
+    orderBy: [{ column: 'created_at', order: 'asc' }]
+  });
+
+  // Get user info for each comment
+  const userIds = [...new Set(result.rows.map(c => c.user_id))];
+  const users = await ductape.databases.query({
+    table: 'users',
+    where: { id: { $in: userIds } }
+  });
+
+  const userMap = new Map(users.rows.map(u => [u.id, u]));
+
+  // Build nested comment structure
+  const comments = result.rows.map(comment => ({
+    ...comment,
+    user: userMap.get(comment.user_id)
+  }));
+
+  // Organize into threads
+  const commentMap = new Map(comments.map(c => [c.id, { ...c, replies: [] }]));
+  const rootComments: any[] = [];
+
+  comments.forEach(comment => {
+    if (comment.parent_id) {
+      const parent = commentMap.get(comment.parent_id);
+      if (parent) {
+        parent.replies.push(commentMap.get(comment.id));
+      }
+    } else {
+      rootComments.push(commentMap.get(comment.id));
+    }
+  });
+
+  return rootComments;
+}
+```
+
+## Step 6: File Upload for Images
+
+```typescript
+// Upload featured image
+export async function uploadFeaturedImage(file: File) {
+  const result = await ductape.storage.upload({
+    file,
+    path: 'blog/featured-images',
+    metadata: {
+      type: 'featured-image'
+    }
+  });
+
+  return result.url;
+}
+
+// Delete image
+export async function deleteImage(fileId: string) {
+  await ductape.storage.delete({ fileId });
+  return { success: true };
+}
+```
+
+## Step 7: Search and Filtering
+
+```typescript
+// Search posts
+export async function searchPosts(query: string, tags?: string[]) {
+  const where: any = {
+    status: 'published',
+    $or: [
+      { title: { $like: `%${query}%` } },
+      { content: { $like: `%${query}%` } }
+    ]
+  };
+
+  if (tags && tags.length > 0) {
+    where.tags = { $containsAny: tags };
+  }
+
+  const result = await ductape.databases.query({
+    table: 'posts',
+    where,
+    orderBy: [{ column: 'published_at', order: 'desc' }],
+    limit: 20
+  });
+
+  return result.rows;
+}
+
+// Get posts by tag
+export async function getPostsByTag(tag: string) {
+  const result = await ductape.databases.query({
+    table: 'posts',
+    where: {
+      status: 'published',
+      tags: { $contains: tag }
+    },
+    orderBy: [{ column: 'published_at', order: 'desc' }]
+  });
+
+  return result.rows;
+}
+```
+
+## Step 8: Notifications
+
+```typescript
+// Notify when new comment
+export async function notifyNewComment(
+  postId: string,
+  commentUserId: string
+) {
+  // Get post and author
+  const post = await ductape.databases.query({
+    table: 'posts',
+    where: { id: postId },
+    limit: 1
+  });
+
+  const author = await ductape.databases.query({
+    table: 'users',
+    where: { id: post.rows[0].author_id },
+    limit: 1
+  });
+
+  // Don't notify if author is commenting on own post
+  if (author.rows[0].id === commentUserId) {
+    return;
+  }
+
+  await ductape.notifications.send({
+    channel: 'email',
+    to: author.rows[0].email,
+    template: 'new-comment',
+    data: {
+      postTitle: post.rows[0].title,
+      postUrl: `https://myblog.com/posts/${post.rows[0].slug}`
+    }
+  });
+}
+```
+
+## Complete Express.js Integration
+
+```typescript
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+// Middleware to verify session
+const authenticate = async (req: any, res: any, next: any) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const session = await verifySession(token);
+    req.user = session.data;
+    req.userId = session.userId;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid session' });
+  }
+};
+
+// Auth routes
+app.post('/auth/register', async (req, res) => {
+  try {
+    const result = await registerUser(req.body);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const result = await loginUser(email, password);
+    res.json(result);
+  } catch (error: any) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
+// Post routes
+app.get('/posts', async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const result = await getPosts(page);
+  res.json(result);
+});
+
+app.get('/posts/:slug', async (req, res) => {
+  try {
+    const post = await getPostBySlug(req.params.slug);
+    res.json(post);
+  } catch (error: any) {
+    res.status(404).json({ error: error.message });
+  }
+});
+
+app.post('/posts', authenticate, async (req, res) => {
+  try {
+    const post = await createPost(req.userId, req.body);
+    res.json(post);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/posts/:id', authenticate, async (req, res) => {
+  try {
+    await updatePost(req.params.id, req.userId, req.body);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/posts/:id/publish', authenticate, async (req, res) => {
+  try {
+    await publishPost(req.params.id, req.userId);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Comment routes
+app.get('/posts/:id/comments', async (req, res) => {
+  const comments = await getComments(req.params.id);
+  res.json(comments);
+});
+
+app.post('/posts/:id/comments', authenticate, async (req, res) => {
+  try {
+    const comment = await addComment(
+      req.userId,
+      req.params.id,
+      req.body.content,
+      req.body.parent_id
+    );
+
+    // Notify post author
+    await notifyNewComment(req.params.id, req.userId);
+
+    res.json(comment);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Blog API running on port 3000');
+});
+```
+
+## Next Steps
+
+- Add rate limiting for API endpoints
+- Implement caching for frequently accessed posts
+- Add full-text search with PostgreSQL
+- Implement draft autosave
+- Add post analytics and tracking
+- Create RSS feed generation
+- Add social media sharing
+
+## Related Tutorials
+
+- [E-Commerce Backend](./e-commerce-backend)
+- [Real-time Chat](./real-time-chat)
+- [Task Management System](./task-management-system)

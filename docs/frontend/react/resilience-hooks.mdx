@@ -1,0 +1,659 @@
+---
+sidebar_position: 8
+title: Resilience Hooks
+---
+
+# Resilience Hooks
+
+React hooks for building fault-tolerant applications with quotas, fallbacks, and health monitoring.
+
+## useQuotaRun
+
+Execute operations with weighted load distribution across multiple providers.
+
+### Basic Usage
+
+```tsx
+import { useQuotaRun } from '@ductape/react';
+
+function PaymentProcessor() {
+  const { mutate: processPayment, isLoading, data, error } = useQuotaRun({
+    onSuccess: (result) => {
+      console.log(`Payment processed by ${result.provider}`);
+      console.log(`Latency: ${result.latency}ms`);
+      alert('Payment successful!');
+    },
+    onError: (error) => {
+      alert(`Payment failed: ${error.message}`);
+    }
+  });
+
+  const handlePayment = (amount: number, currency: string) => {
+    processPayment({
+      tag: 'payment-quota',
+      input: {
+        amount,
+        currency,
+        customer: 'cus_123'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => handlePayment(1000, 'usd')}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Processing...' : 'Pay $10.00'}
+      </button>
+
+      {data && (
+        <div>
+          <p>Provider: {data.provider}</p>
+          <p>Latency: {data.latency}ms</p>
+          <p>Retries: {data.retriesUsed}</p>
+        </div>
+      )}
+
+      {error && <p style={{ color: 'red' }}>{error.message}</p>}
+    </div>
+  );
+}
+```
+
+### With Type Safety
+
+```tsx
+interface PaymentResult {
+  transactionId: string;
+  status: 'success' | 'failed';
+  processorFee: number;
+}
+
+function TypeSafePayment() {
+  const { mutate, data } = useQuotaRun<PaymentResult>({
+    onSuccess: (result) => {
+      // TypeScript knows result.data is PaymentResult
+      console.log(`Transaction ID: ${result.data.transactionId}`);
+      console.log(`Fee: $${result.data.processorFee}`);
+    }
+  });
+
+  const handlePayment = () => {
+    mutate({
+      tag: 'payment-quota',
+      input: { amount: 5000, currency: 'usd' }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handlePayment}>Process Payment</button>
+      {data && (
+        <div>
+          <p>Transaction: {data.data.transactionId}</p>
+          <p>Status: {data.data.status}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Email Service with Load Distribution
+
+```tsx
+function EmailSender() {
+  const { mutate: sendEmail, isLoading } = useQuotaRun({
+    onSuccess: (result) => {
+      console.log(`Email sent via ${result.provider}`);
+    }
+  });
+
+  const handleSend = (to: string, subject: string, body: string) => {
+    sendEmail({
+      tag: 'email-quota',
+      input: { to, subject, body }
+    });
+  };
+
+  return (
+    <button
+      onClick={() => handleSend('user@example.com', 'Hello', 'Welcome!')}
+      disabled={isLoading}
+    >
+      Send Email
+    </button>
+  );
+}
+```
+
+## useFallbackRun
+
+Execute operations with automatic failover across providers.
+
+### Basic Usage
+
+```tsx
+import { useFallbackRun } from '@ductape/react';
+
+function EmailWithFallback() {
+  const { mutate: sendEmail, isLoading, data, error } = useFallbackRun({
+    onSuccess: (result) => {
+      console.log(`Email sent via ${result.provider}`);
+      console.log(`Tried ${result.providersTried} providers`);
+      alert('Email sent successfully!');
+    },
+    onError: (error) => {
+      alert('All email providers failed');
+    }
+  });
+
+  const handleSend = () => {
+    sendEmail({
+      tag: 'email-fallback',
+      input: {
+        to: 'user@example.com',
+        subject: 'Important Message',
+        body: 'This is a critical email'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleSend} disabled={isLoading}>
+        {isLoading ? 'Sending...' : 'Send Email'}
+      </button>
+
+      {data && (
+        <div>
+          <p>✓ Sent via {data.provider}</p>
+          <p>Providers tried: {data.providersTried}</p>
+          <p>Latency: {data.latency}ms</p>
+        </div>
+      )}
+
+      {error && <p style={{ color: 'red' }}>❌ {error.message}</p>}
+    </div>
+  );
+}
+```
+
+### Payment Processing with Failover
+
+```tsx
+interface PaymentResponse {
+  success: boolean;
+  transactionId: string;
+  gateway: string;
+}
+
+function PaymentWithFallback() {
+  const { mutate: processPayment, isLoading, data } = useFallbackRun<PaymentResponse>({
+    onSuccess: (result) => {
+      if (result.data.success) {
+        console.log(`Paid via ${result.data.gateway}`);
+      }
+    }
+  });
+
+  const handlePayment = (amount: number) => {
+    processPayment({
+      tag: 'payment-fallback',
+      input: {
+        amount,
+        currency: 'usd',
+        customer: 'cus_123'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={() => handlePayment(2500)} disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Pay $25.00'}
+      </button>
+
+      {data?.data && (
+        <div>
+          <p>Gateway: {data.data.gateway}</p>
+          <p>Transaction: {data.data.transactionId}</p>
+          <p>Providers tried: {data.providersTried}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## useQuotaCheck
+
+Check and consume quota with rate limiting.
+
+### Basic Quota Check
+
+```tsx
+import { useQuotaCheck } from '@ductape/react';
+
+function ApiRateLimiter() {
+  const { mutate: checkQuota, data, isLoading } = useQuotaCheck({
+    onSuccess: (result) => {
+      if (!result.allowed) {
+        alert(`Rate limited! Resets at ${new Date(result.resetsAt)}`);
+      }
+    }
+  });
+
+  const handleApiCall = (userId: string) => {
+    checkQuota({
+      tag: 'api-calls',
+      identifier: userId,
+      amount: 1
+    });
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => handleApiCall('user-123')}
+        disabled={isLoading}
+      >
+        Make API Call
+      </button>
+
+      {data && (
+        <div>
+          <p>Allowed: {data.allowed ? '✓' : '❌'}</p>
+          <p>Used: {data.used} / {data.limit}</p>
+          <p>Remaining: {data.remaining}</p>
+          <p>Resets: {new Date(data.resetsAt).toLocaleString()}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Pre-flight Quota Check
+
+```tsx
+function ExpensiveOperation() {
+  const { mutate: checkQuota, data } = useQuotaCheck();
+  const { mutate: processPayment, isLoading } = useQuotaRun();
+
+  const handleSubmit = async (userId: string, amount: number) => {
+    // Check quota first
+    checkQuota(
+      {
+        tag: 'payment-quota',
+        identifier: userId,
+        amount: 1
+      },
+      {
+        onSuccess: (quota) => {
+          if (quota.allowed) {
+            // Proceed with payment
+            processPayment({
+              tag: 'payment-quota',
+              input: { amount, userId }
+            });
+          } else {
+            alert(`Rate limit exceeded. Try again at ${new Date(quota.resetsAt)}`);
+          }
+        }
+      }
+    );
+  };
+
+  return (
+    <button onClick={() => handleSubmit('user-123', 1000)} disabled={isLoading}>
+      Process Payment
+    </button>
+  );
+}
+```
+
+## useQuotaStatus
+
+Query quota status without consuming.
+
+### Display Quota Usage
+
+```tsx
+import { useQuotaStatus } from '@ductape/react';
+
+function QuotaDisplay({ userId }: { userId: string }) {
+  const { mutate: getStatus, data, isLoading } = useQuotaStatus({
+    onSuccess: (status) => {
+      console.log(`User has ${status.remaining} API calls remaining`);
+    }
+  });
+
+  useEffect(() => {
+    getStatus({
+      tag: 'api-calls',
+      identifier: userId
+    });
+  }, [userId]);
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h3>API Quota Status</h3>
+      {data && (
+        <>
+          <div>Used: {data.used} / {data.limit}</div>
+          <div>Remaining: {data.remaining}</div>
+          <div>Resets: {new Date(data.resetsAt).toLocaleString()}</div>
+          <div style={{
+            width: '100%',
+            height: '20px',
+            backgroundColor: '#eee'
+          }}>
+            <div style={{
+              width: `${(data.used / data.limit) * 100}%`,
+              height: '100%',
+              backgroundColor: data.remaining > 10 ? 'green' : 'red'
+            }} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+## useQuotaSubscription
+
+Subscribe to real-time quota changes.
+
+### Real-time Quota Monitor
+
+```tsx
+import { useQuotaSubscription } from '@ductape/react';
+
+function QuotaMonitor({ userId }: { userId: string }) {
+  const { data: quotaChanges, isSubscribed } = useQuotaSubscription(
+    {
+      tag: 'api-calls',
+      identifier: userId
+    },
+    {
+      onData: (events) => {
+        events.forEach(event => {
+          if (event.remaining < 10) {
+            alert('Warning: Low quota remaining!');
+          }
+        });
+      }
+    }
+  );
+
+  return (
+    <div>
+      <h3>Live Quota Monitor</h3>
+      <p>Status: {isSubscribed ? '🟢 Connected' : '🔴 Disconnected'}</p>
+      {quotaChanges && quotaChanges.length > 0 && (
+        <div>
+          <p>Last Update:</p>
+          <p>Remaining: {quotaChanges[0].remaining}</p>
+          <p>Limit: {quotaChanges[0].limit}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## useHealthStatus
+
+Query health status of services.
+
+### Service Health Dashboard
+
+```tsx
+import { useHealthStatus } from '@ductape/react';
+
+function HealthDashboard() {
+  const { mutate: checkHealth, data, isLoading } = useHealthStatus({
+    onSuccess: (health) => {
+      if (health.status === 'unhealthy') {
+        console.warn('Service is unhealthy!');
+      }
+    }
+  });
+
+  useEffect(() => {
+    // Check health on mount
+    checkHealth({ tag: 'payment-service' });
+
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      checkHealth({ tag: 'payment-service' });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isLoading) return <div>Checking health...</div>;
+
+  return (
+    <div>
+      <h2>Service Health</h2>
+      {data && (
+        <>
+          <div>
+            Status: {' '}
+            <span style={{
+              color: data.status === 'healthy' ? 'green' :
+                     data.status === 'degraded' ? 'orange' : 'red'
+            }}>
+              {data.status.toUpperCase()}
+            </span>
+          </div>
+          <div>Last Check: {data.lastCheck}</div>
+
+          <h3>Probes</h3>
+          <ul>
+            {data.probes.map(probe => (
+              <li key={probe.name}>
+                <strong>{probe.name}</strong>: {probe.status}
+                {probe.latency && ` (${probe.latency}ms)`}
+                {probe.error && ` - ${probe.error}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+## useHealthSubscription
+
+Subscribe to real-time health changes.
+
+### Real-time Health Alerts
+
+```tsx
+import { useHealthSubscription } from '@ductape/react';
+import { useState } from 'react';
+
+function HealthAlerts() {
+  const [alerts, setAlerts] = useState<string[]>([]);
+
+  const { data, isSubscribed } = useHealthSubscription(
+    { tag: 'payment-service' },
+    {
+      onData: (events) => {
+        events.forEach(event => {
+          if (event.status === 'unhealthy') {
+            setAlerts(prev => [
+              ...prev,
+              `⚠️ Service unhealthy at ${event.lastCheck}`
+            ]);
+          } else if (event.status === 'healthy') {
+            setAlerts(prev => [
+              ...prev,
+              `✓ Service recovered at ${event.lastCheck}`
+            ]);
+          }
+        });
+      }
+    }
+  );
+
+  return (
+    <div>
+      <h3>Health Alerts</h3>
+      <p>Monitoring: {isSubscribed ? '🟢 Active' : '🔴 Inactive'}</p>
+
+      {data && data.length > 0 && (
+        <div>
+          Current Status: {data[0].status}
+        </div>
+      )}
+
+      <div>
+        <h4>Alert History</h4>
+        <ul>
+          {alerts.map((alert, i) => (
+            <li key={i}>{alert}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+```
+
+## Complete Example: Resilient Payment Flow
+
+```tsx
+import { useQuotaCheck, useFallbackRun, useHealthStatus } from '@ductape/react';
+import { useState } from 'react';
+
+interface PaymentData {
+  amount: number;
+  currency: string;
+  userId: string;
+}
+
+function ResilientPaymentFlow() {
+  const [paymentData, setPaymentData] = useState<PaymentData>({
+    amount: 1000,
+    currency: 'usd',
+    userId: 'user-123'
+  });
+
+  const { mutate: checkQuota, data: quotaData } = useQuotaCheck();
+  const { mutate: checkHealth, data: healthData } = useHealthStatus();
+  const {
+    mutate: processPayment,
+    isLoading: isProcessing,
+    data: paymentResult
+  } = useFallbackRun();
+
+  const handlePayment = async () => {
+    // Step 1: Check quota
+    checkQuota(
+      {
+        tag: 'payment-quota',
+        identifier: paymentData.userId,
+        amount: 1
+      },
+      {
+        onSuccess: (quota) => {
+          if (!quota.allowed) {
+            alert(`Rate limit exceeded. Resets at ${new Date(quota.resetsAt)}`);
+            return;
+          }
+
+          // Step 2: Check health
+          checkHealth(
+            { tag: 'payment-service' },
+            {
+              onSuccess: (health) => {
+                if (health.status === 'unhealthy') {
+                  alert('Payment service is currently unavailable');
+                  return;
+                }
+
+                // Step 3: Process payment with fallback
+                processPayment({
+                  tag: 'payment-fallback',
+                  input: paymentData
+                });
+              }
+            }
+          );
+        }
+      }
+    );
+  };
+
+  return (
+    <div>
+      <h2>Payment Processor</h2>
+
+      <div>
+        <label>
+          Amount: $
+          <input
+            type="number"
+            value={paymentData.amount / 100}
+            onChange={(e) => setPaymentData({
+              ...paymentData,
+              amount: parseFloat(e.target.value) * 100
+            })}
+          />
+        </label>
+      </div>
+
+      <button
+        onClick={handlePayment}
+        disabled={isProcessing}
+      >
+        {isProcessing ? 'Processing...' : 'Pay Now'}
+      </button>
+
+      {quotaData && (
+        <div>
+          <p>Quota: {quotaData.remaining} / {quotaData.limit}</p>
+        </div>
+      )}
+
+      {healthData && (
+        <div>
+          <p>Service Health: {healthData.status}</p>
+        </div>
+      )}
+
+      {paymentResult && (
+        <div style={{ color: 'green' }}>
+          ✓ Payment processed via {paymentResult.provider}
+          <br />
+          Latency: {paymentResult.latency}ms
+          <br />
+          Providers tried: {paymentResult.providersTried}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Check Quotas First**: Always check quota before expensive operations
+2. **Monitor Health**: Use health checks before critical operations
+3. **Use Fallbacks for Critical Paths**: Implement fallbacks for must-succeed operations
+4. **Handle Loading States**: Show appropriate UI during operations
+5. **Display Error Messages**: Provide clear feedback when operations fail
+6. **Show Quota Status**: Display remaining quota to users proactively
+7. **Subscribe to Changes**: Use subscriptions for real-time monitoring
+8. **Type Your Responses**: Use TypeScript generics for type-safe results

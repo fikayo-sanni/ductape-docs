@@ -1,0 +1,459 @@
+---
+sidebar_position: 3
+title: Storage Composables
+---
+
+# Storage Composables
+
+Vue 3 composables for working with Ductape Storage. Upload, download, and manage files with reactive state.
+
+## useStorageUpload
+
+Upload files to Ductape Storage with progress tracking.
+
+### Basic Upload
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStorageUpload } from '@ductape/vue';
+
+const file = ref<File | null>(null);
+
+const { mutate, isLoading, progress, error } = useStorageUpload({
+  onSuccess: (data) => {
+    console.log('File uploaded:', data.url);
+    alert('Upload successful!');
+  }
+});
+
+const handleFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  if (target.files?.[0]) {
+    file.value = target.files[0];
+  }
+};
+
+const handleUpload = () => {
+  if (!file.value) return;
+
+  mutate({
+    file: file.value,
+    path: 'uploads/documents'
+  });
+};
+</script>
+
+<template>
+  <div>
+    <input type="file" @change="handleFileChange" />
+    <button @click="handleUpload" :disabled="isLoading || !file">
+      {{ isLoading ? `Uploading ${progress}%` : 'Upload' }}
+    </button>
+    <p v-if="error" class="error">{{ error.message }}</p>
+  </div>
+</template>
+```
+
+### Upload with Progress Bar
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStorageUpload } from '@ductape/vue';
+
+const file = ref<File | null>(null);
+
+const { mutate, isLoading, progress } = useStorageUpload({
+  onSuccess: (data) => {
+    console.log('Uploaded:', data);
+    file.value = null;
+  }
+});
+
+const handleUpload = () => {
+  if (!file.value) return;
+  mutate({
+    file: file.value,
+    path: 'uploads/images',
+    metadata: {
+      uploadedBy: 'user-123',
+      category: 'profile-pictures'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <input
+      type="file"
+      accept="image/*"
+      @change="file = ($event.target as HTMLInputElement).files?.[0] || null"
+    />
+    <button @click="handleUpload" :disabled="isLoading">
+      Upload
+    </button>
+
+    <div v-if="isLoading" class="progress-container">
+      <div
+        class="progress-bar"
+        :style="{ width: `${progress}%` }"
+      />
+      <span>{{ progress }}%</span>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.progress-container {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 4px;
+  background: #4CAF50;
+  transition: width 0.3s;
+}
+</style>
+```
+
+### Multiple File Upload
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStorageUpload } from '@ductape/vue';
+
+const files = ref<FileList | null>(null);
+const uploads = ref<any[]>([]);
+
+const { mutate, isLoading } = useStorageUpload({
+  onSuccess: (data) => {
+    uploads.value.push(data);
+  }
+});
+
+const handleUpload = async () => {
+  if (!files.value) return;
+
+  for (let i = 0; i < files.value.length; i++) {
+    await mutate({
+      file: files.value[i],
+      path: 'uploads/batch'
+    });
+  }
+};
+</script>
+
+<template>
+  <div>
+    <input
+      type="file"
+      multiple
+      @change="files = ($event.target as HTMLInputElement).files"
+    />
+    <button @click="handleUpload" :disabled="isLoading">
+      Upload {{ files?.length || 0 }} Files
+    </button>
+
+    <div>
+      <h3>Uploaded Files:</h3>
+      <ul>
+        <li v-for="(upload, idx) in uploads" :key="idx">
+          {{ upload.filename }}
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+```
+
+## useStorageDownload
+
+Download files from Ductape Storage.
+
+```vue
+<script setup lang="ts">
+import { useStorageDownload } from '@ductape/vue';
+
+const props = defineProps<{ fileId: string }>();
+
+const { mutate, isLoading, progress } = useStorageDownload({
+  onSuccess: (blob) => {
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'downloaded-file.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+});
+
+const handleDownload = () => {
+  mutate({ fileId: props.fileId });
+};
+</script>
+
+<template>
+  <button @click="handleDownload" :disabled="isLoading">
+    {{ isLoading ? `Downloading ${progress}%` : 'Download' }}
+  </button>
+</template>
+```
+
+## useStorageDelete
+
+Delete files from storage.
+
+```vue
+<script setup lang="ts">
+import { useStorageDelete } from '@ductape/vue';
+
+const props = defineProps<{
+  fileId: string;
+  filename: string;
+}>();
+
+const { mutate, isLoading } = useStorageDelete({
+  onSuccess: () => {
+    alert('File deleted successfully');
+  }
+});
+
+const handleDelete = () => {
+  if (confirm(`Delete ${props.filename}?`)) {
+    mutate({ fileId: props.fileId });
+  }
+};
+</script>
+
+<template>
+  <button @click="handleDelete" :disabled="isLoading">
+    {{ isLoading ? 'Deleting...' : 'Delete' }}
+  </button>
+</template>
+```
+
+## useStorageList
+
+List files in storage with filtering and pagination.
+
+```vue
+<script setup lang="ts">
+import { useStorageList } from '@ductape/vue';
+
+const { data, isLoading, refetch } = useStorageList({
+  path: 'uploads/images',
+  limit: 20
+});
+</script>
+
+<template>
+  <div>
+    <button @click="refetch">Refresh</button>
+
+    <div v-if="isLoading">Loading files...</div>
+    <div v-else class="file-grid">
+      <div v-for="file in data?.files" :key="file.id" class="file-card">
+        <img :src="file.url" :alt="file.filename" />
+        <p>{{ file.filename }}</p>
+        <p>{{ (file.size / 1024).toFixed(2) }} KB</p>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### With Filters
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStorageList } from '@ductape/vue';
+
+const fileType = ref('image');
+
+const { data, isLoading } = useStorageList({
+  path: 'uploads',
+  filter: {
+    mimeType: fileType.value === 'image' ? 'image/*' : 'application/pdf'
+  },
+  orderBy: { field: 'createdAt', direction: 'desc' }
+});
+</script>
+
+<template>
+  <div>
+    <select v-model="fileType">
+      <option value="image">Images</option>
+      <option value="pdf">PDFs</option>
+    </select>
+
+    <div v-if="isLoading">Loading...</div>
+    <ul v-else>
+      <li v-for="file in data?.files" :key="file.id">
+        {{ file.filename }} - {{ new Date(file.createdAt).toLocaleDateString() }}
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+## useStorageURL
+
+Get a signed URL for a file.
+
+```vue
+<script setup lang="ts">
+import { useStorageURL } from '@ductape/vue';
+
+const props = defineProps<{ fileId: string }>();
+
+const { data: url, isLoading } = useStorageURL({
+  fileId: props.fileId,
+  expiresIn: 3600 // 1 hour
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <img v-else :src="url" alt="Secure file" />
+</template>
+```
+
+## Complete File Manager Example
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import {
+  useStorageList,
+  useStorageUpload,
+  useStorageDelete
+} from '@ductape/vue';
+
+interface FileItem {
+  id: string;
+  filename: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+const selectedFile = ref<File | null>(null);
+
+// List files
+const { data: files, isLoading: isLoadingFiles, refetch } = useStorageList({
+  path: 'uploads',
+  limit: 50
+});
+
+// Upload
+const { mutate: upload, isLoading: isUploading, progress } = useStorageUpload({
+  onSuccess: () => {
+    selectedFile.value = null;
+    refetch();
+  }
+});
+
+// Delete
+const { mutate: deleteFile } = useStorageDelete({
+  onSuccess: () => refetch()
+});
+
+const handleUpload = () => {
+  if (!selectedFile.value) return;
+  upload({
+    file: selectedFile.value,
+    path: 'uploads'
+  });
+};
+
+const handleDelete = (fileId: string, filename: string) => {
+  if (confirm(`Delete ${filename}?`)) {
+    deleteFile({ fileId });
+  }
+};
+</script>
+
+<template>
+  <div class="file-manager">
+    <div class="upload-section">
+      <h2>Upload File</h2>
+      <input
+        type="file"
+        @change="selectedFile = ($event.target as HTMLInputElement).files?.[0] || null"
+      />
+      <button
+        @click="handleUpload"
+        :disabled="!selectedFile || isUploading"
+      >
+        {{ isUploading ? `Uploading ${progress}%` : 'Upload' }}
+      </button>
+    </div>
+
+    <div class="files-section">
+      <h2>Files</h2>
+      <div v-if="isLoadingFiles">Loading files...</div>
+      <table v-else>
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th>Size</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="file in files?.files" :key="file.id">
+            <td>{{ file.filename }}</td>
+            <td>{{ (file.size / 1024).toFixed(2) }} KB</td>
+            <td>{{ new Date(file.createdAt).toLocaleDateString() }}</td>
+            <td>
+              <a :href="file.url" target="_blank" rel="noopener noreferrer">
+                View
+              </a>
+              <button @click="handleDelete(file.id, file.filename)">
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.file-manager {
+  padding: 2rem;
+}
+
+.upload-section {
+  margin-bottom: 2rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+button {
+  margin-left: 0.5rem;
+}
+</style>
+```
+
+## Next Steps
+
+- [Workflow Composables](./workflow-composables)
+- [Session Composables](./session-composables)
+- [Complete Examples](../tutorials/building-a-todo-app)
