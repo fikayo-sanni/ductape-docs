@@ -1,0 +1,420 @@
+---
+sidebar_position: 4
+title: Workflow Hooks
+---
+
+# Workflow Hooks
+
+React hooks for executing and managing Ductape Workflows.
+
+## useWorkflowExecution
+
+Execute a workflow and track its progress.
+
+### Basic Workflow Execution
+
+```tsx
+import { useWorkflowExecution } from '@ductape/react';
+
+function OrderProcessor() {
+  const { mutate, isLoading, data, error } = useWorkflowExecution({
+    onSuccess: (result) => {
+      console.log('Workflow completed:', result);
+      alert('Order processed successfully!');
+    },
+    onError: (err) => {
+      console.error('Workflow failed:', err);
+    }
+  });
+
+  const handleProcessOrder = (orderId: string) => {
+    mutate({
+      workflow: 'process-order',
+      input: {
+        orderId,
+        priority: 'high'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={() => handleProcessOrder('order-123')} disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Process Order'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+      {data && <p>Result: {JSON.stringify(data.output)}</p>}
+    </div>
+  );
+}
+```
+
+### Workflow with Real-time Status
+
+```tsx
+function WorkflowRunner() {
+  const [executionId, setExecutionId] = useState<string | null>(null);
+
+  const { mutate, isLoading } = useWorkflowExecution({
+    onSuccess: (result) => {
+      setExecutionId(result.executionId);
+    }
+  });
+
+  const handleStart = () => {
+    mutate({
+      workflow: 'data-pipeline',
+      input: {
+        source: 'database',
+        destination: 's3'
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleStart} disabled={isLoading}>
+        Start Pipeline
+      </button>
+      {executionId && <WorkflowStatus executionId={executionId} />}
+    </div>
+  );
+}
+```
+
+## useWorkflowStatus
+
+Monitor the status of a running workflow.
+
+```tsx
+import { useWorkflowStatus } from '@ductape/react';
+
+function WorkflowStatus({ executionId }: { executionId: string }) {
+  const { data: status, isLoading } = useWorkflowStatus(executionId, {
+    refetchInterval: 2000 // Poll every 2 seconds
+  });
+
+  if (isLoading) return <div>Loading status...</div>;
+
+  return (
+    <div className="workflow-status">
+      <h3>Workflow Status</h3>
+      <div>
+        <strong>Status:</strong> {status?.status}
+      </div>
+      <div>
+        <strong>Current Step:</strong> {status?.currentStep}
+      </div>
+      <div>
+        <strong>Progress:</strong> {status?.progress}%
+      </div>
+
+      {status?.status === 'running' && (
+        <div className="progress-bar">
+          <div style={{ width: `${status.progress}%` }} />
+        </div>
+      )}
+
+      {status?.status === 'completed' && (
+        <div className="success">
+          Workflow completed successfully!
+        </div>
+      )}
+
+      {status?.status === 'failed' && (
+        <div className="error">
+          Error: {status.error}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## useWorkflowSubscription
+
+Subscribe to real-time workflow events.
+
+```tsx
+import { useWorkflowSubscription } from '@ductape/react';
+
+function LiveWorkflowMonitor({ executionId }: { executionId: string }) {
+  const [events, setEvents] = useState<any[]>([]);
+
+  useWorkflowSubscription({
+    executionId,
+    onEvent: (event) => {
+      setEvents(prev => [...prev, event]);
+
+      if (event.type === 'step_completed') {
+        console.log(`Step ${event.step} completed`);
+      } else if (event.type === 'workflow_completed') {
+        console.log('Workflow finished!');
+      }
+    }
+  });
+
+  return (
+    <div>
+      <h3>Workflow Events</h3>
+      <ul>
+        {events.map((event, idx) => (
+          <li key={idx}>
+            <strong>{event.type}:</strong> {event.message}
+            <span className="timestamp">
+              {new Date(event.timestamp).toLocaleTimeString()}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## useWorkflowSignal
+
+Send signals to a running workflow.
+
+```tsx
+import { useWorkflowSignal } from '@ductape/react';
+
+function WorkflowController({ executionId }: { executionId: string }) {
+  const { mutate: sendSignal, isLoading } = useWorkflowSignal({
+    onSuccess: () => {
+      alert('Signal sent successfully');
+    }
+  });
+
+  const handleApprove = () => {
+    sendSignal({
+      executionId,
+      signal: 'approve',
+      data: {
+        approvedBy: 'user-123',
+        timestamp: new Date().toISOString()
+      }
+    });
+  };
+
+  const handleReject = () => {
+    sendSignal({
+      executionId,
+      signal: 'reject',
+      data: { reason: 'Does not meet criteria' }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleApprove} disabled={isLoading}>
+        Approve
+      </button>
+      <button onClick={handleReject} disabled={isLoading}>
+        Reject
+      </button>
+    </div>
+  );
+}
+```
+
+## useWorkflowCancel
+
+Cancel a running workflow.
+
+```tsx
+import { useWorkflowCancel } from '@ductape/react';
+
+function CancelButton({ executionId }: { executionId: string }) {
+  const { mutate: cancel, isLoading } = useWorkflowCancel({
+    onSuccess: () => {
+      alert('Workflow cancelled');
+    }
+  });
+
+  const handleCancel = () => {
+    if (confirm('Are you sure you want to cancel this workflow?')) {
+      cancel({ executionId });
+    }
+  };
+
+  return (
+    <button onClick={handleCancel} disabled={isLoading} className="danger">
+      {isLoading ? 'Cancelling...' : 'Cancel Workflow'}
+    </button>
+  );
+}
+```
+
+## useWorkflowHistory
+
+View workflow execution history.
+
+```tsx
+import { useWorkflowHistory } from '@ductape/react';
+
+function WorkflowHistory() {
+  const { data, isLoading } = useWorkflowHistory({
+    workflow: 'process-order',
+    limit: 20
+  });
+
+  if (isLoading) return <div>Loading history...</div>;
+
+  return (
+    <div>
+      <h2>Workflow History</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Execution ID</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data?.executions.map(execution => (
+            <tr key={execution.id}>
+              <td>{execution.id}</td>
+              <td>
+                <span className={`status-${execution.status}`}>
+                  {execution.status}
+                </span>
+              </td>
+              <td>{new Date(execution.startedAt).toLocaleString()}</td>
+              <td>{execution.duration}ms</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+```
+
+## Complete Approval Workflow Example
+
+```tsx
+interface ApprovalRequest {
+  id: string;
+  title: string;
+  description: string;
+  requestedBy: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+function ApprovalWorkflow({ request }: { request: ApprovalRequest }) {
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [workflowStatus, setWorkflowStatus] = useState<string>('idle');
+
+  // Start workflow
+  const { mutate: startWorkflow, isLoading: isStarting } = useWorkflowExecution({
+    onSuccess: (result) => {
+      setExecutionId(result.executionId);
+      setWorkflowStatus('running');
+    }
+  });
+
+  // Send approval signal
+  const { mutate: sendSignal } = useWorkflowSignal({
+    onSuccess: () => {
+      setWorkflowStatus('completed');
+    }
+  });
+
+  // Monitor status
+  useWorkflowSubscription({
+    executionId: executionId || '',
+    enabled: !!executionId,
+    onEvent: (event) => {
+      if (event.type === 'workflow_completed') {
+        setWorkflowStatus('completed');
+      } else if (event.type === 'workflow_failed') {
+        setWorkflowStatus('failed');
+      }
+    }
+  });
+
+  const handleStart = () => {
+    startWorkflow({
+      workflow: 'approval-process',
+      input: {
+        requestId: request.id,
+        requestData: request
+      }
+    });
+  };
+
+  const handleApprove = () => {
+    if (!executionId) return;
+    sendSignal({
+      executionId,
+      signal: 'approve',
+      data: {
+        comments: 'Approved by manager',
+        timestamp: new Date().toISOString()
+      }
+    });
+  };
+
+  const handleReject = () => {
+    if (!executionId) return;
+    sendSignal({
+      executionId,
+      signal: 'reject',
+      data: {
+        reason: 'Does not meet requirements'
+      }
+    });
+  };
+
+  return (
+    <div className="approval-workflow">
+      <div className="request-details">
+        <h3>{request.title}</h3>
+        <p>{request.description}</p>
+        <p>Requested by: {request.requestedBy}</p>
+      </div>
+
+      {workflowStatus === 'idle' && (
+        <button onClick={handleStart} disabled={isStarting}>
+          {isStarting ? 'Starting...' : 'Start Approval Process'}
+        </button>
+      )}
+
+      {workflowStatus === 'running' && executionId && (
+        <div className="workflow-controls">
+          <WorkflowStatus executionId={executionId} />
+          <div className="actions">
+            <button onClick={handleApprove} className="approve">
+              Approve
+            </button>
+            <button onClick={handleReject} className="reject">
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+
+      {workflowStatus === 'completed' && (
+        <div className="success">
+          Approval process completed!
+        </div>
+      )}
+
+      {workflowStatus === 'failed' && (
+        <div className="error">
+          Approval process failed. Please try again.
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Next Steps
+
+- [Session Hooks](./session-hooks)
+- [Action Hooks](./action-hooks)
+- [Complete Examples](../tutorials/building-a-todo-app)

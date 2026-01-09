@@ -1,0 +1,686 @@
+---
+sidebar_position: 8
+title: Resilience Composables
+---
+
+# Resilience Composables
+
+Vue 3 composables for building fault-tolerant applications with quotas, fallbacks, and health monitoring.
+
+## useQuotaRun
+
+Execute operations with weighted load distribution across multiple providers.
+
+### Basic Usage
+
+```vue
+<script setup>
+import { useQuotaRun } from '@ductape/vue';
+
+const { mutate: processPayment, isLoading, data, error } = useQuotaRun({
+  onSuccess: (result) => {
+    console.log(`Payment processed by ${result.provider}`);
+    console.log(`Latency: ${result.latency}ms`);
+    alert('Payment successful!');
+  },
+  onError: (error) => {
+    alert(`Payment failed: ${error.message}`);
+  }
+});
+
+const handlePayment = (amount, currency) => {
+  processPayment({
+    tag: 'payment-quota',
+    input: {
+      amount,
+      currency,
+      customer: 'cus_123'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button
+      @click="handlePayment(1000, 'usd')"
+      :disabled="isLoading"
+    >
+      {{ isLoading ? 'Processing...' : 'Pay $10.00' }}
+    </button>
+
+    <div v-if="data">
+      <p>Provider: {{ data.provider }}</p>
+      <p>Latency: {{ data.latency }}ms</p>
+      <p>Retries: {{ data.retriesUsed }}</p>
+    </div>
+
+    <p v-if="error" style="color: red">{{ error.message }}</p>
+  </div>
+</template>
+```
+
+### With Type Safety
+
+```vue
+<script setup lang="ts">
+import { useQuotaRun } from '@ductape/vue';
+
+interface PaymentResult {
+  transactionId: string;
+  status: 'success' | 'failed';
+  processorFee: number;
+}
+
+const { mutate, data } = useQuotaRun<PaymentResult>({
+  onSuccess: (result) => {
+    // TypeScript knows result.data is PaymentResult
+    console.log(`Transaction ID: ${result.data.transactionId}`);
+    console.log(`Fee: $${result.data.processorFee}`);
+  }
+});
+
+const handlePayment = () => {
+  mutate({
+    tag: 'payment-quota',
+    input: { amount: 5000, currency: 'usd' }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handlePayment">Process Payment</button>
+    <div v-if="data">
+      <p>Transaction: {{ data.data.transactionId }}</p>
+      <p>Status: {{ data.data.status }}</p>
+    </div>
+  </div>
+</template>
+```
+
+### Email Service with Load Distribution
+
+```vue
+<script setup>
+import { useQuotaRun } from '@ductape/vue';
+
+const { mutate: sendEmail, isLoading } = useQuotaRun({
+  onSuccess: (result) => {
+    console.log(`Email sent via ${result.provider}`);
+  }
+});
+
+const handleSend = (to, subject, body) => {
+  sendEmail({
+    tag: 'email-quota',
+    input: { to, subject, body }
+  });
+};
+</script>
+
+<template>
+  <button
+    @click="handleSend('user@example.com', 'Hello', 'Welcome!')"
+    :disabled="isLoading"
+  >
+    Send Email
+  </button>
+</template>
+```
+
+## useFallbackRun
+
+Execute operations with automatic failover across providers.
+
+### Basic Usage
+
+```vue
+<script setup>
+import { useFallbackRun } from '@ductape/vue';
+
+const { mutate: sendEmail, isLoading, data, error } = useFallbackRun({
+  onSuccess: (result) => {
+    console.log(`Email sent via ${result.provider}`);
+    console.log(`Tried ${result.providersTried} providers`);
+    alert('Email sent successfully!');
+  },
+  onError: (error) => {
+    alert('All email providers failed');
+  }
+});
+
+const handleSend = () => {
+  sendEmail({
+    tag: 'email-fallback',
+    input: {
+      to: 'user@example.com',
+      subject: 'Important Message',
+      body: 'This is a critical email'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleSend" :disabled="isLoading">
+      {{ isLoading ? 'Sending...' : 'Send Email' }}
+    </button>
+
+    <div v-if="data">
+      <p>✓ Sent via {{ data.provider }}</p>
+      <p>Providers tried: {{ data.providersTried }}</p>
+      <p>Latency: {{ data.latency }}ms</p>
+    </div>
+
+    <p v-if="error" style="color: red">❌ {{ error.message }}</p>
+  </div>
+</template>
+```
+
+### Payment Processing with Failover
+
+```vue
+<script setup lang="ts">
+import { useFallbackRun } from '@ductape/vue';
+
+interface PaymentResponse {
+  success: boolean;
+  transactionId: string;
+  gateway: string;
+}
+
+const { mutate: processPayment, isLoading, data } = useFallbackRun<PaymentResponse>({
+  onSuccess: (result) => {
+    if (result.data.success) {
+      console.log(`Paid via ${result.data.gateway}`);
+    }
+  }
+});
+
+const handlePayment = (amount) => {
+  processPayment({
+    tag: 'payment-fallback',
+    input: {
+      amount,
+      currency: 'usd',
+      customer: 'cus_123'
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handlePayment(2500)" :disabled="isLoading">
+      {{ isLoading ? 'Processing...' : 'Pay $25.00' }}
+    </button>
+
+    <div v-if="data?.data">
+      <p>Gateway: {{ data.data.gateway }}</p>
+      <p>Transaction: {{ data.data.transactionId }}</p>
+      <p>Providers tried: {{ data.providersTried }}</p>
+    </div>
+  </div>
+</template>
+```
+
+## useQuotaCheck
+
+Check and consume quota with rate limiting.
+
+### Basic Quota Check
+
+```vue
+<script setup>
+import { useQuotaCheck } from '@ductape/vue';
+
+const { mutate: checkQuota, data, isLoading } = useQuotaCheck({
+  onSuccess: (result) => {
+    if (!result.allowed) {
+      alert(`Rate limited! Resets at ${new Date(result.resetsAt)}`);
+    }
+  }
+});
+
+const handleApiCall = (userId) => {
+  checkQuota({
+    tag: 'api-calls',
+    identifier: userId,
+    amount: 1
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button
+      @click="handleApiCall('user-123')"
+      :disabled="isLoading"
+    >
+      Make API Call
+    </button>
+
+    <div v-if="data">
+      <p>Allowed: {{ data.allowed ? '✓' : '❌' }}</p>
+      <p>Used: {{ data.used }} / {{ data.limit }}</p>
+      <p>Remaining: {{ data.remaining }}</p>
+      <p>Resets: {{ new Date(data.resetsAt).toLocaleString() }}</p>
+    </div>
+  </div>
+</template>
+```
+
+### Pre-flight Quota Check
+
+```vue
+<script setup>
+import { useQuotaCheck, useQuotaRun } from '@ductape/vue';
+
+const { mutate: checkQuota } = useQuotaCheck();
+const { mutate: processPayment, isLoading } = useQuotaRun();
+
+const handleSubmit = (userId, amount) => {
+  // Check quota first
+  checkQuota(
+    {
+      tag: 'payment-quota',
+      identifier: userId,
+      amount: 1
+    },
+    {
+      onSuccess: (quota) => {
+        if (quota.allowed) {
+          // Proceed with payment
+          processPayment({
+            tag: 'payment-quota',
+            input: { amount, userId }
+          });
+        } else {
+          alert(`Rate limit exceeded. Try again at ${new Date(quota.resetsAt)}`);
+        }
+      }
+    }
+  );
+};
+</script>
+
+<template>
+  <button @click="handleSubmit('user-123', 1000)" :disabled="isLoading">
+    Process Payment
+  </button>
+</template>
+```
+
+## useQuotaStatus
+
+Query quota status without consuming.
+
+### Display Quota Usage
+
+```vue
+<script setup>
+import { useQuotaStatus } from '@ductape/vue';
+import { onMounted } from 'vue';
+
+const props = defineProps<{ userId: string }>();
+
+const { data, isLoading, refetch } = useQuotaStatus(
+  {
+    tag: 'api-calls',
+    identifier: props.userId
+  },
+  {
+    refetchInterval: 30000 // Refresh every 30 seconds
+  }
+);
+
+onMounted(() => {
+  if (data.value) {
+    console.log(`User has ${data.value.remaining} API calls remaining`);
+  }
+});
+</script>
+
+<template>
+  <div>
+    <h3>API Quota Status</h3>
+
+    <div v-if="isLoading">Loading...</div>
+
+    <div v-else-if="data">
+      <div>Used: {{ data.used }} / {{ data.limit }}</div>
+      <div>Remaining: {{ data.remaining }}</div>
+      <div>Resets: {{ new Date(data.resetsAt).toLocaleString() }}</div>
+
+      <div style="width: 100%; height: 20px; background-color: #eee">
+        <div
+          :style="{
+            width: `${(data.used / data.limit) * 100}%`,
+            height: '100%',
+            backgroundColor: data.remaining > 10 ? 'green' : 'red'
+          }"
+        />
+      </div>
+
+      <button @click="refetch">Refresh</button>
+    </div>
+  </div>
+</template>
+```
+
+## useQuotaSubscription
+
+Subscribe to real-time quota changes.
+
+### Real-time Quota Monitor
+
+```vue
+<script setup>
+import { useQuotaSubscription } from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+
+const { data: quotaChanges, isSubscribed } = useQuotaSubscription(
+  {
+    tag: 'api-calls',
+    identifier: props.userId
+  },
+  {
+    onData: (events) => {
+      events.forEach(event => {
+        if (event.remaining < 10) {
+          alert('Warning: Low quota remaining!');
+        }
+      });
+    }
+  }
+);
+</script>
+
+<template>
+  <div>
+    <h3>Live Quota Monitor</h3>
+    <p>Status: {{ isSubscribed ? '🟢 Connected' : '🔴 Disconnected' }}</p>
+
+    <div v-if="quotaChanges && quotaChanges.length > 0">
+      <p>Last Update:</p>
+      <p>Remaining: {{ quotaChanges[0].remaining }}</p>
+      <p>Limit: {{ quotaChanges[0].limit }}</p>
+    </div>
+  </div>
+</template>
+```
+
+## useHealthStatus
+
+Query health status of services.
+
+### Service Health Dashboard
+
+```vue
+<script setup>
+import { useHealthStatus } from '@ductape/vue';
+import { onMounted } from 'vue';
+
+const { data, isLoading, refetch } = useHealthStatus(
+  { tag: 'payment-service' },
+  { refetchInterval: 30000 } // Check every 30 seconds
+);
+
+onMounted(() => {
+  if (data.value?.status === 'unhealthy') {
+    console.warn('Service is unhealthy!');
+  }
+});
+</script>
+
+<template>
+  <div>
+    <h2>Service Health</h2>
+
+    <div v-if="isLoading">Checking health...</div>
+
+    <div v-else-if="data">
+      <div>
+        Status:
+        <span
+          :style="{
+            color: data.status === 'healthy' ? 'green' :
+                   data.status === 'degraded' ? 'orange' : 'red'
+          }"
+        >
+          {{ data.status.toUpperCase() }}
+        </span>
+      </div>
+
+      <div>Last Check: {{ data.lastCheck }}</div>
+
+      <h3>Probes</h3>
+      <ul>
+        <li v-for="probe in data.probes" :key="probe.name">
+          <strong>{{ probe.name }}</strong>: {{ probe.status }}
+          <span v-if="probe.latency"> ({{ probe.latency }}ms)</span>
+          <span v-if="probe.error"> - {{ probe.error }}</span>
+        </li>
+      </ul>
+
+      <button @click="refetch">Refresh</button>
+    </div>
+  </div>
+</template>
+```
+
+## useHealthSubscription
+
+Subscribe to real-time health changes.
+
+### Real-time Health Alerts
+
+```vue
+<script setup>
+import { useHealthSubscription } from '@ductape/vue';
+import { ref } from 'vue';
+
+const alerts = ref<string[]>([]);
+
+const { data, isSubscribed } = useHealthSubscription(
+  { tag: 'payment-service' },
+  {
+    onData: (events) => {
+      events.forEach(event => {
+        if (event.status === 'unhealthy') {
+          alerts.value.push(
+            `⚠️ Service unhealthy at ${event.lastCheck}`
+          );
+        } else if (event.status === 'healthy') {
+          alerts.value.push(
+            `✓ Service recovered at ${event.lastCheck}`
+          );
+        }
+      });
+    }
+  }
+);
+</script>
+
+<template>
+  <div>
+    <h3>Health Alerts</h3>
+    <p>Monitoring: {{ isSubscribed ? '🟢 Active' : '🔴 Inactive' }}</p>
+
+    <div v-if="data && data.length > 0">
+      Current Status: {{ data[0].status }}
+    </div>
+
+    <div>
+      <h4>Alert History</h4>
+      <ul>
+        <li v-for="(alert, i) in alerts" :key="i">{{ alert }}</li>
+      </ul>
+    </div>
+  </div>
+</template>
+```
+
+## Complete Example: Resilient Payment Flow
+
+```vue
+<script setup>
+import { useQuotaCheck, useFallbackRun, useHealthStatus } from '@ductape/vue';
+import { ref, reactive } from 'vue';
+
+const paymentData = reactive({
+  amount: 1000,
+  currency: 'usd',
+  userId: 'user-123'
+});
+
+const { mutate: checkQuota, data: quotaData } = useQuotaCheck();
+const { mutate: checkHealth, data: healthData } = useHealthStatus();
+const {
+  mutate: processPayment,
+  isLoading: isProcessing,
+  data: paymentResult
+} = useFallbackRun();
+
+const handlePayment = () => {
+  // Step 1: Check quota
+  checkQuota(
+    {
+      tag: 'payment-quota',
+      identifier: paymentData.userId,
+      amount: 1
+    },
+    {
+      onSuccess: (quota) => {
+        if (!quota.allowed) {
+          alert(`Rate limit exceeded. Resets at ${new Date(quota.resetsAt)}`);
+          return;
+        }
+
+        // Step 2: Check health
+        checkHealth(
+          { tag: 'payment-service' },
+          {
+            onSuccess: (health) => {
+              if (health.status === 'unhealthy') {
+                alert('Payment service is currently unavailable');
+                return;
+              }
+
+              // Step 3: Process payment with fallback
+              processPayment({
+                tag: 'payment-fallback',
+                input: paymentData
+              });
+            }
+          }
+        );
+      }
+    }
+  );
+};
+</script>
+
+<template>
+  <div>
+    <h2>Payment Processor</h2>
+
+    <div>
+      <label>
+        Amount: $
+        <input
+          type="number"
+          :value="paymentData.amount / 100"
+          @input="paymentData.amount = parseFloat($event.target.value) * 100"
+        />
+      </label>
+    </div>
+
+    <button @click="handlePayment" :disabled="isProcessing">
+      {{ isProcessing ? 'Processing...' : 'Pay Now' }}
+    </button>
+
+    <div v-if="quotaData">
+      <p>Quota: {{ quotaData.remaining }} / {{ quotaData.limit }}</p>
+    </div>
+
+    <div v-if="healthData">
+      <p>Service Health: {{ healthData.status }}</p>
+    </div>
+
+    <div v-if="paymentResult" style="color: green">
+      ✓ Payment processed via {{ paymentResult.provider }}
+      <br />
+      Latency: {{ paymentResult.latency }}ms
+      <br />
+      Providers tried: {{ paymentResult.providersTried }}
+    </div>
+  </div>
+</template>
+```
+
+## Composition with Other Composables
+
+```vue
+<script setup>
+import { useQuotaRun } from '@ductape/vue';
+import { useDatabaseQuery } from '@ductape/vue';
+import { computed } from 'vue';
+
+// Fetch user data
+const { data: user } = useDatabaseQuery({
+  table: 'users',
+  where: { id: 'user-123' }
+});
+
+// Process payment with quota
+const { mutate: pay, isLoading, data: payment } = useQuotaRun();
+
+const userQuotaRemaining = computed(() => {
+  return user.value?.quotaRemaining ?? 0;
+});
+
+const handlePayment = () => {
+  if (userQuotaRemaining.value < 1) {
+    alert('Insufficient quota');
+    return;
+  }
+
+  pay({
+    tag: 'payment-quota',
+    input: {
+      userId: user.value.id,
+      amount: 1000
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <p>Quota Remaining: {{ userQuotaRemaining }}</p>
+    <button @click="handlePayment" :disabled="isLoading">
+      Pay $10.00
+    </button>
+    <div v-if="payment">
+      Payment processed via {{ payment.provider }}
+    </div>
+  </div>
+</template>
+```
+
+## Best Practices
+
+1. **Check Quotas First**: Always check quota before expensive operations
+2. **Monitor Health**: Use health checks before critical operations
+3. **Use Fallbacks for Critical Paths**: Implement fallbacks for must-succeed operations
+4. **Leverage Reactivity**: Use Vue's reactive system with composables
+5. **Handle Loading States**: Show appropriate UI during operations
+6. **Display Error Messages**: Provide clear feedback when operations fail
+7. **Show Quota Status**: Display remaining quota to users proactively
+8. **Subscribe to Changes**: Use subscriptions for real-time monitoring
+9. **Type Your Responses**: Use TypeScript generics for type-safe results
+10. **Compose Composables**: Combine resilience composables with other Ductape composables

@@ -1,0 +1,407 @@
+---
+sidebar_position: 2
+title: Database Composables
+---
+
+# Database Composables
+
+Vue 3 composables for working with Ductape databases. These provide reactive state management and automatic cleanup.
+
+## useDatabaseQuery
+
+Query data from a database table with reactive state.
+
+### Basic Query
+
+```vue
+<script setup lang="ts">
+import { useDatabaseQuery } from '@ductape/vue';
+
+const { data, isLoading, error, refetch } = useDatabaseQuery('users', {
+  table: 'users',
+  limit: 10
+});
+</script>
+
+<template>
+  <div>
+    <button @click="refetch">Refresh</button>
+
+    <div v-if="isLoading">Loading...</div>
+    <div v-else-if="error">Error: {{ error.message }}</div>
+    <ul v-else>
+      <li v-for="user in data?.rows" :key="user.id">
+        {{ user.name }}
+      </li>
+    </ul>
+  </div>
+</template>
+```
+
+### Query with Filters
+
+```vue
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useDatabaseQuery } from '@ductape/vue';
+
+const category = ref('electronics');
+const priceLimit = ref(1000);
+
+const queryOptions = computed(() => ({
+  table: 'products',
+  where: {
+    category: category.value,
+    price: { $lt: priceLimit.value }
+  },
+  orderBy: [{ column: 'price', order: 'asc' }]
+}));
+
+const { data, isLoading } = useDatabaseQuery(
+  computed(() => ['products', category.value, priceLimit.value]),
+  queryOptions
+);
+</script>
+
+<template>
+  <div>
+    <select v-model="category">
+      <option value="electronics">Electronics</option>
+      <option value="books">Books</option>
+      <option value="clothing">Clothing</option>
+    </select>
+
+    <input
+      v-model.number="priceLimit"
+      type="number"
+      placeholder="Max price"
+    />
+
+    <div v-if="isLoading">Loading products...</div>
+    <div v-else class="product-grid">
+      <div v-for="product in data?.rows" :key="product.id" class="product-card">
+        <h3>{{ product.name }}</h3>
+        <p>${{ product.price }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+## useDatabaseInsert
+
+Insert data into a database table.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useDatabaseInsert } from '@ductape/vue';
+
+const name = ref('');
+const email = ref('');
+
+const { mutate, isLoading, error } = useDatabaseInsert({
+  onSuccess: (data) => {
+    console.log('User created:', data.rows[0]);
+    name.value = '';
+    email.value = '';
+    alert('User created successfully!');
+  }
+});
+
+const handleSubmit = () => {
+  mutate({
+    table: 'users',
+    data: {
+      name: name.value,
+      email: email.value,
+      role: 'user'
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <input
+      v-model="name"
+      placeholder="Name"
+      required
+    />
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Email"
+      required
+    />
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Creating...' : 'Create User' }}
+    </button>
+    <p v-if="error" class="error">{{ error.message }}</p>
+  </form>
+</template>
+```
+
+## useDatabaseUpdate
+
+Update existing records in a database table.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useDatabaseUpdate } from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+const name = ref('');
+
+const { mutate, isLoading } = useDatabaseUpdate({
+  onSuccess: () => {
+    alert('User updated!');
+  }
+});
+
+const handleUpdate = () => {
+  mutate({
+    table: 'users',
+    where: { id: props.userId },
+    data: {
+      name: name.value,
+      updatedAt: new Date()
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleUpdate">
+    <input
+      v-model="name"
+      placeholder="New name"
+    />
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Updating...' : 'Update' }}
+    </button>
+  </form>
+</template>
+```
+
+### Toggle Example
+
+```vue
+<script setup lang="ts">
+import { useDatabaseUpdate } from '@ductape/vue';
+
+const props = defineProps<{ todo: any }>();
+
+const { mutate } = useDatabaseUpdate({
+  onSuccess: () => {
+    console.log('Todo updated');
+  }
+});
+
+const handleToggle = () => {
+  mutate({
+    table: 'todos',
+    where: { id: props.todo.id },
+    data: { completed: !props.todo.completed }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <input
+      type="checkbox"
+      :checked="todo.completed"
+      @change="handleToggle"
+    />
+    <span :class="{ 'line-through': todo.completed }">
+      {{ todo.text }}
+    </span>
+  </div>
+</template>
+```
+
+## useDatabaseDelete
+
+Delete records from a database table.
+
+```vue
+<script setup lang="ts">
+import { useDatabaseDelete } from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+
+const { mutate, isLoading } = useDatabaseDelete({
+  onSuccess: () => {
+    alert('User deleted');
+  }
+});
+
+const handleDelete = () => {
+  if (confirm('Are you sure?')) {
+    mutate({
+      table: 'users',
+      where: { id: props.userId }
+    });
+  }
+};
+</script>
+
+<template>
+  <button @click="handleDelete" :disabled="isLoading">
+    {{ isLoading ? 'Deleting...' : 'Delete' }}
+  </button>
+</template>
+```
+
+## useDatabaseSubscription
+
+Subscribe to real-time database changes.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useDatabaseSubscription } from '@ductape/vue';
+
+const messages = ref<any[]>([]);
+
+useDatabaseSubscription({
+  table: 'messages',
+  where: { channel: 'general' },
+  onChange: (event) => {
+    if (event.type === 'insert') {
+      messages.value.push(event.data.new);
+    } else if (event.type === 'update') {
+      const index = messages.value.findIndex(m => m.id === event.data.new.id);
+      if (index !== -1) {
+        messages.value[index] = event.data.new;
+      }
+    } else if (event.type === 'delete') {
+      messages.value = messages.value.filter(m => m.id !== event.data.old.id);
+    }
+  }
+});
+</script>
+
+<template>
+  <ul>
+    <li v-for="msg in messages" :key="msg.id">
+      {{ msg.text }}
+    </li>
+  </ul>
+</template>
+```
+
+## Complete CRUD Example
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import {
+  useDatabaseQuery,
+  useDatabaseInsert,
+  useDatabaseUpdate,
+  useDatabaseDelete
+} from '@ductape/vue';
+
+interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+const newTodoText = ref('');
+
+// Query todos
+const { data, isLoading, refetch } = useDatabaseQuery<Todo>('todos', {
+  table: 'todos',
+  orderBy: [{ column: 'createdAt', order: 'desc' }]
+});
+
+// Create mutation
+const { mutate: createTodo } = useDatabaseInsert({
+  onSuccess: () => {
+    refetch();
+    newTodoText.value = '';
+  }
+});
+
+// Update mutation
+const { mutate: updateTodo } = useDatabaseUpdate({
+  onSuccess: () => refetch()
+});
+
+// Delete mutation
+const { mutate: deleteTodo } = useDatabaseDelete({
+  onSuccess: () => refetch()
+});
+
+const handleCreate = () => {
+  createTodo({
+    table: 'todos',
+    data: {
+      text: newTodoText.value,
+      completed: false
+    }
+  });
+};
+
+const handleToggle = (todo: Todo) => {
+  updateTodo({
+    table: 'todos',
+    where: { id: todo.id },
+    data: { completed: !todo.completed }
+  });
+};
+
+const handleDelete = (todoId: string) => {
+  if (confirm('Delete this todo?')) {
+    deleteTodo({
+      table: 'todos',
+      where: { id: todoId }
+    });
+  }
+};
+</script>
+
+<template>
+  <div>
+    <form @submit.prevent="handleCreate">
+      <input
+        v-model="newTodoText"
+        placeholder="New todo"
+        required
+      />
+      <button type="submit">Add</button>
+    </form>
+
+    <div v-if="isLoading">Loading todos...</div>
+    <ul v-else>
+      <li v-for="todo in data?.rows" :key="todo.id">
+        <input
+          type="checkbox"
+          :checked="todo.completed"
+          @change="handleToggle(todo)"
+        />
+        <span :class="{ 'line-through': todo.completed }">
+          {{ todo.text }}
+        </span>
+        <button @click="handleDelete(todo.id)">Delete</button>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<style scoped>
+.line-through {
+  text-decoration: line-through;
+}
+</style>
+```
+
+## Next Steps
+
+- [Storage Composables](./storage-composables)
+- [Session Composables](./session-composables)
+- [Complete Examples](../tutorials/building-a-todo-app)

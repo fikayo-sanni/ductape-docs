@@ -1,0 +1,309 @@
+---
+sidebar_position: 7
+title: Resilience
+---
+
+# Resilience
+
+Build fault-tolerant applications with Ductape's resilience features including quotas for load distribution, fallbacks for automatic failover, and health monitoring.
+
+## Quotas
+
+Quotas distribute load across multiple providers based on weighted distribution, with health-aware provider selection.
+
+### Running Quota Operations
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'your-product',
+  env: 'prd'
+});
+
+// Execute operation with weighted provider distribution
+const result = await ductape.resilience.quotas.run({
+  tag: 'payment-quota',
+  input: {
+    amount: 1000,
+    currency: 'usd',
+    customer: 'cus_123'
+  }
+});
+
+console.log(`Processed by ${result.provider}`);
+console.log(`Latency: ${result.latency}ms`);
+console.log(`Healthy provider: ${result.wasHealthy}`);
+console.log(`Retries used: ${result.retriesUsed}`);
+```
+
+### Checking Quota Status
+
+```typescript
+// Check and consume quota
+const quotaResult = await ductape.resilience.quotas.check({
+  tag: 'api-calls',
+  identifier: 'user-123',
+  amount: 1
+});
+
+if (!quotaResult.allowed) {
+  console.log('Rate limited!');
+  console.log(`Remaining: ${quotaResult.remaining}`);
+  console.log(`Resets at: ${new Date(quotaResult.resetsAt)}`);
+}
+```
+
+### Getting Quota Status
+
+```typescript
+// Get quota status without consuming
+const status = await ductape.resilience.quotas.status({
+  tag: 'api-calls',
+  identifier: 'user-123'
+});
+
+console.log(`Used: ${status.used} / ${status.limit}`);
+console.log(`Remaining: ${status.remaining}`);
+```
+
+### Subscribing to Quota Changes
+
+```typescript
+// Connect first for real-time features
+await ductape.connect();
+
+// Subscribe to quota changes
+const subscription = ductape.resilience.quotas.subscribe(
+  {
+    tag: 'api-calls',
+    identifier: 'user-123'
+  },
+  (events) => {
+    events.forEach(event => {
+      console.log(`Quota changed: ${event.remaining} remaining`);
+    });
+  }
+);
+
+// Unsubscribe when done
+subscription.unsubscribe();
+```
+
+## Fallbacks
+
+Fallbacks provide automatic failover across multiple providers, trying them sequentially until one succeeds.
+
+### Running Fallback Operations
+
+```typescript
+// Execute with automatic failover
+const result = await ductape.resilience.fallbacks.run({
+  tag: 'email-fallback',
+  input: {
+    to: 'user@example.com',
+    subject: 'Welcome!',
+    body: 'Thank you for signing up'
+  }
+});
+
+console.log(`Email sent via ${result.provider}`);
+console.log(`Latency: ${result.latency}ms`);
+console.log(`Providers tried: ${result.providersTried}`);
+console.log(`Used healthy provider: ${result.wasHealthy}`);
+```
+
+### Fallback with Complex Input
+
+```typescript
+// Send payment with fallback providers
+const paymentResult = await ductape.resilience.fallbacks.run({
+  tag: 'payment-fallback',
+  input: {
+    amount: 5000,
+    currency: 'usd',
+    customer: {
+      id: 'cus_123',
+      email: 'customer@example.com'
+    },
+    metadata: {
+      order_id: 'ord_456',
+      source: 'web'
+    }
+  }
+});
+
+if (paymentResult.data.success) {
+  console.log('Payment processed successfully');
+  console.log(`Transaction ID: ${paymentResult.data.transactionId}`);
+}
+```
+
+## Health Monitoring
+
+Monitor the health status of your services and providers.
+
+### Checking Health Status
+
+```typescript
+// Get health status
+const health = await ductape.resilience.health.status({
+  tag: 'payment-service'
+});
+
+console.log(`Overall status: ${health.status}`); // 'healthy' | 'degraded' | 'unhealthy'
+console.log(`Last check: ${health.lastCheck}`);
+
+// Check individual probes
+health.probes.forEach(probe => {
+  console.log(`${probe.name}: ${probe.status}`);
+  if (probe.latency) {
+    console.log(`  Latency: ${probe.latency}ms`);
+  }
+  if (probe.error) {
+    console.log(`  Error: ${probe.error}`);
+  }
+});
+```
+
+### Subscribing to Health Changes
+
+```typescript
+// Connect first for real-time features
+await ductape.connect();
+
+// Subscribe to health status changes
+const healthSubscription = ductape.resilience.health.subscribe(
+  {
+    tag: 'payment-service'
+  },
+  (events) => {
+    events.forEach(event => {
+      console.log(`Health changed to ${event.status}`);
+      if (event.status === 'unhealthy') {
+        // Alert your team or trigger automated recovery
+        console.warn('Service is unhealthy!');
+      }
+    });
+  }
+);
+
+// Unsubscribe when done
+healthSubscription.unsubscribe();
+```
+
+## Complete Example: Payment Processing
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'payment-app',
+  env: 'prd'
+});
+
+async function processPayment(userId: string, amount: number) {
+  try {
+    // First, check if user has quota available
+    const quota = await ductape.resilience.quotas.check({
+      tag: 'payment-quota',
+      identifier: userId,
+      amount: 1
+    });
+
+    if (!quota.allowed) {
+      throw new Error(`Rate limit exceeded. Resets at ${new Date(quota.resetsAt)}`);
+    }
+
+    // Check health of payment service before proceeding
+    const health = await ductape.resilience.health.status({
+      tag: 'payment-providers'
+    });
+
+    if (health.status === 'unhealthy') {
+      throw new Error('Payment service is currently unavailable');
+    }
+
+    // Process payment with automatic failover
+    const result = await ductape.resilience.fallbacks.run({
+      tag: 'payment-fallback',
+      input: {
+        userId,
+        amount,
+        currency: 'usd'
+      }
+    });
+
+    console.log(`Payment processed by ${result.provider} in ${result.latency}ms`);
+    return result.data;
+  } catch (error) {
+    console.error('Payment failed:', error);
+    throw error;
+  }
+}
+
+// Process a payment
+processPayment('user-123', 1000);
+```
+
+## Type Safety
+
+All resilience methods are fully typed:
+
+```typescript
+interface PaymentResult {
+  transactionId: string;
+  status: 'success' | 'failed';
+  processorFee: number;
+}
+
+// Type-safe quota run
+const result = await ductape.resilience.quotas.run<PaymentResult>({
+  tag: 'payment-quota',
+  input: { amount: 1000 }
+});
+
+// TypeScript knows result.data is PaymentResult
+console.log(result.data.transactionId);
+
+// Type-safe fallback run
+const fallbackResult = await ductape.resilience.fallbacks.run<PaymentResult>({
+  tag: 'payment-fallback',
+  input: { amount: 1000 }
+});
+
+console.log(fallbackResult.data.status); // TypeScript knows this is 'success' | 'failed'
+```
+
+## Error Handling
+
+```typescript
+try {
+  const result = await ductape.resilience.quotas.run({
+    tag: 'email-quota',
+    input: { to: 'user@example.com', subject: 'Hello' }
+  });
+
+  console.log('Email sent successfully');
+} catch (error) {
+  if (error.message.includes('No providers available')) {
+    console.error('All email providers are down');
+  } else if (error.message.includes('All retries failed')) {
+    console.error('Maximum retries exceeded');
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Best Practices
+
+1. **Check Quotas First**: Always check quota availability before expensive operations
+2. **Monitor Health**: Subscribe to health changes to proactively handle degraded services
+3. **Use Fallbacks for Critical Operations**: Implement fallbacks for operations that must succeed
+4. **Handle Errors Gracefully**: Always handle quota exceeded and service unavailable scenarios
+5. **Log Provider Information**: Track which providers are being used for debugging and optimization
+6. **Set Appropriate Timeouts**: Configure reasonable timeouts for your use case
+7. **Test Failover Scenarios**: Regularly test that your fallback chains work as expected

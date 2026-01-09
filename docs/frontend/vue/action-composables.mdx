@@ -1,0 +1,581 @@
+---
+sidebar_position: 7
+title: Action Composables
+---
+
+# Action Composables
+
+Vue 3 composables for executing Ductape Actions - pre-built integrations with external services like Stripe and Paystack.
+
+## useAction
+
+Execute any Ductape action with reactive state management.
+
+### Basic Action Execution
+
+```vue
+<script setup lang="ts">
+import { useAction } from '@ductape/vue';
+
+const { mutate, isLoading, error, data } = useAction({
+  onSuccess: (result) => {
+    console.log('Customer created:', result);
+    alert('Customer created successfully!');
+  }
+});
+
+const handleCreate = () => {
+  mutate({
+    action: 'stripe.create-customer',
+    input: {
+      email: 'customer@example.com',
+      name: 'John Doe',
+      metadata: {
+        userId: 'user-123'
+      }
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleCreate" :disabled="isLoading">
+      {{ isLoading ? 'Creating...' : 'Create Customer' }}
+    </button>
+    <p v-if="error" class="error">{{ error.message }}</p>
+    <p v-if="data">Customer ID: {{ data.customerId }}</p>
+  </div>
+</template>
+```
+
+### Action with Parameters
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useAction } from '@ductape/vue';
+
+const amount = ref('');
+const email = ref('');
+const currency = ref('NGN');
+
+const { mutate: initializePayment, isLoading, data } = useAction({
+  onSuccess: (result) => {
+    console.log('Payment initialized:', result);
+    // Redirect to payment page
+    window.location.href = result.authorization_url;
+  }
+});
+
+const handleSubmit = () => {
+  initializePayment({
+    action: 'paystack.initialize-transaction',
+    input: {
+      email: email.value,
+      amount: parseFloat(amount.value) * 100, // Convert to kobo/cents
+      currency: currency.value,
+      callback_url: window.location.origin + '/payment/callback'
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Email"
+      required
+    />
+    <input
+      v-model="amount"
+      type="number"
+      placeholder="Amount"
+      required
+    />
+    <select v-model="currency">
+      <option value="NGN">NGN</option>
+      <option value="USD">USD</option>
+      <option value="GHS">GHS</option>
+    </select>
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Processing...' : 'Pay with Paystack' }}
+    </button>
+  </form>
+</template>
+```
+
+## useActionQuery
+
+Query data from an action (for read operations).
+
+```vue
+<script setup lang="ts">
+import { useActionQuery } from '@ductape/vue';
+
+const { data, isLoading, error } = useActionQuery(
+  'paystack-transactions',
+  {
+    action: 'paystack.list-transactions',
+    input: {
+      perPage: 50,
+      status: 'success'
+    }
+  }
+);
+</script>
+
+<template>
+  <div v-if="isLoading">Loading transactions...</div>
+  <div v-else-if="error">Error: {{ error.message }}</div>
+  <ul v-else>
+    <li v-for="transaction in data?.transactions" :key="transaction.id">
+      <span>{{ transaction.customer.email }}</span>
+      <span>{{ transaction.currency }} {{ transaction.amount / 100 }}</span>
+      <span>{{ new Date(transaction.created_at).toLocaleDateString() }}</span>
+    </li>
+  </ul>
+</template>
+```
+
+### Query with Filters
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useActionQuery } from '@ductape/vue';
+
+const limit = ref(10);
+
+const { data, isLoading } = useActionQuery(
+  ['stripe-customers', limit],
+  {
+    action: 'stripe.list-customers',
+    input: {
+      limit: limit.value
+    }
+  }
+);
+</script>
+
+<template>
+  <div>
+    <select v-model="limit">
+      <option :value="10">10</option>
+      <option :value="25">25</option>
+      <option :value="50">50</option>
+      <option :value="100">100</option>
+    </select>
+
+    <div v-if="isLoading">Loading...</div>
+    <table v-else>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="customer in data?.data" :key="customer.id">
+          <td>{{ customer.name }}</td>
+          <td>{{ customer.email }}</td>
+          <td>{{ new Date(customer.created * 1000).toLocaleDateString() }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+```
+
+## Common Action Examples
+
+### Create Stripe Payment Intent
+
+```vue
+<script setup lang="ts">
+import { useAction } from '@ductape/vue';
+
+const props = defineProps<{
+  amount: number;
+  customerId: string;
+}>();
+
+const { mutate: createPayment, isLoading, data } = useAction({
+  onSuccess: (result) => {
+    console.log('Payment intent created:', result.id);
+  }
+});
+
+const handlePayment = () => {
+  createPayment({
+    action: 'stripe.create-payment-intent',
+    input: {
+      amount: props.amount * 100, // Convert to cents
+      currency: 'usd',
+      customer: props.customerId,
+      automatic_payment_methods: {
+        enabled: true
+      }
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <p>Amount: ${{ amount }}</p>
+    <button @click="handlePayment" :disabled="isLoading">
+      {{ isLoading ? 'Processing...' : 'Pay Now' }}
+    </button>
+    <div v-if="data">
+      <p>Payment Intent ID: {{ data.id }}</p>
+      <p>Status: {{ data.status }}</p>
+      <p>Client Secret: {{ data.client_secret }}</p>
+    </div>
+  </div>
+</template>
+```
+
+### Verify Paystack Transaction
+
+```vue
+<script setup lang="ts">
+import { useActionQuery } from '@ductape/vue';
+
+const props = defineProps<{ reference: string }>();
+
+const { data, isLoading, error } = useActionQuery(
+  ['paystack-verify', props.reference],
+  {
+    action: 'paystack.verify-transaction',
+    input: { reference: props.reference }
+  }
+);
+</script>
+
+<template>
+  <div v-if="isLoading">Verifying payment...</div>
+  <div v-else-if="error">Verification failed: {{ error.message }}</div>
+  <div v-else class="verification-result">
+    <div v-if="data?.data.status === 'success'" class="success">
+      <h3>Payment Successful!</h3>
+      <p>Amount: {{ data.data.currency }} {{ data.data.amount / 100 }}</p>
+      <p>Reference: {{ data.data.reference }}</p>
+      <p>Paid by: {{ data.data.customer.email }}</p>
+    </div>
+    <div v-else class="error">
+      <h3>Payment Failed</h3>
+      <p>Status: {{ data?.data.status }}</p>
+    </div>
+  </div>
+</template>
+```
+
+### Create Stripe Subscription
+
+```vue
+<script setup lang="ts">
+import { useAction } from '@ductape/vue';
+
+const props = defineProps<{
+  customerId: string;
+  priceId: string;
+}>();
+
+const { mutate: createSubscription, isLoading, data } = useAction({
+  onSuccess: (result) => {
+    alert('Subscription created!');
+    console.log('Subscription:', result);
+  }
+});
+
+const handleSubscribe = () => {
+  createSubscription({
+    action: 'stripe.create-subscription',
+    input: {
+      customer: props.customerId,
+      items: [{ price: props.priceId }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: {
+        payment_method_types: ['card']
+      },
+      expand: ['latest_invoice.payment_intent']
+    }
+  });
+};
+</script>
+
+<template>
+  <div>
+    <button @click="handleSubscribe" :disabled="isLoading">
+      {{ isLoading ? 'Creating Subscription...' : 'Subscribe' }}
+    </button>
+    <div v-if="data">
+      <p>Subscription ID: {{ data.id }}</p>
+      <p>Status: {{ data.status }}</p>
+    </div>
+  </div>
+</template>
+```
+
+### List Paystack Customers
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useActionQuery } from '@ductape/vue';
+
+const page = ref(1);
+
+const { data, isLoading } = useActionQuery(
+  ['paystack-customers', page],
+  {
+    action: 'paystack.list-customers',
+    input: {
+      perPage: 20,
+      page: page.value
+    }
+  }
+);
+</script>
+
+<template>
+  <div v-if="isLoading">Loading customers...</div>
+  <div v-else>
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Customer Code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="customer in data?.data" :key="customer.id">
+          <td>{{ customer.email }}</td>
+          <td>{{ customer.first_name }}</td>
+          <td>{{ customer.last_name }}</td>
+          <td>{{ customer.customer_code }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <button
+        @click="page = Math.max(1, page - 1)"
+        :disabled="page === 1"
+      >
+        Previous
+      </button>
+      <span>Page {{ page }}</span>
+      <button @click="page++">
+        Next
+      </button>
+    </div>
+  </div>
+</template>
+```
+
+## Action Chaining
+
+Execute multiple actions in sequence.
+
+```vue
+<script setup lang="ts">
+import { useAction } from '@ductape/vue';
+
+const props = defineProps<{
+  email: string;
+  amount: number;
+}>();
+
+const { mutate: createCustomer } = useAction();
+const { mutate: createPayment } = useAction();
+const { mutate: sendReceipt } = useAction();
+
+const processPayment = async () => {
+  try {
+    // Create or retrieve Stripe customer
+    const customer = await createCustomer({
+      action: 'stripe.create-customer',
+      input: {
+        email: props.email,
+        metadata: { source: 'web-checkout' }
+      }
+    });
+
+    // Create payment intent
+    const payment = await createPayment({
+      action: 'stripe.create-payment-intent',
+      input: {
+        amount: props.amount * 100, // Convert to cents
+        currency: 'usd',
+        customer: customer.id,
+        automatic_payment_methods: { enabled: true }
+      }
+    });
+
+    // Send receipt via notification
+    await sendReceipt({
+      action: 'ductape.send-notification',
+      input: {
+        channel: 'email',
+        to: props.email,
+        template: 'payment-receipt',
+        data: {
+          amount: props.amount,
+          paymentId: payment.id,
+          customerName: props.email
+        }
+      }
+    });
+
+    alert('Payment processed successfully!');
+    return payment;
+  } catch (error) {
+    console.error('Payment processing failed:', error);
+    throw error;
+  }
+};
+</script>
+
+<template>
+  <button @click="processPayment">
+    Process Payment
+  </button>
+</template>
+```
+
+## Complete Payment Service Example
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useAction, useActionQuery } from '@ductape/vue';
+
+const amount = ref(99.99);
+const email = ref('');
+const reference = ref<string | null>(null);
+
+// Create Stripe payment
+const { mutate: createStripePayment, isLoading: isCreatingStripe } = useAction({
+  onSuccess: (result) => {
+    console.log('Client Secret:', result.client_secret);
+  }
+});
+
+// Create Paystack payment
+const { mutate: createPaystackPayment, isLoading: isCreatingPaystack } = useAction({
+  onSuccess: (result) => {
+    reference.value = result.data.reference;
+    window.location.href = result.data.authorization_url;
+  }
+});
+
+// Verify Paystack payment
+const { mutate: verifyPaystack } = useAction({
+  onSuccess: (result) => {
+    if (result.data.status === 'success') {
+      alert('Payment verified!');
+    }
+  }
+});
+
+const handleStripePayment = () => {
+  createStripePayment({
+    action: 'stripe.create-payment-intent',
+    input: {
+      amount: amount.value * 100,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true }
+    }
+  });
+};
+
+const handlePaystackPayment = () => {
+  createPaystackPayment({
+    action: 'paystack.initialize-transaction',
+    input: {
+      email: email.value,
+      amount: amount.value * 100,
+      currency: 'NGN',
+      callback_url: window.location.origin + '/verify'
+    }
+  });
+};
+
+const handleVerify = () => {
+  if (!reference.value) return;
+  verifyPaystack({
+    action: 'paystack.verify-transaction',
+    input: { reference: reference.value }
+  });
+};
+</script>
+
+<template>
+  <div class="payment-service">
+    <h2>Payment Options</h2>
+
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Email"
+      required
+    />
+    <input
+      v-model.number="amount"
+      type="number"
+      placeholder="Amount"
+      required
+    />
+
+    <div class="payment-buttons">
+      <button
+        @click="handleStripePayment"
+        :disabled="isCreatingStripe"
+      >
+        {{ isCreatingStripe ? 'Processing...' : 'Pay with Stripe' }}
+      </button>
+
+      <button
+        @click="handlePaystackPayment"
+        :disabled="isCreatingPaystack || !email"
+      >
+        {{ isCreatingPaystack ? 'Processing...' : 'Pay with Paystack' }}
+      </button>
+    </div>
+
+    <button
+      v-if="reference"
+      @click="handleVerify"
+    >
+      Verify Payment
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.payment-service {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.payment-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+</style>
+```
+
+## Next Steps
+
+- [Database Composables](./database-composables)
+- [Storage Composables](./storage-composables)
+- [Workflow Composables](./workflow-composables)

@@ -1,0 +1,979 @@
+---
+sidebar_position: 5
+title: Session Hooks
+---
+
+# Session Hooks
+
+React hooks for managing JWT-based sessions with automatic encryption, token refresh, and session lifecycle management.
+
+## useSessionStart
+
+Create a new session with encrypted JWT token.
+
+### Basic Session Start
+
+```tsx
+import { useSessionStart } from '@ductape/react';
+
+function LoginComponent() {
+  const { mutate: startSession, isLoading, data, error } = useSessionStart({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('refreshToken', result.refreshToken);
+      console.log('Session started:', result.sessionId);
+    },
+    onError: (error) => {
+      alert('Failed to start session: ' + error.message);
+    }
+  });
+
+  const handleLogin = async (userId: string, email: string) => {
+    // After validating credentials, start the session
+    startSession({
+      tag: 'user-session',
+      data: {
+        userId,
+        email,
+        role: 'user'
+      },
+      identifier: userId
+    });
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => handleLogin('user-123', 'user@example.com')}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Starting Session...' : 'Log In'}
+      </button>
+
+      {data && (
+        <div>
+          <p>Session ID: {data.sessionId}</p>
+          <p>Expires: {new Date(data.expiresAt).toLocaleString()}</p>
+        </div>
+      )}
+
+      {error && <p style={{ color: 'red' }}>{error.message}</p>}
+    </div>
+  );
+}
+```
+
+### With Custom Expiration
+
+```tsx
+function ExtendedSession() {
+  const { mutate: startSession, isLoading } = useSessionStart({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('refreshToken', result.refreshToken);
+    }
+  });
+
+  const handleStartExtendedSession = () => {
+    startSession({
+      tag: 'user-session',
+      data: {
+        userId: 'user-123',
+        email: 'user@example.com',
+        role: 'admin'
+      },
+      identifier: 'user-123',
+      expiresIn: 7 * 24 * 60 * 60 // 7 days in seconds
+    });
+  };
+
+  return (
+    <button onClick={handleStartExtendedSession} disabled={isLoading}>
+      Start 7-Day Session
+    </button>
+  );
+}
+```
+
+### Admin Session Example
+
+```tsx
+function AdminLogin() {
+  const { mutate: startSession, data } = useSessionStart({
+    onSuccess: (result) => {
+      localStorage.setItem('adminToken', result.token);
+      localStorage.setItem('adminRefreshToken', result.refreshToken);
+    }
+  });
+
+  const handleAdminLogin = () => {
+    startSession({
+      tag: 'admin-session',
+      data: {
+        userId: 'admin-456',
+        email: 'admin@company.com',
+        role: 'admin',
+        permissions: ['users.manage', 'content.edit', 'reports.view']
+      },
+      identifier: 'admin-456'
+    });
+  };
+
+  return (
+    <button onClick={handleAdminLogin}>
+      Start Admin Session
+    </button>
+  );
+}
+```
+
+## useSessionVerify
+
+Verify and decode a JWT session token.
+
+### Basic Token Verification
+
+```tsx
+import { useSessionVerify } from '@ductape/react';
+import { useEffect } from 'react';
+
+function SessionValidator() {
+  const { mutate: verifySession, data, isLoading, error } = useSessionVerify({
+    onSuccess: (result) => {
+      console.log('Session valid:', result.data);
+      console.log('Expires at:', new Date(result.expiresAt));
+    },
+    onError: (error) => {
+      // Token invalid or expired
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+    }
+  }, []);
+
+  if (isLoading) return <div>Verifying session...</div>;
+
+  if (error) {
+    return <div>Session expired. Please log in again.</div>;
+  }
+
+  if (!data) return null;
+
+  return (
+    <div>
+      <h2>Welcome back!</h2>
+      <p>User ID: {data.data.userId}</p>
+      <p>Email: {data.data.email}</p>
+      <p>Role: {data.data.role}</p>
+      <p>Session expires: {new Date(data.expiresAt).toLocaleString()}</p>
+    </div>
+  );
+}
+```
+
+### Protected Route Component
+
+```tsx
+import { useSessionVerify } from '@ductape/react';
+import { Navigate } from 'react-router-dom';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { mutate: verifySession, data, isLoading } = useSessionVerify();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+    }
+  }, []);
+
+  if (isLoading) {
+    return <div>Verifying access...</div>;
+  }
+
+  if (!data) {
+    return <Navigate to="/login" />;
+  }
+
+  return <>{children}</>;
+}
+```
+
+### Role-Based Access Control
+
+```tsx
+function AdminDashboard() {
+  const [hasAccess, setHasAccess] = useState(false);
+  const { mutate: verifySession, isLoading } = useSessionVerify({
+    onSuccess: (result) => {
+      if (result.data.role === 'admin') {
+        setHasAccess(true);
+      } else {
+        alert('Admin access required');
+      }
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'admin-session',
+        token
+      });
+    }
+  }, []);
+
+  if (isLoading) return <div>Checking permissions...</div>;
+
+  if (!hasAccess) {
+    return <div>Access denied. Admin role required.</div>;
+  }
+
+  return (
+    <div>
+      <h1>Admin Dashboard</h1>
+      {/* Admin content */}
+    </div>
+  );
+}
+```
+
+## useSessionRefresh
+
+Refresh an expiring session token using a refresh token.
+
+### Manual Token Refresh
+
+```tsx
+import { useSessionRefresh } from '@ductape/react';
+
+function RefreshButton() {
+  const { mutate: refreshSession, isLoading } = useSessionRefresh({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('refreshToken', result.refreshToken);
+      alert('Session refreshed successfully');
+    },
+    onError: (error) => {
+      alert('Failed to refresh session. Please log in again.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
+  });
+
+  const handleRefresh = () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      refreshSession({
+        tag: 'user-session',
+        refreshToken
+      });
+    }
+  };
+
+  return (
+    <button onClick={handleRefresh} disabled={isLoading}>
+      {isLoading ? 'Refreshing...' : 'Refresh Session'}
+    </button>
+  );
+}
+```
+
+### Conditional Refresh Based on Expiry
+
+```tsx
+function SessionMonitor() {
+  const { mutate: verifySession, data } = useSessionVerify();
+  const { mutate: refreshSession } = useSessionRefresh({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('refreshToken', result.refreshToken);
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!data) return;
+
+    const expiresAt = new Date(data.expiresAt).getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    // Refresh if expires in less than 5 minutes
+    if (expiresAt - now < fiveMinutes) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        refreshSession({
+          tag: 'user-session',
+          refreshToken
+        });
+      }
+    }
+  }, [data]);
+
+  return null; // Background component
+}
+```
+
+## useSessionAutoRefresh
+
+Automatically refresh tokens before they expire.
+
+### Basic Auto-Refresh Setup
+
+```tsx
+import { useSessionAutoRefresh } from '@ductape/react';
+import { useEffect } from 'react';
+
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const {
+    enableAutoRefresh,
+    stopAutoRefresh,
+    setToken,
+    getCurrentToken
+  } = useSessionAutoRefresh();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (token && refreshToken) {
+      setToken(token);
+
+      enableAutoRefresh({
+        tag: 'user-session',
+        refreshToken,
+        refreshBefore: 5 * 60, // Refresh 5 minutes before expiry
+        onRefresh: (result) => {
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('refreshToken', result.refreshToken);
+          console.log('Session auto-refreshed');
+        },
+        onError: (error) => {
+          console.error('Auto-refresh failed:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          // Redirect to login
+        }
+      });
+    }
+
+    return () => {
+      stopAutoRefresh();
+    };
+  }, []);
+
+  return <>{children}</>;
+}
+```
+
+### Complete Auth Context
+
+```tsx
+import { useSessionAutoRefresh, useSessionStart, useSessionVerify } from '@ductape/react';
+import { createContext, useContext, useEffect, useState } from 'react';
+
+interface AuthContextType {
+  user: any | null;
+  isAuthenticated: boolean;
+  login: (userId: string, email: string) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any | null>(null);
+  const { enableAutoRefresh, stopAutoRefresh, setToken } = useSessionAutoRefresh();
+  const { mutate: startSession } = useSessionStart();
+  const { mutate: verifySession } = useSessionVerify();
+
+  useEffect(() => {
+    // Verify existing session on mount
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (token && refreshToken) {
+      verifySession(
+        {
+          tag: 'user-session',
+          token
+        },
+        {
+          onSuccess: (result) => {
+            setUser(result.data);
+            setToken(token);
+
+            enableAutoRefresh({
+              tag: 'user-session',
+              refreshToken,
+              onRefresh: (result) => {
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('refreshToken', result.refreshToken);
+              }
+            });
+          },
+          onError: () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+          }
+        }
+      );
+    }
+
+    return () => stopAutoRefresh();
+  }, []);
+
+  const login = async (userId: string, email: string) => {
+    startSession(
+      {
+        tag: 'user-session',
+        data: { userId, email, role: 'user' },
+        identifier: userId
+      },
+      {
+        onSuccess: (result) => {
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('refreshToken', result.refreshToken);
+          setUser({ userId, email, role: 'user' });
+          setToken(result.token);
+
+          enableAutoRefresh({
+            tag: 'user-session',
+            refreshToken: result.refreshToken,
+            onRefresh: (result) => {
+              localStorage.setItem('token', result.token);
+              localStorage.setItem('refreshToken', result.refreshToken);
+            }
+          });
+        }
+      }
+    );
+  };
+
+  const logout = () => {
+    stopAutoRefresh();
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
+```
+
+## useSessionRevoke
+
+Revoke a specific session by ID.
+
+### Revoke Single Session
+
+```tsx
+import { useSessionRevoke } from '@ductape/react';
+
+function SessionItem({ session }: { session: any }) {
+  const { mutate: revokeSession, isLoading } = useSessionRevoke({
+    onSuccess: () => {
+      alert('Session revoked successfully');
+    }
+  });
+
+  const handleRevoke = () => {
+    revokeSession({
+      tag: 'user-session',
+      sessionId: session.sessionId
+    });
+  };
+
+  return (
+    <div>
+      <p>Device: {session.device}</p>
+      <p>Created: {new Date(session.createdAt).toLocaleString()}</p>
+      <button onClick={handleRevoke} disabled={isLoading}>
+        {isLoading ? 'Revoking...' : 'Revoke Session'}
+      </button>
+    </div>
+  );
+}
+```
+
+### Revoke Current Session (Logout)
+
+```tsx
+function LogoutButton() {
+  const { mutate: verifySession, data } = useSessionVerify();
+  const { mutate: revokeSession, isLoading } = useSessionRevoke({
+    onSuccess: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      window.location.href = '/login';
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+    }
+  }, []);
+
+  const handleLogout = () => {
+    if (data?.sessionId) {
+      revokeSession({
+        tag: 'user-session',
+        sessionId: data.sessionId
+      });
+    }
+  };
+
+  return (
+    <button onClick={handleLogout} disabled={isLoading}>
+      {isLoading ? 'Logging Out...' : 'Log Out'}
+    </button>
+  );
+}
+```
+
+## useSessionRevokeAll
+
+Revoke all sessions for a user.
+
+### Revoke All Sessions
+
+```tsx
+import { useSessionRevokeAll } from '@ductape/react';
+
+function RevokeAllSessions({ userId }: { userId: string }) {
+  const { mutate: revokeAll, isLoading } = useSessionRevokeAll({
+    onSuccess: (result) => {
+      alert(`Revoked ${result.revokedCount} sessions`);
+    }
+  });
+
+  const handleRevokeAll = () => {
+    revokeAll({
+      tag: 'user-session',
+      identifier: userId
+    });
+  };
+
+  return (
+    <button onClick={handleRevokeAll} disabled={isLoading}>
+      {isLoading ? 'Revoking...' : 'Revoke All Sessions'}
+    </button>
+  );
+}
+```
+
+### Revoke All Except Current
+
+```tsx
+function SecuritySettings() {
+  const { mutate: verifySession, data: sessionData } = useSessionVerify();
+  const { mutate: revokeAll, isLoading } = useSessionRevokeAll({
+    onSuccess: (result) => {
+      alert(`Logged out of ${result.revokedCount} other devices`);
+    }
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+    }
+  }, []);
+
+  const handleRevokeOthers = () => {
+    if (sessionData) {
+      revokeAll({
+        tag: 'user-session',
+        identifier: sessionData.data.userId,
+        excludeCurrentSession: sessionData.sessionId
+      });
+    }
+  };
+
+  return (
+    <div>
+      <h3>Security</h3>
+      <button onClick={handleRevokeOthers} disabled={isLoading}>
+        {isLoading ? 'Logging Out Other Devices...' : 'Log Out All Other Devices'}
+      </button>
+    </div>
+  );
+}
+```
+
+## useSessionList
+
+List active sessions for a user.
+
+### List All User Sessions
+
+```tsx
+import { useSessionList } from '@ductape/react';
+
+function ActiveSessions({ userId }: { userId: string }) {
+  const { mutate: listSessions, data, isLoading } = useSessionList({
+    onSuccess: (result) => {
+      console.log(`Found ${result.sessions.length} active sessions`);
+    }
+  });
+
+  useEffect(() => {
+    listSessions({
+      tag: 'user-session',
+      identifier: userId
+    });
+  }, [userId]);
+
+  if (isLoading) return <div>Loading sessions...</div>;
+
+  if (!data) return null;
+
+  return (
+    <div>
+      <h3>Active Sessions ({data.sessions.length})</h3>
+      <ul>
+        {data.sessions.map((session) => (
+          <li key={session.sessionId}>
+            <p>Session ID: {session.sessionId}</p>
+            <p>Created: {new Date(session.createdAt).toLocaleString()}</p>
+            <p>Expires: {new Date(session.expiresAt).toLocaleString()}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Complete Session Manager
+
+```tsx
+import { useSessionList, useSessionRevoke, useSessionRevokeAll } from '@ductape/react';
+import { useEffect, useState } from 'react';
+
+function SessionManager({ userId, currentSessionId }: { userId: string; currentSessionId: string }) {
+  const { mutate: listSessions, data, isLoading: isLoadingList } = useSessionList();
+  const { mutate: revokeSession } = useSessionRevoke({
+    onSuccess: () => {
+      // Refresh the list
+      listSessions({
+        tag: 'user-session',
+        identifier: userId
+      });
+    }
+  });
+  const { mutate: revokeAll } = useSessionRevokeAll({
+    onSuccess: () => {
+      listSessions({
+        tag: 'user-session',
+        identifier: userId
+      });
+    }
+  });
+
+  useEffect(() => {
+    listSessions({
+      tag: 'user-session',
+      identifier: userId
+    });
+  }, [userId]);
+
+  const handleRevokeSession = (sessionId: string) => {
+    if (confirm('Revoke this session?')) {
+      revokeSession({
+        tag: 'user-session',
+        sessionId
+      });
+    }
+  };
+
+  const handleRevokeOthers = () => {
+    if (confirm('Log out all other devices?')) {
+      revokeAll({
+        tag: 'user-session',
+        identifier: userId,
+        excludeCurrentSession: currentSessionId
+      });
+    }
+  };
+
+  if (isLoadingList) return <div>Loading sessions...</div>;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Your Sessions</h2>
+        <button onClick={handleRevokeOthers}>
+          Log Out Other Devices
+        </button>
+      </div>
+
+      {data && data.sessions.length > 0 ? (
+        <div>
+          {data.sessions.map((session) => (
+            <div
+              key={session.sessionId}
+              style={{
+                border: '1px solid #ddd',
+                padding: '1rem',
+                marginBottom: '1rem',
+                borderRadius: '4px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <p>
+                    <strong>Session ID:</strong> {session.sessionId}
+                    {session.sessionId === currentSessionId && (
+                      <span style={{ color: 'green', marginLeft: '8px' }}>
+                        (Current)
+                      </span>
+                    )}
+                  </p>
+                  <p>Created: {new Date(session.createdAt).toLocaleString()}</p>
+                  <p>Expires: {new Date(session.expiresAt).toLocaleString()}</p>
+                </div>
+                {session.sessionId !== currentSessionId && (
+                  <button
+                    onClick={() => handleRevokeSession(session.sessionId)}
+                    style={{ height: 'fit-content' }}
+                  >
+                    Revoke
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>No active sessions found.</p>
+      )}
+    </div>
+  );
+}
+```
+
+## Complete Authentication Example
+
+```tsx
+import {
+  useSessionStart,
+  useSessionVerify,
+  useSessionRevoke,
+  useSessionAutoRefresh
+} from '@ductape/react';
+import { useEffect, useState } from 'react';
+
+function AuthApp() {
+  const [user, setUser] = useState<any | null>(null);
+  const { enableAutoRefresh, stopAutoRefresh, setToken } = useSessionAutoRefresh();
+
+  const { mutate: startSession, isLoading: isStarting } = useSessionStart({
+    onSuccess: (result) => {
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('refreshToken', result.refreshToken);
+      setToken(result.token);
+
+      enableAutoRefresh({
+        tag: 'user-session',
+        refreshToken: result.refreshToken,
+        onRefresh: (result) => {
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
+      });
+    }
+  });
+
+  const { mutate: verifySession } = useSessionVerify({
+    onSuccess: (result) => {
+      setUser(result.data);
+    },
+    onError: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+    }
+  });
+
+  const { mutate: revokeSession } = useSessionRevoke({
+    onSuccess: () => {
+      stopAutoRefresh();
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+    }
+  });
+
+  // Verify session on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (token && refreshToken) {
+      verifySession({
+        tag: 'user-session',
+        token
+      });
+
+      setToken(token);
+      enableAutoRefresh({
+        tag: 'user-session',
+        refreshToken,
+        onRefresh: (result) => {
+          localStorage.setItem('token', result.token);
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
+      });
+    }
+
+    return () => stopAutoRefresh();
+  }, []);
+
+  const handleLogin = () => {
+    startSession({
+      tag: 'user-session',
+      data: {
+        userId: 'user-123',
+        email: 'user@example.com',
+        role: 'user'
+      },
+      identifier: 'user-123'
+    });
+  };
+
+  const handleLogout = () => {
+    if (user?.sessionId) {
+      revokeSession({
+        tag: 'user-session',
+        sessionId: user.sessionId
+      });
+    }
+  };
+
+  if (!user) {
+    return (
+      <div>
+        <h1>Please Log In</h1>
+        <button onClick={handleLogin} disabled={isStarting}>
+          {isStarting ? 'Logging In...' : 'Log In'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {user.email}!</h1>
+      <p>User ID: {user.userId}</p>
+      <p>Role: {user.role}</p>
+      <button onClick={handleLogout}>Log Out</button>
+    </div>
+  );
+}
+```
+
+## Type Safety
+
+All session hooks are fully typed:
+
+```tsx
+interface UserSessionData {
+  userId: string;
+  email: string;
+  role: 'user' | 'admin';
+  permissions?: string[];
+}
+
+function TypeSafeSession() {
+  const { mutate: startSession } = useSessionStart({
+    onSuccess: (result) => {
+      // TypeScript knows result structure
+      console.log(result.token);
+      console.log(result.refreshToken);
+      console.log(result.sessionId);
+    }
+  });
+
+  const { mutate: verifySession, data } = useSessionVerify({
+    onSuccess: (result) => {
+      // Access encrypted data
+      const userData = result.data as UserSessionData;
+      console.log(userData.userId);
+      console.log(userData.role);
+    }
+  });
+
+  // Start session with typed data
+  const handleStart = () => {
+    startSession({
+      tag: 'user-session',
+      data: {
+        userId: '123',
+        email: 'user@example.com',
+        role: 'admin',
+        permissions: ['users.manage']
+      } as UserSessionData,
+      identifier: '123'
+    });
+  };
+
+  return <button onClick={handleStart}>Start Session</button>;
+}
+```
+
+## Best Practices
+
+1. **Always Store Both Tokens**: Store both `token` and `refreshToken` for session continuity
+2. **Use Auto-Refresh**: Implement `useSessionAutoRefresh` to avoid session expiration
+3. **Verify on Mount**: Always verify stored tokens when the app loads
+4. **Include Tag Field**: All session operations require the `tag` field to identify session type
+5. **Handle Errors**: Properly handle verification and refresh errors by clearing invalid tokens
+6. **Secure Storage**: Consider using secure storage instead of localStorage for sensitive applications
+7. **Clean Up**: Always call `stopAutoRefresh()` in cleanup functions
+8. **Session Identifiers**: Use consistent identifiers (e.g., userId) for session management
+9. **Revoke on Logout**: Always revoke the session when logging out, not just clearing tokens
+10. **Type Your Data**: Use TypeScript interfaces for session data for type safety

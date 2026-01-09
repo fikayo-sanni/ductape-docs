@@ -1,0 +1,441 @@
+---
+sidebar_position: 6
+title: Notification Composables
+---
+
+# Notification Composables
+
+Vue 3 composables for sending notifications through email, SMS, and push notification channels.
+
+## useNotification
+
+Send notifications with reactive loading states and error handling.
+
+### Send Email Notification
+
+```vue
+<script setup lang="ts">
+import { useNotification } from '@ductape/vue';
+
+const props = defineProps<{
+  userEmail: string;
+  userName: string;
+}>();
+
+const { mutate: sendNotification, isLoading, error } = useNotification({
+  onSuccess: () => {
+    alert('Welcome email sent!');
+  }
+});
+
+const handleSend = () => {
+  sendNotification({
+    channel: 'email',
+    to: props.userEmail,
+    template: 'welcome-email',
+    data: {
+      name: props.userName,
+      loginLink: 'https://app.com/login'
+    }
+  });
+};
+</script>
+
+<template>
+  <button @click="handleSend" :disabled="isLoading">
+    {{ isLoading ? 'Sending...' : 'Send Welcome Email' }}
+  </button>
+</template>
+```
+
+### Send SMS Notification
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNotification } from '@ductape/vue';
+
+const props = defineProps<{ phoneNumber: string }>();
+const code = ref(Math.floor(100000 + Math.random() * 900000).toString());
+
+const { mutate, isLoading } = useNotification({
+  onSuccess: () => {
+    alert('Verification code sent!');
+  }
+});
+
+const handleSend = () => {
+  mutate({
+    channel: 'sms',
+    to: props.phoneNumber,
+    template: 'verification-code',
+    data: {
+      code: code.value,
+      expiresIn: '10 minutes'
+    }
+  });
+};
+</script>
+
+<template>
+  <button @click="handleSend" :disabled="isLoading">
+    {{ isLoading ? 'Sending...' : 'Send Code' }}
+  </button>
+</template>
+```
+
+### Send Push Notification
+
+```vue
+<script setup lang="ts">
+import { useNotification } from '@ductape/vue';
+
+const props = defineProps<{
+  deviceToken: string;
+  message: string;
+}>();
+
+const { mutate, isLoading } = useNotification();
+
+const handleSend = () => {
+  mutate({
+    channel: 'push',
+    to: props.deviceToken,
+    data: {
+      title: 'New Message',
+      body: props.message,
+      badge: 1,
+      sound: 'default'
+    }
+  });
+};
+</script>
+
+<template>
+  <button @click="handleSend" :disabled="isLoading">
+    Send Push
+  </button>
+</template>
+```
+
+## useNotificationBatch
+
+Send notifications to multiple recipients.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNotificationBatch } from '@ductape/vue';
+
+const recipients = ref<string[]>([]);
+const recipientsText = ref('');
+
+const { mutate: sendBatch, isLoading } = useNotificationBatch({
+  onSuccess: (result) => {
+    alert(`Sent ${result.successCount} emails successfully`);
+  }
+});
+
+const handleSendAll = () => {
+  const emails = recipientsText.value.split('\n').filter(Boolean);
+  recipients.value = emails;
+
+  sendBatch({
+    channel: 'email',
+    template: 'newsletter',
+    recipients: emails.map(email => ({
+      to: email,
+      data: {
+        unsubscribeLink: `https://app.com/unsubscribe?email=${email}`
+      }
+    }))
+  });
+};
+</script>
+
+<template>
+  <div>
+    <textarea
+      v-model="recipientsText"
+      placeholder="Enter emails (one per line)"
+    />
+    <button @click="handleSendAll" :disabled="isLoading || !recipientsText">
+      {{ isLoading ? `Sending to ${recipients.length} recipients...` : 'Send Newsletter' }}
+    </button>
+  </div>
+</template>
+```
+
+## useNotificationStatus
+
+Track notification delivery status.
+
+```vue
+<script setup lang="ts">
+import { useNotificationStatus } from '@ductape/vue';
+
+const props = defineProps<{ notificationId: string }>();
+
+const { data: status, isLoading } = useNotificationStatus(props.notificationId, {
+  refetchInterval: 5000 // Poll every 5 seconds
+});
+</script>
+
+<template>
+  <div v-if="isLoading">Loading status...</div>
+  <div v-else class="notification-status">
+    <h3>Notification Status</h3>
+    <div>
+      <span>Sent:</span> {{ status?.sent ? '✓' : '✗' }}
+    </div>
+    <div>
+      <span>Delivered:</span> {{ status?.delivered ? '✓' : '✗' }}
+    </div>
+    <div>
+      <span>Opened:</span> {{ status?.opened ? '✓' : '✗' }}
+    </div>
+    <div>
+      <span>Clicked:</span> {{ status?.clicked ? '✓' : '✗' }}
+    </div>
+    <div v-if="status?.deliveredAt">
+      <span>Delivered at:</span> {{ new Date(status.deliveredAt).toLocaleString() }}
+    </div>
+  </div>
+</template>
+```
+
+## Complete Examples
+
+### Order Confirmation
+
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useNotification } from '@ductape/vue';
+
+const props = defineProps<{ order: any }>();
+
+const { mutate: sendEmail } = useNotification();
+const { mutate: sendSMS } = useNotification();
+const { mutate: sendPush } = useNotification();
+
+onMounted(() => {
+  sendOrderNotifications();
+});
+
+const sendOrderNotifications = async () => {
+  // Send email
+  await sendEmail({
+    channel: 'email',
+    to: props.order.customerEmail,
+    template: 'order-confirmation',
+    data: {
+      orderNumber: props.order.id,
+      items: props.order.items,
+      total: props.order.total,
+      trackingLink: props.order.trackingUrl
+    }
+  });
+
+  // Send SMS
+  if (props.order.customerPhone) {
+    await sendSMS({
+      channel: 'sms',
+      to: props.order.customerPhone,
+      template: 'order-sms',
+      data: {
+        orderNumber: props.order.id,
+        trackingLink: props.order.trackingUrl
+      }
+    });
+  }
+
+  // Send push notification
+  if (props.order.deviceToken) {
+    await sendPush({
+      channel: 'push',
+      to: props.order.deviceToken,
+      data: {
+        title: 'Order Confirmed',
+        body: `Your order #${props.order.id} has been confirmed`,
+        badge: 1
+      }
+    });
+  }
+};
+</script>
+
+<template>
+  <div class="order-confirmation">
+    <h2>Order Confirmed!</h2>
+    <p>Order #{{ order.id }}</p>
+    <p>Confirmation sent to {{ order.customerEmail }}</p>
+  </div>
+</template>
+```
+
+### Password Reset
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNotification } from '@ductape/vue';
+
+const email = ref('');
+
+const { mutate: sendReset, isLoading, error } = useNotification({
+  onSuccess: () => {
+    alert('Password reset link sent! Check your email.');
+  }
+});
+
+const handleSubmit = () => {
+  // Generate reset token (in real app, do this on server)
+  const resetToken = Math.random().toString(36).substring(2);
+
+  sendReset({
+    channel: 'email',
+    to: email.value,
+    template: 'password-reset',
+    data: {
+      resetLink: `https://app.com/reset-password?token=${resetToken}`,
+      expiresIn: '1 hour'
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <h2>Forgot Password</h2>
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Enter your email"
+      required
+    />
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Sending...' : 'Send Reset Link' }}
+    </button>
+    <p v-if="error" class="error">{{ error.message }}</p>
+  </form>
+</template>
+```
+
+### Team Invitation
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNotification } from '@ductape/vue';
+import { useSession } from '@ductape/vue';
+
+const email = ref('');
+const role = ref('member');
+const { session } = useSession();
+
+const { mutate: sendInvite, isLoading } = useNotification({
+  onSuccess: () => {
+    alert('Invitation sent!');
+    email.value = '';
+  }
+});
+
+const handleInvite = () => {
+  sendInvite({
+    channel: 'email',
+    to: email.value,
+    template: 'team-invitation',
+    data: {
+      inviterName: session.value?.user.name,
+      teamName: session.value?.team.name,
+      role: role.value,
+      acceptLink: `https://app.com/invitations/accept?email=${email.value}&role=${role.value}`
+    }
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleInvite">
+    <h3>Invite Team Member</h3>
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Email address"
+      required
+    />
+    <select v-model="role">
+      <option value="member">Member</option>
+      <option value="admin">Admin</option>
+      <option value="owner">Owner</option>
+    </select>
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Sending...' : 'Send Invitation' }}
+    </button>
+  </form>
+</template>
+```
+
+### Scheduled Notification
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useNotification } from '@ductape/vue';
+
+const email = ref('');
+const message = ref('');
+const scheduledTime = ref('');
+
+const { mutate, isLoading } = useNotification({
+  onSuccess: () => {
+    alert('Reminder scheduled!');
+  }
+});
+
+const handleSchedule = () => {
+  mutate({
+    channel: 'email',
+    to: email.value,
+    template: 'reminder',
+    data: {
+      message: message.value,
+      scheduledFor: scheduledTime.value
+    },
+    scheduledFor: new Date(scheduledTime.value)
+  });
+};
+</script>
+
+<template>
+  <form @submit.prevent="handleSchedule">
+    <h3>Schedule Reminder</h3>
+    <input
+      v-model="email"
+      type="email"
+      placeholder="Email"
+      required
+    />
+    <textarea
+      v-model="message"
+      placeholder="Reminder message"
+      required
+    />
+    <input
+      v-model="scheduledTime"
+      type="datetime-local"
+      required
+    />
+    <button type="submit" :disabled="isLoading">
+      {{ isLoading ? 'Scheduling...' : 'Schedule Reminder' }}
+    </button>
+  </form>
+</template>
+```
+
+## Next Steps
+
+- [Action Composables](./action-composables)
+- [Database Composables](./database-composables)
+- [Session Composables](./session-composables)

@@ -1,0 +1,431 @@
+---
+sidebar_position: 7
+title: Actions
+---
+
+# Actions
+
+Execute Ductape Actions - pre-built integrations with external services like Stripe, Paystack, and more.
+
+## Basic Action Execution
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: 'your-product',
+  env: 'prd'
+});
+
+// Execute an action
+const result = await ductape.actions.execute({
+  action: 'stripe.create-customer',
+  input: {
+    email: 'customer@example.com',
+    name: 'John Doe'
+  }
+});
+
+console.log('Customer ID:', result.id);
+```
+
+## Payment Actions
+
+### Stripe Payment Intent
+
+```typescript
+// Create Stripe payment intent
+const paymentIntent = await ductape.actions.execute({
+  action: 'stripe.create-payment-intent',
+  input: {
+    amount: 5000, // $50.00 in cents
+    currency: 'usd',
+    customer: 'cus_abc123',
+    automatic_payment_methods: {
+      enabled: true
+    }
+  }
+});
+
+console.log('Client Secret:', paymentIntent.client_secret);
+```
+
+### Paystack Payment
+
+```typescript
+// Initialize Paystack transaction
+const transaction = await ductape.actions.execute({
+  action: 'paystack.initialize-transaction',
+  input: {
+    email: 'customer@example.com',
+    amount: 50000, // 500 NGN in kobo
+    currency: 'NGN',
+    callback_url: 'https://yourapp.com/payment/callback'
+  }
+});
+
+// Redirect user to payment page
+window.location.href = transaction.data.authorization_url;
+```
+
+### Verify Paystack Payment
+
+```typescript
+// Verify transaction after callback
+const verification = await ductape.actions.execute({
+  action: 'paystack.verify-transaction',
+  input: {
+    reference: 'transaction-reference'
+  }
+});
+
+if (verification.data.status === 'success') {
+  console.log('Payment successful!');
+  console.log('Amount:', verification.data.amount / 100);
+  console.log('Customer:', verification.data.customer.email);
+}
+```
+
+## Subscription Management
+
+### Create Stripe Subscription
+
+```typescript
+const subscription = await ductape.actions.execute({
+  action: 'stripe.create-subscription',
+  input: {
+    customer: 'cus_abc123',
+    items: [
+      { price: 'price_monthly_plan' }
+    ],
+    payment_behavior: 'default_incomplete',
+    expand: ['latest_invoice.payment_intent']
+  }
+});
+
+console.log('Subscription ID:', subscription.id);
+console.log('Status:', subscription.status);
+```
+
+### Create Paystack Plan
+
+```typescript
+const plan = await ductape.actions.execute({
+  action: 'paystack.create-plan',
+  input: {
+    name: 'Monthly Subscription',
+    amount: 500000, // 5000 NGN in kobo
+    interval: 'monthly',
+    description: 'Premium monthly subscription'
+  }
+});
+
+console.log('Plan Code:', plan.data.plan_code);
+```
+
+## Customer Management
+
+### List Stripe Customers
+
+```typescript
+const customers = await ductape.actions.execute({
+  action: 'stripe.list-customers',
+  input: {
+    limit: 10
+  }
+});
+
+customers.data.forEach(customer => {
+  console.log(customer.email, customer.name);
+});
+```
+
+### List Paystack Customers
+
+```typescript
+const customers = await ductape.actions.execute({
+  action: 'paystack.list-customers',
+  input: {
+    perPage: 20,
+    page: 1
+  }
+});
+
+customers.data.forEach(customer => {
+  console.log(customer.email, customer.customer_code);
+});
+```
+
+## Transaction History
+
+### List Paystack Transactions
+
+```typescript
+const transactions = await ductape.actions.execute({
+  action: 'paystack.list-transactions',
+  input: {
+    perPage: 50,
+    status: 'success'
+  }
+});
+
+transactions.data.forEach(tx => {
+  console.log(`${tx.customer.email}: ${tx.currency} ${tx.amount / 100}`);
+});
+```
+
+### Retrieve Stripe Balance
+
+```typescript
+const balance = await ductape.actions.execute({
+  action: 'stripe.retrieve-balance',
+  input: {}
+});
+
+balance.available.forEach(bal => {
+  console.log(`${bal.currency.toUpperCase()}: ${bal.amount / 100}`);
+});
+
+balance.pending.forEach(bal => {
+  console.log(`Pending ${bal.currency.toUpperCase()}: ${bal.amount / 100}`);
+});
+```
+
+## Refunds
+
+### Create Stripe Refund
+
+```typescript
+const refund = await ductape.actions.execute({
+  action: 'stripe.create-refund',
+  input: {
+    payment_intent: 'pi_abc123',
+    amount: 2500, // Partial refund of $25
+    reason: 'requested_by_customer'
+  }
+});
+
+console.log('Refund Status:', refund.status);
+```
+
+### Paystack Refund
+
+```typescript
+const refund = await ductape.actions.execute({
+  action: 'paystack.refund-transaction',
+  input: {
+    transaction: 'transaction-id',
+    amount: 25000 // Amount in kobo
+  }
+});
+
+console.log('Refund Status:', refund.data.status);
+```
+
+## Action Chaining
+
+Execute multiple actions in sequence:
+
+```typescript
+async function processOrder(orderData: any) {
+  try {
+    // Create customer
+    const customer = await ductape.actions.execute({
+      action: 'stripe.create-customer',
+      input: {
+        email: orderData.email,
+        name: orderData.name
+      }
+    });
+
+    // Create payment intent
+    const payment = await ductape.actions.execute({
+      action: 'stripe.create-payment-intent',
+      input: {
+        amount: orderData.total * 100,
+        currency: 'usd',
+        customer: customer.id,
+        metadata: {
+          orderId: orderData.id
+        }
+      }
+    });
+
+    // Send confirmation
+    await ductape.notifications.send({
+      channel: 'email',
+      to: orderData.email,
+      template: 'order-confirmation',
+      data: {
+        orderNumber: orderData.id,
+        total: orderData.total
+      }
+    });
+
+    return payment;
+  } catch (error) {
+    console.error('Order processing failed:', error);
+    throw error;
+  }
+}
+```
+
+## Error Handling
+
+```typescript
+try {
+  const result = await ductape.actions.execute({
+    action: 'stripe.create-payment-intent',
+    input: {
+      amount: 5000,
+      currency: 'usd'
+    }
+  });
+} catch (error) {
+  if (error.type === 'StripeCardError') {
+    console.error('Card was declined');
+  } else if (error.type === 'StripeInvalidRequestError') {
+    console.error('Invalid parameters:', error.message);
+  } else if (error.type === 'StripeAPIError') {
+    console.error('Stripe API error');
+  } else if (error.type === 'StripeConnectionError') {
+    console.error('Network error');
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+## Retry Logic
+
+```typescript
+async function executeActionWithRetry(
+  actionConfig: any,
+  maxRetries = 3,
+  delay = 1000
+) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await ductape.actions.execute(actionConfig);
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < maxRetries) {
+        console.log(`Attempt ${attempt} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, delay * attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+// Usage
+const result = await executeActionWithRetry({
+  action: 'paystack.verify-transaction',
+  input: { reference: 'ref-123' }
+});
+```
+
+## Complete Payment Flow Example
+
+```typescript
+class PaymentService {
+  private ductape: Ductape;
+
+  constructor() {
+    this.ductape = new Ductape({
+      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+      product: 'my-shop',
+      env: 'prd'
+    });
+  }
+
+  async createStripePayment(amount: number, email: string) {
+    // Create or retrieve customer
+    const customer = await this.ductape.actions.execute({
+      action: 'stripe.create-customer',
+      input: { email }
+    });
+
+    // Create payment intent
+    const paymentIntent = await this.ductape.actions.execute({
+      action: 'stripe.create-payment-intent',
+      input: {
+        amount: amount * 100,
+        currency: 'usd',
+        customer: customer.id,
+        automatic_payment_methods: { enabled: true }
+      }
+    });
+
+    return {
+      clientSecret: paymentIntent.client_secret,
+      customerId: customer.id,
+      paymentIntentId: paymentIntent.id
+    };
+  }
+
+  async createPaystackPayment(amount: number, email: string) {
+    const transaction = await this.ductape.actions.execute({
+      action: 'paystack.initialize-transaction',
+      input: {
+        email,
+        amount: amount * 100, // Convert to kobo
+        currency: 'NGN',
+        callback_url: window.location.origin + '/verify'
+      }
+    });
+
+    return {
+      authorizationUrl: transaction.data.authorization_url,
+      reference: transaction.data.reference,
+      accessCode: transaction.data.access_code
+    };
+  }
+
+  async verifyPaystackPayment(reference: string) {
+    const verification = await this.ductape.actions.execute({
+      action: 'paystack.verify-transaction',
+      input: { reference }
+    });
+
+    if (verification.data.status === 'success') {
+      return {
+        success: true,
+        amount: verification.data.amount / 100,
+        customer: verification.data.customer.email,
+        paidAt: verification.data.paid_at
+      };
+    }
+
+    return { success: false };
+  }
+}
+
+// Usage
+const payments = new PaymentService();
+
+// Stripe flow
+const stripePayment = await payments.createStripePayment(99.99, 'user@example.com');
+console.log('Client Secret:', stripePayment.clientSecret);
+
+// Paystack flow
+const paystackPayment = await payments.createPaystackPayment(5000, 'user@example.com');
+window.location.href = paystackPayment.authorizationUrl;
+
+// Later, verify Paystack payment
+const verified = await payments.verifyPaystackPayment('reference-123');
+if (verified.success) {
+  console.log('Payment verified!');
+}
+```
+
+## Next Steps
+
+- [Workflows](./workflows)
+- [Notifications](./notifications)
+- [Database Operations](./databases)

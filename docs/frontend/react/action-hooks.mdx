@@ -1,0 +1,645 @@
+---
+sidebar_position: 6
+title: Action Hooks
+---
+
+# Action Hooks
+
+React hooks for executing Ductape Actions - pre-built integrations with external services.
+
+## useAction
+
+Execute any Ductape action with automatic loading states and error handling.
+
+### Basic Action Execution
+
+```tsx
+import { useAction } from '@ductape/react';
+
+function CreateStripeCustomer() {
+  const { mutate, isLoading, error, data } = useAction({
+    onSuccess: (result) => {
+      console.log('Customer created:', result);
+      alert('Customer created successfully!');
+    }
+  });
+
+  const handleCreate = () => {
+    mutate({
+      action: 'stripe.create-customer',
+      input: {
+        email: 'customer@example.com',
+        name: 'John Doe',
+        metadata: {
+          userId: 'user-123'
+        }
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleCreate} disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create Customer'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+      {data && <p>Customer ID: {data.customerId}</p>}
+    </div>
+  );
+}
+```
+
+### Action with Parameters
+
+```tsx
+function PaystackPaymentForm() {
+  const [amount, setAmount] = useState('');
+  const [email, setEmail] = useState('');
+  const [currency, setCurrency] = useState('NGN');
+
+  const { mutate: initializePayment, isLoading, data } = useAction({
+    onSuccess: (result) => {
+      console.log('Payment initialized:', result);
+      // Redirect to payment page
+      window.location.href = result.authorization_url;
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    initializePayment({
+      action: 'paystack.initialize-transaction',
+      input: {
+        email,
+        amount: parseFloat(amount) * 100, // Convert to kobo/cents
+        currency,
+        callback_url: window.location.origin + '/payment/callback'
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required
+      />
+      <input
+        type="number"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="Amount"
+        required
+      />
+      <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+        <option value="NGN">NGN</option>
+        <option value="USD">USD</option>
+        <option value="GHS">GHS</option>
+      </select>
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Pay with Paystack'}
+      </button>
+    </form>
+  );
+}
+```
+
+## useActionQuery
+
+Query data from an action (for read operations).
+
+```tsx
+import { useActionQuery } from '@ductape/react';
+
+function PaystackTransactions() {
+  const { data, isLoading, error } = useActionQuery(
+    'paystack-transactions',
+    {
+      action: 'paystack.list-transactions',
+      input: {
+        perPage: 50,
+        status: 'success'
+      }
+    }
+  );
+
+  if (isLoading) return <div>Loading transactions...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <ul>
+      {data?.transactions.map((transaction: any) => (
+        <li key={transaction.id}>
+          <span>{transaction.customer.email}</span>
+          <span>{transaction.currency} {transaction.amount / 100}</span>
+          <span>{new Date(transaction.created_at).toLocaleDateString()}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Query with Filters
+
+```tsx
+function StripeCustomers() {
+  const [limit, setLimit] = useState(10);
+
+  const { data, isLoading } = useActionQuery(
+    ['stripe-customers', limit],
+    {
+      action: 'stripe.list-customers',
+      input: {
+        limit
+      }
+    }
+  );
+
+  return (
+    <div>
+      <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+        <option value={10}>10</option>
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data?.data.map((customer: any) => (
+              <tr key={customer.id}>
+                <td>{customer.name}</td>
+                <td>{customer.email}</td>
+                <td>{new Date(customer.created * 1000).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+```
+
+## Common Action Examples
+
+### Create Stripe Payment Intent
+
+```tsx
+function StripePaymentForm({ amount, customerId }: { amount: number; customerId: string }) {
+  const { mutate: createPayment, isLoading, data } = useAction({
+    onSuccess: (result) => {
+      console.log('Payment intent created:', result.id);
+    }
+  });
+
+  const handlePayment = () => {
+    createPayment({
+      action: 'stripe.create-payment-intent',
+      input: {
+        amount: amount * 100, // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        automatic_payment_methods: {
+          enabled: true
+        }
+      }
+    });
+  };
+
+  return (
+    <div>
+      <p>Amount: ${amount}</p>
+      <button onClick={handlePayment} disabled={isLoading}>
+        {isLoading ? 'Processing...' : 'Pay Now'}
+      </button>
+      {data && (
+        <div>
+          <p>Payment Intent ID: {data.id}</p>
+          <p>Status: {data.status}</p>
+          <p>Client Secret: {data.client_secret}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Verify Paystack Transaction
+
+```tsx
+function PaystackVerification({ reference }: { reference: string }) {
+  const { data, isLoading, error } = useActionQuery(
+    ['paystack-verify', reference],
+    {
+      action: 'paystack.verify-transaction',
+      input: { reference }
+    }
+  );
+
+  if (isLoading) return <div>Verifying payment...</div>;
+  if (error) return <div>Verification failed: {error.message}</div>;
+
+  return (
+    <div className="verification-result">
+      {data?.data.status === 'success' ? (
+        <div className="success">
+          <h3>Payment Successful!</h3>
+          <p>Amount: {data.data.currency} {data.data.amount / 100}</p>
+          <p>Reference: {data.data.reference}</p>
+          <p>Paid by: {data.data.customer.email}</p>
+        </div>
+      ) : (
+        <div className="error">
+          <h3>Payment Failed</h3>
+          <p>Status: {data?.data.status}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### Create Stripe Subscription
+
+```tsx
+function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId: string }) {
+  const { mutate: createSubscription, isLoading, data } = useAction({
+    onSuccess: (result) => {
+      alert('Subscription created!');
+      console.log('Subscription:', result);
+    }
+  });
+
+  const handleSubscribe = () => {
+    createSubscription({
+      action: 'stripe.create-subscription',
+      input: {
+        customer: customerId,
+        items: [{ price: priceId }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: {
+          payment_method_types: ['card']
+        },
+        expand: ['latest_invoice.payment_intent']
+      }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleSubscribe} disabled={isLoading}>
+        {isLoading ? 'Creating Subscription...' : 'Subscribe'}
+      </button>
+      {data && (
+        <div>
+          <p>Subscription ID: {data.id}</p>
+          <p>Status: {data.status}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### List Paystack Customers
+
+```tsx
+function PaystackCustomersList() {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useActionQuery(
+    ['paystack-customers', page],
+    {
+      action: 'paystack.list-customers',
+      input: {
+        perPage: 20,
+        page
+      }
+    }
+  );
+
+  if (isLoading) return <div>Loading customers...</div>;
+
+  return (
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Customer Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data?.data.map((customer: any) => (
+            <tr key={customer.id}>
+              <td>{customer.email}</td>
+              <td>{customer.first_name}</td>
+              <td>{customer.last_name}</td>
+              <td>{customer.customer_code}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="pagination">
+        <button
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          Previous
+        </button>
+        <span>Page {page}</span>
+        <button onClick={() => setPage(p => p + 1)}>
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Retrieve Stripe Balance
+
+```tsx
+function StripeBalanceDisplay() {
+  const { data, isLoading, refetch } = useActionQuery(
+    'stripe-balance',
+    {
+      action: 'stripe.retrieve-balance',
+      input: {}
+    }
+  );
+
+  if (isLoading) return <div>Loading balance...</div>;
+
+  return (
+    <div className="balance-card">
+      <h3>Account Balance</h3>
+      <button onClick={() => refetch()}>Refresh</button>
+
+      <div className="available">
+        <h4>Available</h4>
+        {data?.available.map((balance: any, idx: number) => (
+          <p key={idx}>
+            {balance.currency.toUpperCase()}: {balance.amount / 100}
+          </p>
+        ))}
+      </div>
+
+      <div className="pending">
+        <h4>Pending</h4>
+        {data?.pending.map((balance: any, idx: number) => (
+          <p key={idx}>
+            {balance.currency.toUpperCase()}: {balance.amount / 100}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+### Paystack Create Plan
+
+```tsx
+function CreatePaystackPlan() {
+  const [planData, setPlanData] = useState({
+    name: '',
+    amount: '',
+    interval: 'monthly'
+  });
+
+  const { mutate, isLoading } = useAction({
+    onSuccess: (result) => {
+      alert('Plan created successfully!');
+      console.log('Plan:', result);
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutate({
+      action: 'paystack.create-plan',
+      input: {
+        name: planData.name,
+        amount: parseFloat(planData.amount) * 100, // Convert to kobo
+        interval: planData.interval
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={planData.name}
+        onChange={(e) => setPlanData({ ...planData, name: e.target.value })}
+        placeholder="Plan Name"
+        required
+      />
+      <input
+        type="number"
+        value={planData.amount}
+        onChange={(e) => setPlanData({ ...planData, amount: e.target.value })}
+        placeholder="Amount"
+        required
+      />
+      <select
+        value={planData.interval}
+        onChange={(e) => setPlanData({ ...planData, interval: e.target.value })}
+      >
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="annually">Annually</option>
+      </select>
+      <button type="submit" disabled={isLoading}>
+        {isLoading ? 'Creating...' : 'Create Plan'}
+      </button>
+    </form>
+  );
+}
+```
+
+## Action Chaining
+
+Execute multiple actions in sequence.
+
+```tsx
+function PaymentProcessor({ email, amount }: { email: string; amount: number }) {
+  const { mutate: createCustomer } = useAction();
+  const { mutate: createPayment } = useAction();
+  const { mutate: sendReceipt } = useAction();
+
+  const processPayment = async () => {
+    try {
+      // Create or retrieve Stripe customer
+      const customer = await createCustomer({
+        action: 'stripe.create-customer',
+        input: {
+          email,
+          metadata: { source: 'web-checkout' }
+        }
+      });
+
+      // Create payment intent
+      const payment = await createPayment({
+        action: 'stripe.create-payment-intent',
+        input: {
+          amount: amount * 100, // Convert to cents
+          currency: 'usd',
+          customer: customer.id,
+          automatic_payment_methods: { enabled: true }
+        }
+      });
+
+      // Send receipt via notification
+      await sendReceipt({
+        action: 'ductape.send-notification',
+        input: {
+          channel: 'email',
+          to: email,
+          template: 'payment-receipt',
+          data: {
+            amount,
+            paymentId: payment.id,
+            customerName: email
+          }
+        }
+      });
+
+      alert('Payment processed successfully!');
+      return payment;
+    } catch (error) {
+      console.error('Payment processing failed:', error);
+      throw error;
+    }
+  };
+
+  return (
+    <button onClick={processPayment}>
+      Process Payment
+    </button>
+  );
+}
+```
+
+### Paystack Payment Flow with Verification
+
+```tsx
+function PaystackPaymentFlow({ email, amount }: { email: string; amount: number }) {
+  const [reference, setReference] = useState<string | null>(null);
+  const { mutate: initialize } = useAction();
+  const { mutate: verify } = useAction();
+
+  const startPayment = async () => {
+    try {
+      // Initialize transaction
+      const transaction = await initialize({
+        action: 'paystack.initialize-transaction',
+        input: {
+          email,
+          amount: amount * 100, // Convert to kobo
+          currency: 'NGN',
+          callback_url: window.location.origin + '/verify'
+        }
+      });
+
+      setReference(transaction.data.reference);
+
+      // Redirect to Paystack payment page
+      window.location.href = transaction.data.authorization_url;
+    } catch (error) {
+      console.error('Payment initialization failed:', error);
+    }
+  };
+
+  const verifyPayment = async (ref: string) => {
+    try {
+      const verification = await verify({
+        action: 'paystack.verify-transaction',
+        input: { reference: ref }
+      });
+
+      if (verification.data.status === 'success') {
+        alert('Payment verified successfully!');
+      } else {
+        alert('Payment verification failed');
+      }
+    } catch (error) {
+      console.error('Verification failed:', error);
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={startPayment}>
+        Pay with Paystack
+      </button>
+      {reference && (
+        <button onClick={() => verifyPayment(reference)}>
+          Verify Payment
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+## Error Handling
+
+```tsx
+function ResilientActionExecution() {
+  const { mutate, isLoading, error, retry } = useAction({
+    onError: (err) => {
+      console.error('Action failed:', err);
+    },
+    retryCount: 3,
+    retryDelay: 1000
+  });
+
+  const handleExecute = () => {
+    mutate({
+      action: 'external-api.call',
+      input: { data: 'test' }
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={handleExecute} disabled={isLoading}>
+        Execute Action
+      </button>
+      {error && (
+        <div className="error">
+          <p>Error: {error.message}</p>
+          <button onClick={retry}>Retry</button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Next Steps
+
+- [Database Hooks](./database-hooks)
+- [Storage Hooks](./storage-hooks)
+- [Workflow Hooks](./workflow-hooks)

@@ -1,0 +1,1168 @@
+---
+sidebar_position: 3
+title: Building a Social Media Feed
+---
+
+# Building a Social Media Feed
+
+Learn how to build a real-time social media feed with posts, comments, likes, follows, and live updates using Ductape Client SDKs.
+
+## What You'll Build
+
+- User profiles and authentication
+- Create, edit, and delete posts
+- Real-time feed with live updates
+- Like and comment system
+- Follow/unfollow users
+- Infinite scroll pagination
+- Image and video uploads
+- Notifications for interactions
+
+## Prerequisites
+
+- Basic understanding of JavaScript/TypeScript
+- Node.js and npm installed
+- Ductape account and API credentials
+- Basic knowledge of real-time subscriptions
+
+## Setup
+
+```bash
+npm install @ductape/client
+# For React
+npm install @ductape/react
+
+# For Vue 3
+npm install @ductape/vue
+```
+
+## Database Schema
+
+Create the database tables for users, posts, comments, likes, and follows.
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+
+// Users table
+await ductape.databases.schema.create('users', {
+  username: { type: 'String', unique: true, required: true },
+  email: { type: 'String', unique: true, required: true },
+  display_name: { type: 'String', required: true },
+  bio: { type: 'String' },
+  avatar_url: { type: 'String' },
+  cover_photo_url: { type: 'String' },
+  followers_count: { type: 'Number', default: 0 },
+  following_count: { type: 'Number', default: 0 },
+  posts_count: { type: 'Number', default: 0 },
+  verified: { type: 'Boolean', default: false },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Posts table
+await ductape.databases.schema.create('posts', {
+  user_id: { type: 'String', required: true },
+  content: { type: 'String', required: true },
+  media_urls: { type: 'Array' },
+  media_type: { type: 'String' }, // 'image', 'video', 'gif'
+  likes_count: { type: 'Number', default: 0 },
+  comments_count: { type: 'Number', default: 0 },
+  shares_count: { type: 'Number', default: 0 },
+  is_edited: { type: 'Boolean', default: false },
+  edited_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Comments table
+await ductape.databases.schema.create('comments', {
+  post_id: { type: 'String', required: true },
+  user_id: { type: 'String', required: true },
+  parent_comment_id: { type: 'String' }, // For nested replies
+  content: { type: 'String', required: true },
+  likes_count: { type: 'Number', default: 0 },
+  replies_count: { type: 'Number', default: 0 },
+  is_edited: { type: 'Boolean', default: false },
+  edited_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Likes table
+await ductape.databases.schema.create('likes', {
+  user_id: { type: 'String', required: true },
+  target_id: { type: 'String', required: true }, // post_id or comment_id
+  target_type: { type: 'String', required: true }, // 'post' or 'comment'
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Follows table
+await ductape.databases.schema.create('follows', {
+  follower_id: { type: 'String', required: true },
+  following_id: { type: 'String', required: true },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Notifications table
+await ductape.databases.schema.create('notifications', {
+  user_id: { type: 'String', required: true },
+  type: { type: 'String', required: true }, // 'like', 'comment', 'follow', 'mention'
+  actor_id: { type: 'String', required: true }, // User who triggered the notification
+  target_id: { type: 'String' }, // post_id or comment_id
+  content: { type: 'String' },
+  is_read: { type: 'Boolean', default: false },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes for performance
+await ductape.databases.schema.createIndex('posts', ['user_id']);
+await ductape.databases.schema.createIndex('posts', ['created_at']);
+await ductape.databases.schema.createIndex('comments', ['post_id']);
+await ductape.databases.schema.createIndex('comments', ['user_id']);
+await ductape.databases.schema.createIndex('likes', ['user_id', 'target_id', 'target_type']);
+await ductape.databases.schema.createIndex('follows', ['follower_id']);
+await ductape.databases.schema.createIndex('follows', ['following_id']);
+await ductape.databases.schema.createIndex('notifications', ['user_id', 'is_read']);
+```
+
+## Vanilla JavaScript Implementation
+
+### Initialize Client
+
+```typescript
+import { DuctapeClient } from '@ductape/client';
+
+const client = new DuctapeClient({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+```
+
+### User Management
+
+```typescript
+// Get user profile
+async function getUserProfile(username: string) {
+  const result = await client.databases.findOne({
+    table: 'users',
+    where: { username }
+  });
+
+  return result.row;
+}
+
+// Update user profile
+async function updateProfile(userId: string, data: {
+  display_name?: string;
+  bio?: string;
+  avatar_url?: string;
+  cover_photo_url?: string;
+}) {
+  const result = await client.databases.update({
+    table: 'users',
+    where: { id: userId },
+    data: {
+      ...data,
+      updated_at: new Date()
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Upload profile picture
+async function uploadAvatar(userId: string, file: File) {
+  // Upload to storage
+  const upload = await client.storage.upload({
+    file,
+    path: `avatars/${userId}`,
+    onProgress: (progress) => {
+      console.log(`Upload progress: ${progress}%`);
+    }
+  });
+
+  // Update user profile
+  await updateProfile(userId, { avatar_url: upload.url });
+
+  return upload.url;
+}
+```
+
+### Follow System
+
+```typescript
+// Follow a user
+async function followUser(followerId: string, followingId: string) {
+  // Check if already following
+  const existing = await client.databases.findOne({
+    table: 'follows',
+    where: { follower_id: followerId, following_id: followingId }
+  });
+
+  if (existing.row) {
+    throw new Error('Already following this user');
+  }
+
+  // Create follow relationship
+  await client.databases.insert({
+    table: 'follows',
+    data: {
+      follower_id: followerId,
+      following_id: followingId
+    }
+  });
+
+  // Update counts
+  await client.databases.update({
+    table: 'users',
+    where: { id: followerId },
+    data: { following_count: { $increment: 1 } }
+  });
+
+  await client.databases.update({
+    table: 'users',
+    where: { id: followingId },
+    data: { followers_count: { $increment: 1 } }
+  });
+
+  // Send notification
+  await client.notifications.send({
+    channel: 'push',
+    to: followingId,
+    data: {
+      type: 'follow',
+      actor_id: followerId,
+      message: 'started following you'
+    }
+  });
+
+  // Create notification record
+  await client.databases.insert({
+    table: 'notifications',
+    data: {
+      user_id: followingId,
+      type: 'follow',
+      actor_id: followerId
+    }
+  });
+}
+
+// Unfollow a user
+async function unfollowUser(followerId: string, followingId: string) {
+  await client.databases.delete({
+    table: 'follows',
+    where: { follower_id: followerId, following_id: followingId }
+  });
+
+  // Update counts
+  await client.databases.update({
+    table: 'users',
+    where: { id: followerId },
+    data: { following_count: { $decrement: 1 } }
+  });
+
+  await client.databases.update({
+    table: 'users',
+    where: { id: followingId },
+    data: { followers_count: { $decrement: 1 } }
+  });
+}
+
+// Check if following
+async function isFollowing(followerId: string, followingId: string) {
+  const result = await client.databases.findOne({
+    table: 'follows',
+    where: { follower_id: followerId, following_id: followingId }
+  });
+
+  return !!result.row;
+}
+
+// Get followers
+async function getFollowers(userId: string, limit: number = 20, offset: number = 0) {
+  const result = await client.databases.find({
+    table: 'follows',
+    where: { following_id: userId },
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  // Fetch user details for each follower
+  const followers = await Promise.all(
+    result.rows.map(async (follow: any) => {
+      const user = await client.databases.findOne({
+        table: 'users',
+        where: { id: follow.follower_id }
+      });
+      return user.row;
+    })
+  );
+
+  return followers;
+}
+
+// Get following
+async function getFollowing(userId: string, limit: number = 20, offset: number = 0) {
+  const result = await client.databases.find({
+    table: 'follows',
+    where: { follower_id: userId },
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  // Fetch user details
+  const following = await Promise.all(
+    result.rows.map(async (follow: any) => {
+      const user = await client.databases.findOne({
+        table: 'users',
+        where: { id: follow.following_id }
+      });
+      return user.row;
+    })
+  );
+
+  return following;
+}
+```
+
+### Post Management
+
+```typescript
+// Create a post
+async function createPost(userId: string, data: {
+  content: string;
+  media_urls?: string[];
+  media_type?: 'image' | 'video' | 'gif';
+}) {
+  const post = await client.databases.insert({
+    table: 'posts',
+    data: {
+      user_id: userId,
+      content: data.content,
+      media_urls: data.media_urls || [],
+      media_type: data.media_type
+    }
+  });
+
+  // Update user posts count
+  await client.databases.update({
+    table: 'users',
+    where: { id: userId },
+    data: { posts_count: { $increment: 1 } }
+  });
+
+  return post.rows[0];
+}
+
+// Upload media for post
+async function uploadPostMedia(userId: string, files: File[]) {
+  const uploads = await Promise.all(
+    files.map(file =>
+      client.storage.upload({
+        file,
+        path: `posts/${userId}/${Date.now()}`,
+        onProgress: (progress) => {
+          console.log(`Uploading ${file.name}: ${progress}%`);
+        }
+      })
+    )
+  );
+
+  return uploads.map(upload => upload.url);
+}
+
+// Get feed (posts from followed users)
+async function getFeed(userId: string, limit: number = 20, offset: number = 0) {
+  // Get list of users the current user follows
+  const following = await client.databases.find({
+    table: 'follows',
+    where: { follower_id: userId }
+  });
+
+  const followingIds = following.rows.map((f: any) => f.following_id);
+
+  // Include user's own posts
+  followingIds.push(userId);
+
+  // Get posts from followed users
+  const posts = await client.databases.find({
+    table: 'posts',
+    where: {
+      user_id: { $in: followingIds }
+    },
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  // Fetch user details and interaction status for each post
+  const postsWithDetails = await Promise.all(
+    posts.rows.map(async (post: any) => {
+      const user = await client.databases.findOne({
+        table: 'users',
+        where: { id: post.user_id }
+      });
+
+      const hasLiked = await client.databases.findOne({
+        table: 'likes',
+        where: {
+          user_id: userId,
+          target_id: post.id,
+          target_type: 'post'
+        }
+      });
+
+      return {
+        ...post,
+        user: user.row,
+        hasLiked: !!hasLiked.row
+      };
+    })
+  );
+
+  return postsWithDetails;
+}
+
+// Get user posts
+async function getUserPosts(userId: string, limit: number = 20, offset: number = 0) {
+  const result = await client.databases.find({
+    table: 'posts',
+    where: { user_id: userId },
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  return result.rows;
+}
+
+// Edit post
+async function editPost(postId: string, userId: string, content: string) {
+  const result = await client.databases.update({
+    table: 'posts',
+    where: { id: postId, user_id: userId },
+    data: {
+      content,
+      is_edited: true,
+      edited_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Delete post
+async function deletePost(postId: string, userId: string) {
+  // Delete associated likes
+  await client.databases.delete({
+    table: 'likes',
+    where: { target_id: postId, target_type: 'post' }
+  });
+
+  // Delete associated comments
+  await client.databases.delete({
+    table: 'comments',
+    where: { post_id: postId }
+  });
+
+  // Delete the post
+  await client.databases.delete({
+    table: 'posts',
+    where: { id: postId, user_id: userId }
+  });
+
+  // Update user posts count
+  await client.databases.update({
+    table: 'users',
+    where: { id: userId },
+    data: { posts_count: { $decrement: 1 } }
+  });
+}
+```
+
+### Like System
+
+```typescript
+// Like a post
+async function likePost(userId: string, postId: string) {
+  // Check if already liked
+  const existing = await client.databases.findOne({
+    table: 'likes',
+    where: {
+      user_id: userId,
+      target_id: postId,
+      target_type: 'post'
+    }
+  });
+
+  if (existing.row) {
+    throw new Error('Already liked this post');
+  }
+
+  // Create like
+  await client.databases.insert({
+    table: 'likes',
+    data: {
+      user_id: userId,
+      target_id: postId,
+      target_type: 'post'
+    }
+  });
+
+  // Update post likes count
+  await client.databases.update({
+    table: 'posts',
+    where: { id: postId },
+    data: { likes_count: { $increment: 1 } }
+  });
+
+  // Get post to send notification
+  const post = await client.databases.findOne({
+    table: 'posts',
+    where: { id: postId }
+  });
+
+  if (post.row && post.row.user_id !== userId) {
+    // Create notification
+    await client.databases.insert({
+      table: 'notifications',
+      data: {
+        user_id: post.row.user_id,
+        type: 'like',
+        actor_id: userId,
+        target_id: postId,
+        content: 'liked your post'
+      }
+    });
+  }
+}
+
+// Unlike a post
+async function unlikePost(userId: string, postId: string) {
+  await client.databases.delete({
+    table: 'likes',
+    where: {
+      user_id: userId,
+      target_id: postId,
+      target_type: 'post'
+    }
+  });
+
+  // Update post likes count
+  await client.databases.update({
+    table: 'posts',
+    where: { id: postId },
+    data: { likes_count: { $decrement: 1 } }
+  });
+}
+
+// Get post likes
+async function getPostLikes(postId: string, limit: number = 20, offset: number = 0) {
+  const likes = await client.databases.find({
+    table: 'likes',
+    where: { target_id: postId, target_type: 'post' },
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  // Fetch user details
+  const likesWithUsers = await Promise.all(
+    likes.rows.map(async (like: any) => {
+      const user = await client.databases.findOne({
+        table: 'users',
+        where: { id: like.user_id }
+      });
+      return {
+        ...like,
+        user: user.row
+      };
+    })
+  );
+
+  return likesWithUsers;
+}
+```
+
+### Comment System
+
+```typescript
+// Add comment
+async function addComment(userId: string, postId: string, content: string, parentCommentId?: string) {
+  const comment = await client.databases.insert({
+    table: 'comments',
+    data: {
+      post_id: postId,
+      user_id: userId,
+      parent_comment_id: parentCommentId,
+      content
+    }
+  });
+
+  // Update post comments count
+  await client.databases.update({
+    table: 'posts',
+    where: { id: postId },
+    data: { comments_count: { $increment: 1 } }
+  });
+
+  // Update parent comment replies count if it's a reply
+  if (parentCommentId) {
+    await client.databases.update({
+      table: 'comments',
+      where: { id: parentCommentId },
+      data: { replies_count: { $increment: 1 } }
+    });
+  }
+
+  // Get post to send notification
+  const post = await client.databases.findOne({
+    table: 'posts',
+    where: { id: postId }
+  });
+
+  if (post.row && post.row.user_id !== userId) {
+    // Create notification
+    await client.databases.insert({
+      table: 'notifications',
+      data: {
+        user_id: post.row.user_id,
+        type: 'comment',
+        actor_id: userId,
+        target_id: postId,
+        content: 'commented on your post'
+      }
+    });
+  }
+
+  return comment.rows[0];
+}
+
+// Get post comments
+async function getComments(postId: string, limit: number = 20, offset: number = 0) {
+  const comments = await client.databases.find({
+    table: 'comments',
+    where: { post_id: postId, parent_comment_id: null }, // Only top-level comments
+    limit,
+    offset,
+    orderBy: { created_at: 'desc' }
+  });
+
+  // Fetch user details and replies for each comment
+  const commentsWithDetails = await Promise.all(
+    comments.rows.map(async (comment: any) => {
+      const user = await client.databases.findOne({
+        table: 'users',
+        where: { id: comment.user_id }
+      });
+
+      // Get replies count
+      const replies = await client.databases.find({
+        table: 'comments',
+        where: { parent_comment_id: comment.id }
+      });
+
+      return {
+        ...comment,
+        user: user.row,
+        replies: replies.rows
+      };
+    })
+  );
+
+  return commentsWithDetails;
+}
+
+// Edit comment
+async function editComment(commentId: string, userId: string, content: string) {
+  const result = await client.databases.update({
+    table: 'comments',
+    where: { id: commentId, user_id: userId },
+    data: {
+      content,
+      is_edited: true,
+      edited_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+
+  return result.rows[0];
+}
+
+// Delete comment
+async function deleteComment(commentId: string, userId: string) {
+  const comment = await client.databases.findOne({
+    table: 'comments',
+    where: { id: commentId, user_id: userId }
+  });
+
+  if (!comment.row) {
+    throw new Error('Comment not found');
+  }
+
+  // Delete likes on this comment
+  await client.databases.delete({
+    table: 'likes',
+    where: { target_id: commentId, target_type: 'comment' }
+  });
+
+  // Delete replies
+  await client.databases.delete({
+    table: 'comments',
+    where: { parent_comment_id: commentId }
+  });
+
+  // Delete the comment
+  await client.databases.delete({
+    table: 'comments',
+    where: { id: commentId, user_id: userId }
+  });
+
+  // Update post comments count
+  await client.databases.update({
+    table: 'posts',
+    where: { id: comment.row.post_id },
+    data: { comments_count: { $decrement: 1 } }
+  });
+}
+```
+
+### Real-time Updates
+
+```typescript
+// Subscribe to feed updates
+function subscribeFeed(userId: string, onUpdate: (post: any) => void) {
+  // Get list of followed users
+  client.databases.find({
+    table: 'follows',
+    where: { follower_id: userId }
+  }).then(following => {
+    const followingIds = following.rows.map((f: any) => f.following_id);
+    followingIds.push(userId);
+
+    // Subscribe to new posts
+    const unsubscribe = client.databases.subscribe({
+      table: 'posts',
+      where: { user_id: { $in: followingIds } },
+      onInsert: (post) => {
+        onUpdate({ type: 'new_post', data: post });
+      },
+      onUpdate: (post) => {
+        onUpdate({ type: 'update_post', data: post });
+      },
+      onDelete: (postId) => {
+        onUpdate({ type: 'delete_post', data: { id: postId } });
+      }
+    });
+
+    return unsubscribe;
+  });
+}
+
+// Subscribe to post interactions
+function subscribePostInteractions(postId: string, onUpdate: (data: any) => void) {
+  // Subscribe to likes
+  const unsubscribeLikes = client.databases.subscribe({
+    table: 'likes',
+    where: { target_id: postId, target_type: 'post' },
+    onInsert: (like) => {
+      onUpdate({ type: 'new_like', data: like });
+    },
+    onDelete: (likeId) => {
+      onUpdate({ type: 'unlike', data: { id: likeId } });
+    }
+  });
+
+  // Subscribe to comments
+  const unsubscribeComments = client.databases.subscribe({
+    table: 'comments',
+    where: { post_id: postId },
+    onInsert: (comment) => {
+      onUpdate({ type: 'new_comment', data: comment });
+    },
+    onUpdate: (comment) => {
+      onUpdate({ type: 'update_comment', data: comment });
+    },
+    onDelete: (commentId) => {
+      onUpdate({ type: 'delete_comment', data: { id: commentId } });
+    }
+  });
+
+  return () => {
+    unsubscribeLikes();
+    unsubscribeComments();
+  };
+}
+```
+
+## React Implementation
+
+### Feed Component
+
+```tsx
+import React, { useEffect, useState } from 'react';
+import { useQuery, useSubscription } from '@ductape/react';
+
+interface Post {
+  id: string;
+  user_id: string;
+  content: string;
+  media_urls: string[];
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  user: any;
+  hasLiked: boolean;
+}
+
+export function Feed({ userId }: { userId: string }) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(0);
+  const limit = 20;
+
+  // Fetch initial feed
+  const { data, isLoading, refetch } = useQuery(
+    ['feed', userId, page],
+    async () => {
+      // Get following list
+      const following = await client.databases.find({
+        table: 'follows',
+        where: { follower_id: userId }
+      });
+
+      const followingIds = following.rows.map((f: any) => f.following_id);
+      followingIds.push(userId);
+
+      // Get posts
+      const posts = await client.databases.find({
+        table: 'posts',
+        where: { user_id: { $in: followingIds } },
+        limit,
+        offset: page * limit,
+        orderBy: { created_at: 'desc' }
+      });
+
+      return posts.rows;
+    }
+  );
+
+  // Subscribe to real-time updates
+  useSubscription({
+    table: 'posts',
+    onInsert: (post) => {
+      setPosts(prev => [post, ...prev]);
+    },
+    onUpdate: (post) => {
+      setPosts(prev => prev.map(p => p.id === post.id ? post : p));
+    },
+    onDelete: (postId) => {
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    }
+  });
+
+  useEffect(() => {
+    if (data) {
+      setPosts(prev => page === 0 ? data : [...prev, ...data]);
+    }
+  }, [data, page]);
+
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
+  };
+
+  if (isLoading && page === 0) {
+    return <div>Loading feed...</div>;
+  }
+
+  return (
+    <div className="feed">
+      {posts.map(post => (
+        <PostCard key={post.id} post={post} currentUserId={userId} />
+      ))}
+      <button onClick={handleLoadMore} disabled={isLoading}>
+        {isLoading ? 'Loading...' : 'Load More'}
+      </button>
+    </div>
+  );
+}
+```
+
+### Post Card Component
+
+```tsx
+import React, { useState } from 'react';
+import { useMutation } from '@ductape/react';
+
+export function PostCard({ post, currentUserId }: { post: any; currentUserId: string }) {
+  const [isLiked, setIsLiked] = useState(post.hasLiked);
+  const [likesCount, setLikesCount] = useState(post.likes_count);
+  const [showComments, setShowComments] = useState(false);
+
+  const { mutate: toggleLike } = useMutation({
+    onSuccess: () => {
+      setIsLiked(!isLiked);
+      setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    }
+  });
+
+  const handleLike = () => {
+    if (isLiked) {
+      toggleLike({
+        table: 'likes',
+        where: {
+          user_id: currentUserId,
+          target_id: post.id,
+          target_type: 'post'
+        }
+      });
+    } else {
+      toggleLike({
+        table: 'likes',
+        data: {
+          user_id: currentUserId,
+          target_id: post.id,
+          target_type: 'post'
+        }
+      });
+
+      // Update post likes count
+      toggleLike({
+        table: 'posts',
+        where: { id: post.id },
+        data: { likes_count: { $increment: 1 } }
+      });
+    }
+  };
+
+  return (
+    <div className="post-card">
+      <div className="post-header">
+        <img src={post.user.avatar_url} alt={post.user.display_name} className="avatar" />
+        <div>
+          <h4>{post.user.display_name}</h4>
+          <span className="username">@{post.user.username}</span>
+          <span className="timestamp">{new Date(post.created_at).toLocaleString()}</span>
+        </div>
+      </div>
+
+      <div className="post-content">
+        <p>{post.content}</p>
+        {post.media_urls && post.media_urls.length > 0 && (
+          <div className="post-media">
+            {post.media_urls.map((url: string, idx: number) => (
+              <img key={idx} src={url} alt="Post media" />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="post-actions">
+        <button
+          className={`like-btn ${isLiked ? 'liked' : ''}`}
+          onClick={handleLike}
+        >
+          {isLiked ? '❤️' : '🤍'} {likesCount}
+        </button>
+        <button onClick={() => setShowComments(!showComments)}>
+          💬 {post.comments_count}
+        </button>
+        <button>🔄 {post.shares_count}</button>
+      </div>
+
+      {showComments && <Comments postId={post.id} currentUserId={currentUserId} />}
+    </div>
+  );
+}
+```
+
+### Create Post Component
+
+```tsx
+import React, { useState } from 'react';
+import { useMutation } from '@ductape/react';
+
+export function CreatePost({ userId }: { userId: string }) {
+  const [content, setContent] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  const { mutate: createPost, isLoading } = useMutation({
+    onSuccess: () => {
+      setContent('');
+      setFiles([]);
+      setPreviews([]);
+      alert('Post created!');
+    }
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles(selectedFiles);
+
+      // Create previews
+      const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+      setPreviews(previewUrls);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!content.trim() && files.length === 0) {
+      return;
+    }
+
+    // Upload files if any
+    let mediaUrls: string[] = [];
+    if (files.length > 0) {
+      const uploads = await Promise.all(
+        files.map(file =>
+          client.storage.upload({
+            file,
+            path: `posts/${userId}/${Date.now()}`
+          })
+        )
+      );
+      mediaUrls = uploads.map(u => u.url);
+    }
+
+    // Create post
+    createPost({
+      table: 'posts',
+      data: {
+        user_id: userId,
+        content,
+        media_urls: mediaUrls,
+        media_type: files[0]?.type.startsWith('video') ? 'video' : 'image'
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="create-post">
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="What's on your mind?"
+        rows={3}
+      />
+
+      {previews.length > 0 && (
+        <div className="media-previews">
+          {previews.map((url, idx) => (
+            <img key={idx} src={url} alt="Preview" />
+          ))}
+        </div>
+      )}
+
+      <div className="post-actions">
+        <input
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          onChange={handleFileChange}
+          id="file-input"
+          style={{ display: 'none' }}
+        />
+        <label htmlFor="file-input" className="btn-icon">
+          📷 Add Media
+        </label>
+
+        <button type="submit" disabled={isLoading || (!content.trim() && files.length === 0)}>
+          {isLoading ? 'Posting...' : 'Post'}
+        </button>
+      </div>
+    </form>
+  );
+}
+```
+
+## Vue 3 Implementation
+
+### Feed Component (Vue)
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue';
+import { useQuery, useSubscription } from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+
+const posts = ref<any[]>([]);
+const page = ref(0);
+const limit = 20;
+
+const { data, isLoading, refetch } = useQuery(
+  ['feed', props.userId, page],
+  {
+    table: 'posts',
+    limit: limit,
+    offset: computed(() => page.value * limit),
+    orderBy: { created_at: 'desc' }
+  }
+);
+
+// Subscribe to real-time updates
+useSubscription({
+  table: 'posts',
+  onInsert: (post) => {
+    posts.value.unshift(post);
+  },
+  onUpdate: (post) => {
+    const index = posts.value.findIndex(p => p.id === post.id);
+    if (index !== -1) {
+      posts.value[index] = post;
+    }
+  },
+  onDelete: (postId) => {
+    posts.value = posts.value.filter(p => p.id !== postId);
+  }
+});
+
+const handleLoadMore = () => {
+  page.value++;
+};
+</script>
+
+<template>
+  <div class="feed">
+    <div v-if="isLoading && page === 0">Loading feed...</div>
+
+    <div v-else>
+      <PostCard
+        v-for="post in posts"
+        :key="post.id"
+        :post="post"
+        :current-user-id="userId"
+      />
+
+      <button @click="handleLoadMore" :disabled="isLoading">
+        {{ isLoading ? 'Loading...' : 'Load More' }}
+      </button>
+    </div>
+  </div>
+</template>
+```
+
+## Next Steps
+
+- Add stories/reels feature
+- Implement direct messaging
+- Add hashtag and mention functionality
+- Create explore/discovery page
+- Add content moderation
+- Implement reporting system
+- Add video player with controls
+- Create analytics dashboard
+
+## Related Tutorials
+
+- [Building a Todo App](./building-a-todo-app)
+- [Shopping Cart](./shopping-cart)

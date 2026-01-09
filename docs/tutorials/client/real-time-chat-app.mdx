@@ -1,0 +1,1229 @@
+---
+sidebar_position: 4
+title: Building a Real-time Chat App
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Building a Real-time Chat App
+
+Learn how to build a full-featured real-time chat application with direct messaging, group chats, typing indicators, read receipts, and file sharing using Ductape Client SDKs.
+
+## What You'll Build
+
+- One-on-one messaging
+- Group chats with multiple participants
+- Real-time message delivery
+- Typing indicators
+- Read receipts and message status
+- File and image sharing
+- Message reactions
+- Search conversations
+- Unread message counters
+
+## Prerequisites
+
+- Basic understanding of JavaScript/TypeScript
+- Node.js and npm installed
+- Ductape account and API credentials
+- Understanding of WebSocket/real-time features
+
+## Setup
+
+<Tabs>
+<TabItem value="client" label="@ductape/client">
+
+```bash
+npm install @ductape/client
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```bash
+npm install @ductape/react @ductape/client
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+```bash
+npm install @ductape/vue @ductape/client
+```
+
+</TabItem>
+</Tabs>
+
+## Database Schema
+
+This schema setup is done on the backend using the Ductape SDK:
+
+```typescript
+import { Ductape } from '@ductape/sdk';
+
+const ductape = new Ductape({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+
+// Conversations table
+await ductape.databases.schema.create('conversations', {
+  type: { type: 'String', required: true }, // 'direct' or 'group'
+  name: { type: 'String' }, // For group chats
+  avatar_url: { type: 'String' }, // For group chats
+  participant_ids: { type: 'Array', required: true },
+  last_message_id: { type: 'String' },
+  last_message_at: { type: 'Date' },
+  created_by: { type: 'String', required: true },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Messages table
+await ductape.databases.schema.create('messages', {
+  conversation_id: { type: 'String', required: true },
+  sender_id: { type: 'String', required: true },
+  content: { type: 'String' },
+  type: { type: 'String', default: 'text' }, // 'text', 'image', 'file', 'system'
+  file_url: { type: 'String' },
+  file_name: { type: 'String' },
+  file_size: { type: 'Number' },
+  file_type: { type: 'String' },
+  reactions: { type: 'JSON', default: {} },
+  reply_to_id: { type: 'String' },
+  is_edited: { type: 'Boolean', default: false },
+  edited_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Message status table (for read receipts)
+await ductape.databases.schema.create('message_status', {
+  message_id: { type: 'String', required: true },
+  user_id: { type: 'String', required: true },
+  status: { type: 'String', required: true }, // 'sent', 'delivered', 'read'
+  read_at: { type: 'Date' },
+  delivered_at: { type: 'Date' },
+  created_at: { type: 'Date', default: 'now' }
+});
+
+// Typing indicators table
+await ductape.databases.schema.create('typing_indicators', {
+  conversation_id: { type: 'String', required: true },
+  user_id: { type: 'String', required: true },
+  is_typing: { type: 'Boolean', default: true },
+  updated_at: { type: 'Date', default: 'now' }
+});
+
+// Create indexes
+await ductape.databases.schema.createIndex('conversations', ['participant_ids']);
+await ductape.databases.schema.createIndex('conversations', ['last_message_at']);
+await ductape.databases.schema.createIndex('messages', ['conversation_id']);
+await ductape.databases.schema.createIndex('messages', ['created_at']);
+await ductape.databases.schema.createIndex('message_status', ['message_id', 'user_id']);
+await ductape.databases.schema.createIndex('typing_indicators', ['conversation_id']);
+```
+
+## Initialize Client
+
+<Tabs>
+<TabItem value="client" label="@ductape/client">
+
+```typescript
+import { DuctapeClient } from '@ductape/client';
+
+const client = new DuctapeClient({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```tsx
+import { DuctapeProvider } from '@ductape/react';
+import ChatApp from './ChatApp';
+
+function App() {
+  return (
+    <DuctapeProvider
+      accessKey={process.env.REACT_APP_DUCTAPE_ACCESS_KEY!}
+      product={process.env.REACT_APP_DUCTAPE_PRODUCT!}
+      env={process.env.REACT_APP_DUCTAPE_ENV!}
+    >
+      <ChatApp />
+    </DuctapeProvider>
+  );
+}
+
+export default App;
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+```vue
+<script setup lang="ts">
+import { DuctapeProvider } from '@ductape/vue';
+import ChatApp from './components/ChatApp.vue';
+</script>
+
+<template>
+  <DuctapeProvider
+    :access-key="import.meta.env.VITE_DUCTAPE_ACCESS_KEY"
+    :product="import.meta.env.VITE_DUCTAPE_PRODUCT"
+    :env="import.meta.env.VITE_DUCTAPE_ENV"
+  >
+    <ChatApp />
+  </DuctapeProvider>
+</template>
+```
+
+</TabItem>
+</Tabs>
+
+## Chat Window Component
+
+<Tabs>
+<TabItem value="client" label="@ductape/client">
+
+```typescript
+import { DuctapeClient } from '@ductape/client';
+
+const client = new DuctapeClient({
+  apiKey: process.env.DUCTAPE_API_KEY
+});
+
+class ChatWindow {
+  private conversationId: string;
+  private userId: string;
+  private messages: any[] = [];
+  private typingUsers: any[] = [];
+  private unsubscribers: Array<() => void> = [];
+
+  constructor(conversationId: string, userId: string) {
+    this.conversationId = conversationId;
+    this.userId = userId;
+    this.init();
+  }
+
+  async init() {
+    // Load messages
+    await this.loadMessages();
+
+    // Subscribe to real-time updates
+    this.subscribeToMessages();
+    this.subscribeToTyping();
+  }
+
+  async loadMessages() {
+    const result = await client.databases.find({
+      table: 'messages',
+      where: { conversation_id: this.conversationId },
+      orderBy: { created_at: 'asc' },
+      limit: 100
+    });
+
+    this.messages = result.rows;
+    this.renderMessages();
+  }
+
+  subscribeToMessages() {
+    const unsubscribe = client.databases.subscribe({
+      table: 'messages',
+      where: { conversation_id: this.conversationId },
+      onInsert: (message) => {
+        this.messages.push(message);
+        this.renderMessages();
+
+        // Mark as read if not own message
+        if (message.sender_id !== this.userId) {
+          this.markAsRead(message.id);
+        }
+      },
+      onUpdate: (message) => {
+        const index = this.messages.findIndex(m => m.id === message.id);
+        if (index !== -1) {
+          this.messages[index] = message;
+          this.renderMessages();
+        }
+      }
+    });
+
+    this.unsubscribers.push(unsubscribe);
+  }
+
+  subscribeToTyping() {
+    const unsubscribe = client.databases.subscribe({
+      table: 'typing_indicators',
+      where: {
+        conversation_id: this.conversationId,
+        user_id: { $ne: this.userId },
+        is_typing: true
+      },
+      onInsert: (indicator) => {
+        if (!this.typingUsers.find(u => u.user_id === indicator.user_id)) {
+          this.typingUsers.push(indicator);
+          this.renderTypingIndicator();
+        }
+      },
+      onUpdate: (indicator) => {
+        if (!indicator.is_typing) {
+          this.typingUsers = this.typingUsers.filter(u => u.user_id !== indicator.user_id);
+          this.renderTypingIndicator();
+        }
+      }
+    });
+
+    this.unsubscribers.push(unsubscribe);
+  }
+
+  async sendMessage(content: string) {
+    if (!content.trim()) return;
+
+    // Create message
+    await client.databases.insert({
+      table: 'messages',
+      data: {
+        conversation_id: this.conversationId,
+        sender_id: this.userId,
+        content,
+        type: 'text'
+      }
+    });
+
+    // Update conversation
+    await client.databases.update({
+      table: 'conversations',
+      where: { id: this.conversationId },
+      data: {
+        last_message_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    // Clear typing indicator
+    this.setTyping(false);
+  }
+
+  async setTyping(isTyping: boolean) {
+    const existing = await client.databases.findOne({
+      table: 'typing_indicators',
+      where: { conversation_id: this.conversationId, user_id: this.userId }
+    });
+
+    if (existing.row) {
+      await client.databases.update({
+        table: 'typing_indicators',
+        where: { id: existing.row.id },
+        data: { is_typing: isTyping, updated_at: new Date() }
+      });
+    } else {
+      await client.databases.insert({
+        table: 'typing_indicators',
+        data: {
+          conversation_id: this.conversationId,
+          user_id: this.userId,
+          is_typing: isTyping
+        }
+      });
+    }
+  }
+
+  async markAsRead(messageId: string) {
+    await client.databases.update({
+      table: 'message_status',
+      where: { message_id: messageId, user_id: this.userId },
+      data: {
+        status: 'read',
+        read_at: new Date()
+      }
+    });
+  }
+
+  renderMessages() {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+
+    container.innerHTML = this.messages.map(msg => `
+      <div class="message ${msg.sender_id === this.userId ? 'own' : 'other'}">
+        <p>${msg.content}</p>
+        <span class="timestamp">${new Date(msg.created_at).toLocaleTimeString()}</span>
+      </div>
+    `).join('');
+
+    container.scrollTop = container.scrollHeight;
+  }
+
+  renderTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (!indicator) return;
+
+    if (this.typingUsers.length > 0) {
+      indicator.textContent = `${this.typingUsers.length} user(s) typing...`;
+      indicator.style.display = 'block';
+    } else {
+      indicator.style.display = 'none';
+    }
+  }
+
+  destroy() {
+    this.unsubscribers.forEach(unsub => unsub());
+  }
+}
+
+// Usage
+const chat = new ChatWindow('conversation-id', 'user-id');
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useSubscription } from '@ductape/react';
+
+interface ChatWindowProps {
+  conversationId: string;
+  userId: string;
+}
+
+export function ChatWindow({ conversationId, userId }: ChatWindowProps) {
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState<any[]>([]);
+  const [typingUsers, setTypingUsers] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Fetch messages
+  const { data, isLoading } = useQuery(
+    ['messages', conversationId],
+    {
+      table: 'messages',
+      where: { conversation_id: conversationId },
+      orderBy: { created_at: 'asc' },
+      limit: 100
+    }
+  );
+
+  useEffect(() => {
+    if (data) {
+      setMessages(data);
+    }
+  }, [data]);
+
+  // Subscribe to new messages
+  useSubscription({
+    table: 'messages',
+    where: { conversation_id: conversationId },
+    onInsert: (newMessage) => {
+      setMessages(prev => [...prev, newMessage]);
+      scrollToBottom();
+
+      // Mark as read if not own message
+      if (newMessage.sender_id !== userId) {
+        markAsRead.mutate({
+          table: 'message_status',
+          where: { message_id: newMessage.id, user_id: userId },
+          data: { status: 'read', read_at: new Date() }
+        });
+      }
+    },
+    onUpdate: (updatedMessage) => {
+      setMessages(prev => prev.map(m =>
+        m.id === updatedMessage.id ? updatedMessage : m
+      ));
+    }
+  });
+
+  // Subscribe to typing indicators
+  useSubscription({
+    table: 'typing_indicators',
+    where: {
+      conversation_id: conversationId,
+      user_id: { $ne: userId },
+      is_typing: true
+    },
+    onInsert: (indicator) => {
+      setTypingUsers(prev => {
+        if (!prev.find(u => u.user_id === indicator.user_id)) {
+          return [...prev, indicator];
+        }
+        return prev;
+      });
+    },
+    onUpdate: (indicator) => {
+      if (!indicator.is_typing) {
+        setTypingUsers(prev => prev.filter(u => u.user_id !== indicator.user_id));
+      }
+    }
+  });
+
+  const { mutate: sendMsg } = useMutation({
+    onSuccess: () => {
+      setMessage('');
+      setTypingIndicator(false);
+    }
+  });
+
+  const { mutate: updateTyping } = useMutation();
+  const { mutate: markAsRead } = useMutation();
+
+  const setTypingIndicator = (isTyping: boolean) => {
+    updateTyping({
+      table: 'typing_indicators',
+      where: { conversation_id: conversationId, user_id: userId },
+      data: { is_typing: isTyping, updated_at: new Date() }
+    });
+  };
+
+  const handleTyping = (value: string) => {
+    setMessage(value);
+    setTypingIndicator(true);
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to clear typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      setTypingIndicator(false);
+    }, 2000);
+  };
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    sendMsg({
+      table: 'messages',
+      data: {
+        conversation_id: conversationId,
+        sender_id: userId,
+        content: message,
+        type: 'text'
+      }
+    });
+
+    // Update conversation
+    sendMsg({
+      table: 'conversations',
+      where: { id: conversationId },
+      data: {
+        last_message_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  if (isLoading) {
+    return <div>Loading messages...</div>;
+  }
+
+  return (
+    <div className="chat-window">
+      <div className="messages-container">
+        {messages.map(msg => (
+          <div
+            key={msg.id}
+            className={`message ${msg.sender_id === userId ? 'own' : 'other'}`}
+          >
+            <p>{msg.content}</p>
+            <span className="timestamp">
+              {new Date(msg.created_at).toLocaleTimeString()}
+            </span>
+          </div>
+        ))}
+        {typingUsers.length > 0 && (
+          <div className="typing-indicator">
+            {typingUsers.length} user(s) typing...
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={handleSend} className="message-input">
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => handleTyping(e.target.value)}
+          placeholder="Type a message..."
+        />
+        <button type="submit" disabled={!message.trim()}>
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { useQuery, useMutation, useSubscription } from '@ductape/vue';
+
+const props = defineProps<{
+  conversationId: string;
+  userId: string;
+}>();
+
+const message = ref('');
+const messages = ref<any[]>([]);
+const typingUsers = ref<any[]>([]);
+const messagesEndRef = ref<HTMLElement | null>(null);
+let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Fetch messages
+const { data, isLoading } = useQuery(
+  ['messages', props.conversationId],
+  {
+    table: 'messages',
+    where: { conversation_id: props.conversationId },
+    orderBy: { created_at: 'asc' },
+    limit: 100
+  }
+);
+
+watch(data, (newMessages) => {
+  if (newMessages) {
+    messages.value = newMessages;
+    scrollToBottom();
+  }
+});
+
+// Subscribe to new messages
+useSubscription({
+  table: 'messages',
+  where: { conversation_id: props.conversationId },
+  onInsert: (newMessage) => {
+    messages.value.push(newMessage);
+    scrollToBottom();
+
+    if (newMessage.sender_id !== props.userId) {
+      markAsRead.mutate({
+        table: 'message_status',
+        where: { message_id: newMessage.id, user_id: props.userId },
+        data: { status: 'read', read_at: new Date() }
+      });
+    }
+  },
+  onUpdate: (updatedMessage) => {
+    const index = messages.value.findIndex(m => m.id === updatedMessage.id);
+    if (index !== -1) {
+      messages.value[index] = updatedMessage;
+    }
+  }
+});
+
+// Subscribe to typing
+useSubscription({
+  table: 'typing_indicators',
+  where: {
+    conversation_id: props.conversationId,
+    user_id: { $ne: props.userId },
+    is_typing: true
+  },
+  onInsert: (indicator) => {
+    if (!typingUsers.value.find(u => u.user_id === indicator.user_id)) {
+      typingUsers.value.push(indicator);
+    }
+  },
+  onUpdate: (indicator) => {
+    if (!indicator.is_typing) {
+      typingUsers.value = typingUsers.value.filter(u => u.user_id !== indicator.user_id);
+    }
+  }
+});
+
+const { mutate: sendMessage } = useMutation({
+  onSuccess: () => {
+    message.value = '';
+    setTyping(false);
+  }
+});
+
+const { mutate: updateTyping } = useMutation();
+const { mutate: markAsRead } = useMutation();
+
+const setTyping = (isTyping: boolean) => {
+  updateTyping({
+    table: 'typing_indicators',
+    where: { conversation_id: props.conversationId, user_id: props.userId },
+    data: { is_typing: isTyping, updated_at: new Date() }
+  });
+};
+
+const handleTyping = (value: string) => {
+  message.value = value;
+  setTyping(true);
+
+  if (typingTimeout) {
+    clearTimeout(typingTimeout);
+  }
+
+  typingTimeout = setTimeout(() => {
+    setTyping(false);
+  }, 2000);
+};
+
+const handleSend = () => {
+  if (!message.value.trim()) return;
+
+  sendMessage({
+    table: 'messages',
+    data: {
+      conversation_id: props.conversationId,
+      sender_id: props.userId,
+      content: message.value,
+      type: 'text'
+    }
+  });
+
+  sendMessage({
+    table: 'conversations',
+    where: { id: props.conversationId },
+    data: {
+      last_message_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+};
+
+const scrollToBottom = () => {
+  if (messagesEndRef.value) {
+    messagesEndRef.value.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+</script>
+
+<template>
+  <div class="chat-window">
+    <div v-if="isLoading">Loading messages...</div>
+
+    <div v-else class="messages-container">
+      <div
+        v-for="msg in messages"
+        :key="msg.id"
+        :class="['message', msg.sender_id === userId ? 'own' : 'other']"
+      >
+        <p>{{ msg.content }}</p>
+        <span class="timestamp">
+          {{ new Date(msg.created_at).toLocaleTimeString() }}
+        </span>
+      </div>
+
+      <div v-if="typingUsers.length > 0" class="typing-indicator">
+        {{ typingUsers.length }} user(s) typing...
+      </div>
+
+      <div ref="messagesEndRef"></div>
+    </div>
+
+    <form @submit.prevent="handleSend" class="message-input">
+      <input
+        :value="message"
+        @input="handleTyping($event.target.value)"
+        type="text"
+        placeholder="Type a message..."
+      />
+      <button type="submit" :disabled="!message.trim()">
+        Send
+      </button>
+    </form>
+  </div>
+</template>
+
+<style scoped>
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.message {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  max-width: 70%;
+}
+
+.message.own {
+  margin-left: auto;
+  background: #007bff;
+  color: white;
+}
+
+.message.other {
+  margin-right: auto;
+  background: #f1f1f1;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.typing-indicator {
+  font-style: italic;
+  color: #666;
+  padding: 0.5rem 1rem;
+}
+
+.message-input {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+.message-input input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+}
+
+.message-input button {
+  padding: 0.75rem 1.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.message-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
+```
+
+</TabItem>
+</Tabs>
+
+## Sending Files
+
+<Tabs>
+<TabItem value="client" label="@ductape/client">
+
+```typescript
+async function sendFileMessage(
+  conversationId: string,
+  senderId: string,
+  file: File,
+  caption?: string
+) {
+  // Upload file
+  const upload = await client.storage.upload({
+    file,
+    path: `chat/${conversationId}/${Date.now()}`,
+    onProgress: (progress) => {
+      console.log(`Upload progress: ${progress}%`);
+    }
+  });
+
+  // Determine file type
+  const isImage = file.type.startsWith('image/');
+  const messageType = isImage ? 'image' : 'file';
+
+  // Create message
+  const message = await client.databases.insert({
+    table: 'messages',
+    data: {
+      conversation_id: conversationId,
+      sender_id: senderId,
+      content: caption || '',
+      type: messageType,
+      file_url: upload.url,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type
+    }
+  });
+
+  // Update conversation
+  await client.databases.update({
+    table: 'conversations',
+    where: { id: conversationId },
+    data: {
+      last_message_id: message.rows[0].id,
+      last_message_at: new Date()
+    }
+  });
+
+  return message.rows[0];
+}
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```tsx
+import React, { useState } from 'react';
+import { useStorageUpload, useMutation } from '@ductape/react';
+
+export function FileUpload({ conversationId, userId }: {
+  conversationId: string;
+  userId: string;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState('');
+
+  const { mutate: upload, isLoading, progress } = useStorageUpload({
+    onSuccess: async (uploadData) => {
+      // Create message with file
+      await createMessage({
+        table: 'messages',
+        data: {
+          conversation_id: conversationId,
+          sender_id: userId,
+          content: caption,
+          type: file?.type.startsWith('image/') ? 'image' : 'file',
+          file_url: uploadData.url,
+          file_name: file?.name,
+          file_size: file?.size,
+          file_type: file?.type
+        }
+      });
+
+      setFile(null);
+      setCaption('');
+    }
+  });
+
+  const { mutate: createMessage } = useMutation();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleSend = () => {
+    if (!file) return;
+
+    upload({
+      file,
+      path: `chat/${conversationId}/${Date.now()}`
+    });
+  };
+
+  return (
+    <div className="file-upload">
+      <input
+        type="file"
+        onChange={handleFileChange}
+        accept="image/*,video/*,.pdf,.doc,.docx"
+      />
+      {file && (
+        <>
+          <input
+            type="text"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Add a caption..."
+          />
+          <button onClick={handleSend} disabled={isLoading}>
+            {isLoading ? `Uploading ${progress}%` : 'Send File'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStorageUpload, useMutation } from '@ductape/vue';
+
+const props = defineProps<{
+  conversationId: string;
+  userId: string;
+}>();
+
+const file = ref<File | null>(null);
+const caption = ref('');
+
+const { mutate: upload, isLoading, progress } = useStorageUpload({
+  onSuccess: async (uploadData) => {
+    await createMessage({
+      table: 'messages',
+      data: {
+        conversation_id: props.conversationId,
+        sender_id: props.userId,
+        content: caption.value,
+        type: file.value?.type.startsWith('image/') ? 'image' : 'file',
+        file_url: uploadData.url,
+        file_name: file.value?.name,
+        file_size: file.value?.size,
+        file_type: file.value?.type
+      }
+    });
+
+    file.value = null;
+    caption.value = '';
+  }
+});
+
+const { mutate: createMessage } = useMutation();
+
+const handleFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files[0]) {
+    file.value = target.files[0];
+  }
+};
+
+const handleSend = () => {
+  if (!file.value) return;
+
+  upload({
+    file: file.value,
+    path: `chat/${props.conversationId}/${Date.now()}`
+  });
+};
+</script>
+
+<template>
+  <div class="file-upload">
+    <input
+      type="file"
+      @change="handleFileChange"
+      accept="image/*,video/*,.pdf,.doc,.docx"
+    />
+    <div v-if="file">
+      <input
+        v-model="caption"
+        type="text"
+        placeholder="Add a caption..."
+      />
+      <button @click="handleSend" :disabled="isLoading">
+        {{ isLoading ? `Uploading ${progress}%` : 'Send File' }}
+      </button>
+    </div>
+  </div>
+</template>
+```
+
+</TabItem>
+</Tabs>
+
+## Group Chats
+
+<Tabs>
+<TabItem value="client" label="@ductape/client">
+
+```typescript
+// Create group conversation
+async function createGroupConversation(
+  userId: string,
+  participantIds: string[],
+  name: string,
+  avatarUrl?: string
+) {
+  const allParticipants = [userId, ...participantIds];
+
+  const conversation = await client.databases.insert({
+    table: 'conversations',
+    data: {
+      type: 'group',
+      name,
+      avatar_url: avatarUrl,
+      participant_ids: allParticipants,
+      created_by: userId
+    }
+  });
+
+  // Send system message
+  await client.databases.insert({
+    table: 'messages',
+    data: {
+      conversation_id: conversation.rows[0].id,
+      sender_id: 'system',
+      content: `${userId} created the group "${name}"`,
+      type: 'system'
+    }
+  });
+
+  return conversation.rows[0];
+}
+
+// Add participant
+async function addParticipant(
+  conversationId: string,
+  userId: string,
+  newParticipantId: string
+) {
+  const conversation = await client.databases.findOne({
+    table: 'conversations',
+    where: { id: conversationId }
+  });
+
+  if (!conversation.row || conversation.row.type !== 'group') {
+    throw new Error('Invalid group conversation');
+  }
+
+  // Add participant
+  await client.databases.update({
+    table: 'conversations',
+    where: { id: conversationId },
+    data: {
+      participant_ids: [...conversation.row.participant_ids, newParticipantId],
+      updated_at: new Date()
+    }
+  });
+
+  // System message
+  await client.databases.insert({
+    table: 'messages',
+    data: {
+      conversation_id: conversationId,
+      sender_id: 'system',
+      content: `${userId} added ${newParticipantId} to the group`,
+      type: 'system'
+    }
+  });
+}
+```
+
+</TabItem>
+<TabItem value="react" label="React">
+
+```tsx
+import React, { useState } from 'react';
+import { useMutation } from '@ductape/react';
+
+export function CreateGroup({ userId }: { userId: string }) {
+  const [name, setName] = useState('');
+  const [participants, setParticipants] = useState<string[]>([]);
+
+  const { mutate: createGroup, isLoading } = useMutation({
+    onSuccess: (conversation) => {
+      alert('Group created!');
+      // Redirect to group chat
+    }
+  });
+
+  const handleCreate = () => {
+    createGroup({
+      table: 'conversations',
+      data: {
+        type: 'group',
+        name,
+        participant_ids: [userId, ...participants],
+        created_by: userId
+      }
+    });
+  };
+
+  return (
+    <div className="create-group">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Group name"
+      />
+      <button onClick={handleCreate} disabled={isLoading || !name}>
+        {isLoading ? 'Creating...' : 'Create Group'}
+      </button>
+    </div>
+  );
+}
+```
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useMutation } from '@ductape/vue';
+
+const props = defineProps<{ userId: string }>();
+
+const name = ref('');
+const participants = ref<string[]>([]);
+
+const { mutate: createGroup, isLoading } = useMutation({
+  onSuccess: () => {
+    alert('Group created!');
+    name.value = '';
+    participants.value = [];
+  }
+});
+
+const handleCreate = () => {
+  createGroup({
+    table: 'conversations',
+    data: {
+      type: 'group',
+      name: name.value,
+      participant_ids: [props.userId, ...participants.value],
+      created_by: props.userId
+    }
+  });
+};
+</script>
+
+<template>
+  <div class="create-group">
+    <input
+      v-model="name"
+      type="text"
+      placeholder="Group name"
+    />
+    <button
+      @click="handleCreate"
+      :disabled="isLoading || !name"
+    >
+      {{ isLoading ? 'Creating...' : 'Create Group' }}
+    </button>
+  </div>
+</template>
+```
+
+</TabItem>
+</Tabs>
+
+## Next Steps
+
+- Add voice and video calling
+- Implement message search
+- Add emoji picker
+- Create message forwarding
+- Add message pinning
+- Implement chat archiving
+- Add mute/notification settings
+- Create end-to-end encryption
+
+## Related Tutorials
+
+- [Building a Todo App](./building-a-todo-app)
+- [Shopping Cart](./shopping-cart)
+- [Social Media Feed](./social-media-feed)
