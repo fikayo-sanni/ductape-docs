@@ -8,9 +8,11 @@ Send notifications to users via push, email, SMS, or webhooks using `ductape.not
 
 ## Quick Example
 
+Use channel-specific APIs (`.email`, `.push`, `.sms`, `.callback`) with `.send()` to target a single channel:
+
 ```ts
 // Send a push notification
-await ductape.notifications.push({
+await ductape.notifications.push.send({
   product: 'my-app',
   env: 'prd',
   notification: 'alerts:welcome',
@@ -22,7 +24,7 @@ await ductape.notifications.push({
 });
 
 // Send an email
-await ductape.notifications.email({
+await ductape.notifications.email.send({
   product: 'my-app',
   env: 'prd',
   notification: 'emails:order-confirmation',
@@ -34,7 +36,7 @@ await ductape.notifications.email({
 });
 
 // Send an SMS
-await ductape.notifications.sms({
+await ductape.notifications.sms.send({
   product: 'my-app',
   env: 'prd',
   notification: 'sms:verification',
@@ -45,7 +47,7 @@ await ductape.notifications.sms({
 });
 
 // Send a webhook callback
-await ductape.notifications.callback({
+await ductape.notifications.callback.send({
   product: 'my-app',
   env: 'prd',
   notification: 'webhooks:order-created',
@@ -57,14 +59,15 @@ await ductape.notifications.callback({
 
 ## Notification Methods
 
-| Method | Description | Use cases |
-|--------|-------------|-----------|
-| `push()` | Send push notifications via Firebase/Expo | Alerts, updates, promotions |
-| `email()` | Send emails via SMTP | Account info, transactions |
-| `sms()` | Send SMS via Twilio/Nexmo/Plivo | OTPs, alerts, status updates |
-| `callback()` | Send HTTP webhooks | Integrations, automation |
-| `send()` | Send to multiple channels at once | Multi-channel campaigns |
-| `dispatch()` | Schedule notifications for later | Delayed/scheduled sends |
+| API | Description | Use cases |
+|-----|-------------|-----------|
+| `notifications.email.send()` | Send via email channel only | Account info, transactions |
+| `notifications.push.send()` | Send via push (Firebase/Expo) only | Alerts, updates, promotions |
+| `notifications.sms.send()` | Send via SMS only | OTPs, alerts, status updates |
+| `notifications.callback.send()` | Send via HTTP webhook only | Integrations, automation |
+| `notifications.send()` | Send to multiple channels at once | Multi-channel campaigns |
+| `notifications.dispatch()` | Schedule notifications for later | Delayed/scheduled sends |
+| `notifications.getMessages()` | Fetch notification message logs with time filters | Send history, reprocessing, debugging |
 
 ## Notification Tag Format
 
@@ -77,33 +80,53 @@ notification: 'emails:order-confirmation'  // notification_tag: 'emails', messag
 
 ## Multi-Channel Notifications
 
-Send to multiple channels at once:
+Send to multiple channels at once with `notifications.send()` (single `input` object with multiple channel keys):
 
 ```ts
 const result = await ductape.notifications.send({
   product: 'my-app',
   env: 'prd',
-  notification: 'alerts:order-placed',
-  push_notification: {
-    device_tokens: ['token1'],
-    title: { order: 'New Order' },
-    body: { message: 'Order #12345 placed' },
-  },
-  email: {
-    recipients: ['user@example.com'],
-    subject: { orderId: '12345' },
-    template: { orderDetails: '...' },
-  },
-  sms: {
-    recipients: ['+1234567890'],
-    body: { message: 'Order #12345 placed' },
+  event: 'alerts:order-placed',
+  input: {
+    push_notification: {
+      device_tokens: ['token1'],
+      title: { order: 'New Order' },
+      body: { message: 'Order #12345 placed' },
+    },
+    email: {
+      recipients: ['user@example.com'],
+      subject: { orderId: '12345' },
+      template: { orderDetails: '...' },
+    },
+    sms: {
+      recipients: ['+1234567890'],
+      body: { message: 'Order #12345 placed' },
+    },
   },
 });
 
-console.log(result.channels.push?.success);
-console.log(result.channels.email?.success);
-console.log(result.channels.sms?.success);
+console.log(result.channels?.push?.success);
+console.log(result.channels?.email?.success);
+console.log(result.channels?.sms?.success);
 ```
+
+## Notification message logs
+
+Every send is logged server-side with **status** (`pending`, `sent`, `failed`, `reprocessing`) and **type** (channel: `email`, `push`, `sms`, `callback`, or `notification`). Use `notifications.getMessages()` to fetch send history with time filters and optional filters by product, env, status, and type. Logs include the full input used for each send so you can reprocess failed or specific notifications.
+
+```ts
+const { items, total, hasMore } = await ductape.notifications.getMessages({
+  product_tag: 'my-app',
+  env: 'prd',
+  start_date: new Date(Date.now() - 7 * 864e5).toISOString(),
+  end_date: new Date().toISOString(),
+  status: 'failed',
+  page: 1,
+  limit: 50,
+});
+```
+
+See [Notification Message Logs](./message-logs) for query options, response shape, and reprocessing.
 
 ## Best Practices
 
@@ -113,9 +136,11 @@ console.log(result.channels.sms?.success);
 - Respect user opt-in/opt-out preferences
 - Monitor delivery metrics
 - Use `dispatch()` for scheduled notifications
+- Use `getMessages()` with time filters to audit sends and reprocess failures
 
 ## See Also
 
 * [Setting Up Notifications](./setup)
 * [Sending Notifications](./send)
+* [Notification Message Logs](./message-logs)
 * [Message Templates](./templates/manage-messages)

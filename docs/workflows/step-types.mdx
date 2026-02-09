@@ -362,9 +362,24 @@ await ctx.storage.delete({
 
 ---
 
+## ctx.messaging
+
+Message broker (Ductape primitive). Use this to publish to broker topics.
+
+### ctx.messaging.produce()
+
+```typescript
+await ctx.messaging.produce({
+  event: string,   // "broker-tag:topic-tag" (e.g. "order-events:payment-processed")
+  message: Record<string, unknown>,
+}): Promise<void>;
+```
+
+---
+
 ## ctx.publish
 
-Message broker operations.
+**Deprecated.** Prefer [ctx.messaging.produce()](#ctxmessaging) above.
 
 ### ctx.publish.send()
 

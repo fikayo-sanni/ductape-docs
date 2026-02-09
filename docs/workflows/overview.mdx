@@ -372,16 +372,12 @@ await ctx.storage.delete({
 ### Message Publishing
 
 ```typescript
-await ctx.publish.send({
-  broker: 'order-events',
-  event: 'new-order',
-  input: {
-    message: {
-      orderId: ctx.input.orderId,
-      items: ctx.input.items,
-    },
+await ctx.messaging.produce({
+  event: 'order-events:new-order',
+  message: {
+    orderId: ctx.input.orderId,
+    items: ctx.input.items,
   },
-  retries: 2,
 });
 ```
 
@@ -469,9 +465,20 @@ console.log('Completed Steps:', result.completed_steps);
 
 ---
 
+## Conditionals, loops, and switch
+
+You can define **if/else** (including early return), **loops** (`for`), and **switch** in workflow handlers. Because the handler runs once at define time to record steps, use:
+
+- **branchOverrides** – when you branch on a **step result** and return early (e.g. "only run payment if validation passed").
+- **recordInput** – when you **loop** over workflow input (e.g. `for (const item of ctx.input.items)`).
+- **recordScenarios** – when you branch on **workflow input** (e.g. different steps for `type: 'a'` vs `type: 'b'` with `if/else` or `switch`).
+
+At runtime, steps get **conditions** (e.g. `$Step{validate}{valid} == true`, `$Input{type} == 'a'`) and the executor supports `==`, `!=`, `>=`, `<=`, `>`, `<`, and `&&` / `||`. Full syntax and examples: [Building Workflows - Conditionals, loops, and switch](./building-workflows#conditionals-loops-and-switch).
+
 ## Next Steps
 
 - [Getting Started](./getting-started) - Set up your first workflow
+- [Building Workflows](./building-workflows) - Definition options, conditionals, loops, switch
 - [Step Types](./step-types) - Complete reference for all component operations
 - [Execution & Rollbacks](./execution) - How execution and rollbacks work
 - [Examples](./examples) - Real-world workflow patterns
