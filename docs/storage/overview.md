@@ -8,17 +8,20 @@ Configure cloud storage providers and perform file operations across AWS S3, Goo
 
 ## Quick Example
 
-```ts
-import { StorageService } from '@ductape/sdk';
+Use the **storage** API on the Ductape instance. Initialize Ductape with your access key:
 
-const storage = new StorageService({
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
   accessKey: 'your-access-key',
+  env_type: 'prd', // optional
 });
 
 // Upload a file
-const result = await storage.upload({
+const result = await ductape.storage.upload({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
   buffer: fileBuffer,
@@ -26,28 +29,6 @@ const result = await storage.upload({
 });
 
 console.log('File URL:', result.url);
-```
-
-## Using the Ductape Class
-
-You can also use storage through the main Ductape class:
-
-```ts
-import Ductape from '@ductape/sdk';
-
-const ductape = new Ductape({
-  accessKey: 'your-access-key',
-});
-
-// Upload a file
-const result = await ductape.storage.upload({
-  product: 'my-product',
-  env: 'production',
-  storage: 'main-storage',
-  fileName: 'documents/report.pdf',
-  buffer: fileBuffer,
-  mimeType: 'application/pdf',
-});
 ```
 
 ---
@@ -67,105 +48,66 @@ const result = await ductape.storage.upload({
 ### Upload a File
 
 ```ts
-const result = await storage.upload({
+const result = await ductape.storage.upload({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'images/photo.jpg',
   buffer: imageBuffer,           // Buffer or string
   mimeType: 'image/jpeg',        // Optional
 });
 
-// Returns
-{
-  success: true,
-  url: 'https://bucket.s3.amazonaws.com/images/photo.jpg',
-  fileName: 'images/photo.jpg',
-  mimeType: 'image/jpeg'
-}
+// Returns { success: true, url: '...', fileName: '...', mimeType: '...' }
 ```
 
 ### Download a File
 
 ```ts
-const result = await storage.download({
+const result = await ductape.storage.download({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
 });
 
-// Returns
-{
-  data: Buffer,           // File contents
-  contentType: 'application/pdf',
-  size: 1024000
-}
+// Returns { success: true, data: Buffer, fileName?: string, size?: number, mimeType?: string }
 ```
 
-### Delete a File
+### Remove a File
+
+Use `storage.remove()` to delete a file:
 
 ```ts
-const result = await storage.delete({
+const result = await ductape.storage.remove({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/old-report.pdf',
 });
 
-// Returns
-{
-  success: true,
-  fileName: 'documents/old-report.pdf'
-}
+// Returns { success: true, fileName?: string }
 ```
 
 ### List Files
 
+Use `storage.listFiles()` for paginated listing:
+
 ```ts
-const result = await storage.list({
+const result = await ductape.storage.listFiles({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
-  prefix: 'documents/',        // Optional: filter by prefix
-  fileType: 'image',           // Optional: filter by type (image, video, audio, document, archive, other)
-  limit: 100,                  // Optional: max results (default: 100, max: 1000)
-  continuationToken: '...',    // Optional: for pagination
+  prefix: 'documents/',           // Optional
+  limit: 100,                     // Optional (default: 100, max: 1000)
+  continuationToken: '...',       // Optional: for next page
 });
 
-// Returns
-{
-  success: true,
-  files: [
-    { name: 'documents/report.pdf', size: 1024000, lastModified: Date, url: '...', mimeType: 'application/pdf' },
-    { name: 'documents/invoice.pdf', size: 512000, lastModified: Date, url: '...', mimeType: 'application/pdf' },
-  ],
-  limit: 100,
-  nextToken: '...',            // Continuation token for next page
-  hasMore: true                // Whether more results are available
-}
-```
-
-#### File Type Filtering
-
-Filter files by type to retrieve only specific categories:
-
-```ts
-// Get only images
-const images = await storage.list({
-  product: 'my-product',
-  env: 'production',
-  storage: 'media-storage',
-  fileType: 'image',
-  limit: 50,
-});
-
-// Available file types: 'image', 'video', 'audio', 'document', 'archive', 'other'
+// Returns { success: true, files: [...], limit?, nextToken?, hasMore }
 ```
 
 #### Pagination Example
 
-For buckets with many files, use cursor-based pagination:
+Use `continuationToken` and `nextToken` for cursor-based pagination:
 
 ```ts
 async function getAllFiles(product: string, env: string, storageTag: string) {
@@ -173,7 +115,7 @@ async function getAllFiles(product: string, env: string, storageTag: string) {
   let continuationToken: string | undefined;
 
   do {
-    const result = await storage.list({
+    const result = await ductape.storage.listFiles({
       product,
       env,
       storage: storageTag,
@@ -191,33 +133,18 @@ async function getAllFiles(product: string, env: string, storageTag: string) {
 
 ### Get Storage Statistics
 
-Get comprehensive file counts and sizes without loading all files:
+Get file counts and sizes without loading all files:
 
 ```ts
-const stats = await storage.stats({
+const stats = await ductape.storage.stats({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
-  prefix: 'documents/',     // Optional: filter by prefix
+  prefix: 'documents/',     // Optional
 });
 
-// Returns
-{
-  success: true,
-  totalFiles: 1250,
-  totalSize: 5368709120,    // 5 GB in bytes
-  byType: {
-    image: { count: 500, size: 2147483648 },
-    video: { count: 50, size: 2684354560 },
-    audio: { count: 100, size: 268435456 },
-    document: { count: 400, size: 214748364 },
-    archive: { count: 50, size: 53687091 },
-    other: { count: 150, size: 0 }
-  }
-}
+// Returns { success: true, totalFiles, totalSize, byType: { image, video, audio, document, archive, other } }
 ```
-
-The `stats()` method efficiently iterates through all files using provider-native pagination (up to 1000 files per API call) and categorizes them by extension. It only retrieves metadata, not file contents.
 
 ### Generate Signed URL
 
@@ -225,25 +152,19 @@ Create temporary URLs for secure file access:
 
 ```ts
 // Read access (download)
-const result = await storage.getSignedUrl({
+const result = await ductape.storage.getSignedUrl({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
   expiresIn: 3600,            // Seconds (default: 3600)
   action: 'read',             // 'read' or 'write'
 });
 
-// Returns
-{
-  url: 'https://bucket.s3.amazonaws.com/documents/report.pdf?X-Amz-...',
-  expiresAt: Date
-}
-
 // Write access (upload)
-const uploadUrl = await storage.getSignedUrl({
+const uploadUrl = await ductape.storage.getSignedUrl({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   fileName: 'uploads/new-file.pdf',
   expiresIn: 600,
@@ -258,34 +179,33 @@ const uploadUrl = await storage.getSignedUrl({
 Queue storage operations as background jobs:
 
 ```ts
-const result = await storage.dispatch({
+const result = await ductape.storage.dispatch({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   storage: 'main-storage',
   operation: 'upload',
-  fileName: 'reports/monthly.pdf',
-  buffer: reportBuffer,
-  mimeType: 'application/pdf',
-  startAt: Date.now() + 60000,  // Optional: delay 1 minute
+  input: {
+    fileName: 'reports/monthly.pdf',
+    buffer: reportBuffer,
+    mimeType: 'application/pdf',
+  },
+  schedule: { start_at: Date.now() + 60000 },  // Optional: delay 1 minute
 });
 
-// Returns
-{
-  jobId: 'uuid-v4',
-  status: 'queued'
-}
+// Returns { job_id, status, scheduled_at, recurring?, next_run_at? }
 ```
 
 ---
 
 ## Creating Storage Configurations
 
-Configure different providers per environment:
+Create and manage storage per product. Pass **product** in the data object:
 
 ```ts
 import { StorageProviders } from '@ductape/sdk/types';
 
 await ductape.storage.create({
+  product: 'my-product',
   name: 'App Storage',
   tag: 'app-storage',
   envs: [
@@ -293,69 +213,74 @@ await ductape.storage.create({
       slug: 'prd',
       type: StorageProviders.AWS,
       config: {
-        bucket: 'my-prod-bucket',
+        bucketName: 'my-prod-bucket',
         region: 'us-east-1',
         accessKeyId: process.env.AWS_ACCESS_KEY,
-        secretAccessKey: process.env.AWS_SECRET_KEY
-      }
+        secretAccessKey: process.env.AWS_SECRET_KEY,
+      },
     },
     {
       slug: 'dev',
       type: StorageProviders.GCP,
       config: {
-        bucket: 'my-dev-bucket',
-        projectId: 'my-project',
-        keyFilename: '/path/to/service-account.json'
-      }
-    }
-  ]
+        bucketName: 'my-dev-bucket',
+        config: { /* GCP service account JSON */ },
+      },
+    },
+  ],
 });
 ```
 
 ### Updating Storage
 
 ```ts
-await ductape.storage.update('app-storage', {
+await ductape.storage.update('my-product', 'app-storage', {
   envs: [
     {
       slug: 'prd',
       type: StorageProviders.AZURE,
       config: {
         containerName: 'my-container',
-        accountName: 'myaccount',
-        accountKey: process.env.AZURE_KEY
-      }
-    }
-  ]
+        connectionString: process.env.AZURE_CONNECTION_STRING,
+      },
+    },
+  ],
 });
 ```
 
-### Fetching Storage
+### Listing and Fetching Storage
 
 ```ts
-// Get all storage providers
-const providers = await ductape.storage.fetchAll();
+// List all storage configs for a product
+const providers = await ductape.storage.list('my-product');
 
-// Get specific provider
-const provider = await ductape.storage.fetch('app-storage');
+// Fetch a single storage by tag
+const provider = await ductape.storage.fetch('my-product', 'app-storage');
 ```
 
 ---
 
 ## API Reference
 
-### StorageService Methods
+### ductape.storage Methods
 
 | Method | Description |
 |--------|-------------|
-| `upload(options)` | Upload a file to cloud storage |
-| `download(options)` | Download a file from cloud storage |
-| `delete(options)` | Delete a file from cloud storage |
-| `list(options)` | List files with pagination support |
-| `stats(options)` | Get file counts and sizes by type |
+| `create(data)` | Create a storage config (`data` includes `product`, `name`, `tag`, `envs`) |
+| `list(product)` | List all storage configs for a product |
+| `fetch(product, tag)` | Fetch a storage config by tag |
+| `update(product, tag, data)` | Update a storage config |
+| `delete(product, tag)` | Delete a storage config |
+| `upload(options)` | Upload a file |
+| `download(options)` | Download a file |
+| `remove(options)` | Remove (delete) a file |
+| `listFiles(options)` | List files with pagination |
 | `getSignedUrl(options)` | Generate a temporary signed URL |
+| `stats(options)` | Get file counts and sizes by type |
 | `dispatch(options)` | Queue a storage operation as a job |
 | `testConnection(options)` | Test storage provider connectivity |
+
+For reading a file from **local disk** (e.g. before upload), use `ductape.storage.files.read(path)`.
 
 ### Error Handling
 
@@ -363,13 +288,11 @@ const provider = await ductape.storage.fetch('app-storage');
 import { StorageError } from '@ductape/sdk';
 
 try {
-  const result = await storage.upload({ ... });
+  const result = await ductape.storage.upload({ ... });
 } catch (error) {
   if (error instanceof StorageError) {
     console.log('Error code:', error.code);
     console.log('Message:', error.message);
-    // Codes: STORAGE_ENV_NOT_FOUND, UPLOAD_FAILED, DOWNLOAD_FAILED,
-    //        DELETE_FAILED, LIST_FAILED, STATS_FAILED, SIGNED_URL_FAILED
   }
 }
 ```
@@ -419,9 +342,9 @@ try {
       token_uri: 'https://oauth2.googleapis.com/token',
       auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
       client_x509_cert_url: 'https://www.googleapis.com/robot/v1/metadata/x509/...',
-      universe_domain: 'googleapis.com'
-    }
-  }
+      universe_domain: 'googleapis.com',
+    },
+  },
 }
 ```
 
@@ -429,8 +352,6 @@ try {
 |-------|-------------|
 | `bucketName` | The name of the GCP storage bucket |
 | `config` | Service account credentials object (from GCP Console JSON key file) |
-
-The service account must have Storage Object Creator/Viewer roles for the bucket.
 
 ### Azure Blob Storage
 
@@ -440,8 +361,8 @@ The service account must have Storage Object Creator/Viewer roles for the bucket
   type: StorageProviders.AZURE,
   config: {
     containerName: 'your-container-name',
-    connectionString: 'your-connection-string'
-  }
+    connectionString: 'your-connection-string',
+  },
 }
 ```
 

@@ -8,17 +8,24 @@ Ductape allows you to retrieve users associated with a specific session in your 
 
 ## Fetch All Users for a Session
 
-To fetch all users associated with a particular session, use the `fetchUsers` method. This returns paginated results.
+To fetch all users associated with a particular session, use `ductape.sessions.fetchUsers()`. It returns paginated results.
 
 ### Example
 
 ```ts
-const result = await sessions.fetchUsers({
-  product: "my-product",   // The tag of your product
-  session: "user-session", // The tag of the session
-  env: "production",       // Optional: filter by environment
-  page: 1,                 // Page number (default: 1)
-  limit: 20                // Number of users per page (default: 20)
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  env_type: 'prd',
+});
+
+const result = await ductape.sessions.fetchUsers({
+  product: 'my-product',
+  session: 'user-session',
+  env: 'prd',   // Optional: filter by environment
+  page: 1,
+  limit: 20,
 });
 
 console.log('Total users:', result.total);
@@ -74,11 +81,11 @@ Each user object includes:
 Get detailed information about a specific session user, including their session history:
 
 ```ts
-const userDetails = await sessions.fetchUserDetails({
-  product: "my-product",
-  session: "user-session",
-  identifier: "user@example.com", // The user's identifier
-  env: "production"               // Optional
+const userDetails = await ductape.sessions.fetchUserDetails({
+  product: 'my-product',
+  session: 'user-session',
+  identifier: 'user@example.com',
+  env: 'prd',  // Optional
 });
 
 console.log('User ID:', userDetails.ductape_user_id);
@@ -124,39 +131,31 @@ Each session info object includes:
 
 ---
 
-## Using the Ductape Class
-
-You can also access these methods through the main Ductape class:
+All of these methods are on `ductape.sessions` after initializing Ductape with your access key:
 
 ```ts
-import Ductape from '@ductape/sdk';
-
-const ductape = new Ductape({
-  accessKey: 'your-access-key',
-});
-
 // Fetch paginated users
 const users = await ductape.sessions.fetchUsers({
-  product: "my-product",
-  session: "user-session",
-  env: "production",
+  product: 'my-product',
+  session: 'user-session',
+  env: 'prd',
   page: 1,
-  limit: 20
+  limit: 20,
 });
 
 // Fetch specific user details
 const userDetails = await ductape.sessions.fetchUserDetails({
-  product: "my-product",
-  session: "user-session",
-  identifier: "user@example.com",
-  env: "production"
+  product: 'my-product',
+  session: 'user-session',
+  identifier: 'user@example.com',
+  env: 'prd',
 });
 
 // Fetch dashboard metrics
 const dashboard = await ductape.sessions.fetchDashboard({
-  product: "my-product",
-  session: "user-session",
-  env: "production"
+  product: 'my-product',
+  session: 'user-session',
+  env: 'prd',
 });
 ```
 

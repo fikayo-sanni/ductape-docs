@@ -8,89 +8,68 @@ Sessions let you track user behavior and manage authentication across your produ
 
 ## Quick Example
 
-```ts
-import { SessionsService } from '@ductape/sdk';
-
-const sessions = new SessionsService({
-  accessKey: 'your-access-key',
-});
-
-// Create a session
-const result = await sessions.create({
-  product: 'my-product',
-  env: 'production',
-  tag: 'user-session',
-  data: { userId: '123', email: 'user@example.com' },
-});
-
-console.log(result.token);        // JWT token
-console.log(result.refreshToken); // Refresh token
-console.log(result.sessionId);    // Session ID
-```
-
-## Using the Ductape Class
-
-You can also use sessions through the main Ductape class:
+Use the **sessions** API on the Ductape instance. Initialize with your access key:
 
 ```ts
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
+  env_type: 'prd', // optional
 });
 
-// Start a session
+// Start a session (creates tokens)
 const result = await ductape.sessions.start({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
   data: { userId: '123', email: 'user@example.com' },
 });
+
+console.log(result.token);        // JWT token (format: tag:jwt)
+console.log(result.refreshToken);  // Refresh token
+console.log(result.sessionId);     // Session ID
+console.log(result.expiresAt);    // Expiration date
 ```
 
 ---
 
-## Creating a Session
+## Starting a Session
 
-Create a new session by providing user data that will be encrypted in the JWT:
+Start a new session to get tokens. The session **tag** must match a session configuration you created for the product.
 
 ```ts
-const result = await sessions.create({
+const result = await ductape.sessions.start({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
   data: {
     userId: 'user_123',
     email: 'john@example.com',
-    role: 'admin'
+    role: 'admin',
   },
 });
 
 // Returns
-{
-  token: 'eyJhbGciOi...',      // JWT access token
-  refreshToken: 'encrypted...', // Refresh token for renewal
-  expiresAt: Date,              // Token expiration date
-  sessionId: 'uuid-v4'          // Unique session identifier
-}
+// { token: 'tag:eyJhbGciOi...', refreshToken: '...', expiresAt?: Date, sessionId?: string }
 ```
 
 ---
 
 ## Verifying a Session
 
-Verify a session token and extract the stored data:
+Verify a session token and read the stored data:
 
 ```ts
-const verifyResult = await sessions.verify({
+const verifyResult = await ductape.sessions.verify({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
-  token: 'eyJhbGciOi...',
+  token: result.token, // or 'tag:jwt' string
 });
 
 if (verifyResult.valid) {
-  console.log('User ID:', verifyResult.data.userId);
+  console.log('User data:', verifyResult.data);
   console.log('Session ID:', verifyResult.sessionId);
   console.log('Expires at:', verifyResult.expiresAt);
 } else {
@@ -105,17 +84,17 @@ if (verifyResult.valid) {
 Renew an expired session using the refresh token:
 
 ```ts
-const refreshResult = await sessions.refresh({
+const refreshResult = await ductape.sessions.refresh({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
-  refreshToken: 'encrypted...',
+  refreshToken: result.refreshToken,
 });
 
-// Returns new tokens
-console.log(refreshResult.token);        // New JWT token
-console.log(refreshResult.refreshToken); // New refresh token
-console.log(refreshResult.sessionId);    // New session ID
+// Returns new tokens (same shape as start)
+console.log(refreshResult.token);
+console.log(refreshResult.refreshToken);
+console.log(refreshResult.sessionId);
 ```
 
 ---
@@ -126,17 +105,17 @@ Invalidate a session by session ID or user identifier:
 
 ```ts
 // Revoke by session ID
-await sessions.revoke({
+await ductape.sessions.revoke({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
   sessionId: 'session-uuid',
 });
 
-// Or revoke by user identifier
-await sessions.revoke({
+// Or revoke by user identifier (from session selector)
+await ductape.sessions.revoke({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
   identifier: 'user_123',
 });
@@ -146,19 +125,19 @@ await sessions.revoke({
 
 ## Listing Active Sessions
 
-Get a paginated list of active sessions for a user:
+Get a paginated list of active (runtime) sessions:
 
 ```ts
-const result = await sessions.list({
+const result = await ductape.sessions.listActive({
   product: 'my-product',
-  env: 'production',
+  env: 'prd',
   tag: 'user-session',
   identifier: 'user_123',  // Optional: filter by user
   page: 1,
   limit: 10,
 });
 
-console.log('Total sessions:', result.total);
+console.log('Total:', result.total);
 for (const session of result.sessions) {
   console.log('Session ID:', session.sessionId);
   console.log('Started at:', session.startAt);
@@ -169,100 +148,88 @@ for (const session of result.sessions) {
 
 ---
 
-## Defining Sessions with Code-First API
-
-Define session schemas programmatically:
-
-```ts
-const sessionDef = await sessions.define({
-  product: 'my-product',
-  tag: 'checkout-session',
-  name: 'Checkout Session',
-  description: 'Session for checkout flow',
-  handler: async (ctx) => {
-    ctx.selector('userId');
-    ctx.expiry(1, 'hours');
-    ctx.schema({
-      userId: { type: 'string', required: true },
-      email: { type: 'string', required: true },
-      cartId: { type: 'string', required: false },
-    });
-  },
-});
-
-// Register the session with a product
-await sessions.register('my-product', sessionDef);
-```
-
----
-
 ## Creating Session Configurations
 
-Define what data your session should hold and how long it should last:
+Define what data a session holds and how long it lasts. This is **product-level config**, not starting a session. Use `sessions.create(product, payload)`:
 
 ```ts
-await ductape.sessions.create({
+await ductape.sessions.create('my-product', {
   name: 'Checkout Session',
   tag: 'checkout-session',
   description: 'Session for checkout flow',
-  schema: {
-    userId: 'user_456',
-    details: {
-      email: 'jane@example.com',
-      cartId: 'cart_789'
-    }
-  },
   selector: '$Session{userId}',
   expiry: 1,
-  period: 'hours'
+  period: 'hours',
+  schema: {
+    userId: { type: 'string', required: true },
+    email: { type: 'string', required: true },
+    cartId: { type: 'string', required: false },
+  },
 });
 ```
 
-### Session Fields
+### Session config fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Display name |
-| `tag` | string | Unique identifier |
-| `description` | string | Purpose of the session |
-| `schema` | object | Data structure (encrypted in token) |
-| `selector` | string | User identifier path (e.g., `$Session{userId}`) |
-| `expiry` | number | Duration before expiration |
-| `period` | string | Time unit (`seconds`, `minutes`, `hours`, `days`) |
+| Field         | Type   | Description                                      |
+|---------------|--------|--------------------------------------------------|
+| `name`        | string | Display name                                     |
+| `tag`         | string | Unique identifier (used in start/verify/refresh) |
+| `description` | string | Purpose of the session                          |
+| `selector`    | string | User identifier path (e.g. `$Session{userId}`)   |
+| `expiry`      | number | Duration before expiration                       |
+| `period`      | string | Time unit: `seconds`, `minutes`, `hours`, `days` |
+| `schema`      | object | Data structure (validated when starting a session) |
+
+### Listing and fetching session configs
+
+```ts
+// List all session configs for a product
+const configs = await ductape.sessions.list('my-product');
+
+// Fetch one by tag
+const config = await ductape.sessions.fetch('my-product', 'user-session');
+
+// Update
+await ductape.sessions.update('my-product', 'user-session', { expiry: 2, period: 'hours' });
+
+// Delete
+await ductape.sessions.delete('my-product', 'user-session');
+```
 
 ---
 
 ## API Reference
 
-### SessionsService Methods
+### ductape.sessions methods
 
 | Method | Description |
 |--------|-------------|
-| `create(options)` | Create a new session and return tokens |
-| `verify(options)` | Verify a session token |
-| `refresh(options)` | Refresh an expired session |
-| `revoke(options)` | Invalidate a session |
-| `list(options)` | List active sessions |
-| `define(options)` | Define a session schema (code-first) |
-| `register(product, session)` | Register a defined session |
-| `fetchUsers(options)` | Get paginated session users |
-| `fetchUserDetails(options)` | Get detailed user info with session history |
-| `fetchActivityLogs(options)` | Get paginated session activity logs |
-| `fetchDashboard(options)` | Get comprehensive dashboard metrics |
+| `start(data)` | Start a session; returns token, refreshToken, sessionId, expiresAt |
+| `verify(data)` | Verify a token; returns `{ valid, data?, sessionId?, expiresAt? }` |
+| `refresh(data)` | Refresh using refreshToken; returns new tokens |
+| `revoke(data)` | Invalidate a session (sessionId or identifier) |
+| `listActive(data)` | List active sessions with pagination |
+| `create(product, payload)` | Create a session configuration |
+| `list(product)` | List session configs for a product |
+| `fetch(product, tag)` | Fetch a session config by tag |
+| `update(product, tag, payload)` | Update a session config |
+| `delete(product, tag)` | Delete a session config |
+| `fetchUsers(data)` | Paginated session users |
+| `fetchUserDetails(data)` | Detailed user info and session history |
+| `fetchDashboard(data)` | Dashboard metrics for a session |
+| `users(data)` | Fetch users for a session (alternative) |
 
-### Error Handling
+### Error handling
 
 ```ts
 import { SessionError } from '@ductape/sdk';
 
 try {
-  const result = await sessions.verify({ ... });
+  const result = await ductape.sessions.verify({ ... });
 } catch (error) {
   if (error instanceof SessionError) {
     console.log('Error code:', error.code);
     console.log('Message:', error.message);
-    // Codes: SESSION_NOT_FOUND, ENV_NOT_FOUND, JWT_NOT_AVAILABLE,
-    //        CREATE_FAILED, VERIFY_FAILED, REFRESH_FAILED, etc.
   }
 }
 ```
@@ -275,4 +242,4 @@ try {
 * [Refreshing Sessions](./refreshing)
 * [Decrypting Sessions](./decrypting)
 * [Fetching Session Users](./fetching-users)
-* [Activity Logs & Dashboard](./activity-dashboard)
+* [Activity & Dashboard](./activity-dashboard)

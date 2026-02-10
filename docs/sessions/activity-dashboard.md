@@ -4,88 +4,24 @@ sidebar_position: 5
 
 # Session Activity & Dashboard
 
-Ductape provides comprehensive session activity logging and dashboard metrics to help you monitor, analyze, and debug session behavior across your products.
-
-## Fetching Activity Logs
-
-Retrieve paginated session activity logs to track session operations like create, verify, refresh, and revoke:
-
-```ts
-const logs = await sessions.fetchActivityLogs({
-  product: "my-product",
-  session: "user-session",
-  env: "production",         // Optional: filter by environment
-  status: "success",         // Optional: 'success', 'fail', or 'processing'
-  start: "2024-01-01",       // Optional: start date filter
-  end: "2024-01-31",         // Optional: end date filter
-  page: 1,                   // Page number (default: 1)
-  limit: 20                  // Logs per page (default: 20)
-});
-
-console.log('Total logs:', logs.total);
-console.log('Total pages:', logs.totalPages);
-
-for (const log of logs.logs) {
-  console.log('Operation:', log.parent_tag);
-  console.log('Status:', log.status);
-  console.log('Message:', log.message);
-  console.log('Timestamp:', log.timestamp);
-}
-```
-
-### Parameters
-
-| Field     | Type     | Required | Description                                       |
-|-----------|----------|----------|---------------------------------------------------|
-| `product` | string   | Yes      | The tag of your product.                          |
-| `session` | string   | Yes      | The tag of the session.                           |
-| `env`     | string   | No       | Filter by environment.                            |
-| `status`  | string   | No       | Filter by status: 'success', 'fail', 'processing'.|
-| `start`   | string   | No       | Start date for filtering (ISO format).            |
-| `end`     | string   | No       | End date for filtering (ISO format).              |
-| `page`    | number   | No       | Page number (default: 1).                         |
-| `limit`   | number   | No       | Logs per page (default: 20).                      |
-
-### Response
-
-```ts
-{
-  logs: ISessionActivityLog[];  // Array of activity log entries
-  total: number;                // Total number of logs
-  page: number;                 // Current page
-  limit: number;                // Logs per page
-  totalPages: number;           // Total number of pages
-}
-```
-
-Each log entry includes:
-- `_id` - Log entry ID
-- `process_id` - Unique process identifier
-- `product_tag` - Product tag
-- `session_tag` - Combined session tag (format: `product_tag:session_tag`)
-- `parent_tag` - Operation type (e.g., 'create', 'verify', 'refresh', 'revoke')
-- `env` - Environment
-- `type` - Log type ('session')
-- `message` - Human-readable log message
-- `status` - Operation status ('success', 'fail', 'processing')
-- `successful_execution` - Boolean indicating success
-- `failed_execution` - Boolean indicating failure
-- `data` - Additional operation data (JSON string)
-- `start` - Operation start timestamp (ms)
-- `end` - Operation end timestamp (ms)
-- `timestamp` - Log creation timestamp
-
----
+Ductape provides session users and dashboard metrics to help you monitor and analyze session behavior. Use `ductape.sessions.fetchUsers`, `fetchUserDetails`, and `fetchDashboard`.
 
 ## Fetching Dashboard Metrics
 
-Get comprehensive dashboard metrics for your session including user statistics and session analytics:
+Get dashboard metrics for your session (user counts, session counts, etc.):
 
 ```ts
-const dashboard = await sessions.fetchDashboard({
-  product: "my-product",
-  session: "user-session",
-  env: "production",         // Optional: filter by environment
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  env_type: 'prd',
+});
+
+const dashboard = await ductape.sessions.fetchDashboard({
+  product: 'my-product',
+  session: 'user-session',
+  env: 'prd',  // Optional
 });
 
 // User Metrics
@@ -133,21 +69,21 @@ console.log('Avg sessions per user:', dashboard.averageSessionsPerUser);
 
 ## Complete Example
 
-Here's a complete example showing how to build a session monitoring dashboard:
+Example: session monitoring with dashboard, users, and user details:
 
 ```ts
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
+  env_type: 'prd',
 });
 
 async function displaySessionDashboard() {
-  // Get dashboard metrics
   const dashboard = await ductape.sessions.fetchDashboard({
     product: 'my-product',
     session: 'user-session',
-    env: 'production',
+    env: 'prd',
   });
 
   console.log('=== Session Dashboard ===');
@@ -156,11 +92,10 @@ async function displaySessionDashboard() {
   console.log(`New users today: ${dashboard.newUsersToday}`);
   console.log(`Avg sessions per user: ${dashboard.averageSessionsPerUser}`);
 
-  // Get recent users
   const users = await ductape.sessions.fetchUsers({
     product: 'my-product',
     session: 'user-session',
-    env: 'production',
+    env: 'prd',
     page: 1,
     limit: 10,
   });
@@ -176,7 +111,7 @@ async function displaySessionDashboard() {
       product: 'my-product',
       session: 'user-session',
       identifier: users.users[0].identifier,
-      env: 'production',
+      env: 'prd',
     });
 
     console.log('\n=== User Details ===');
@@ -192,83 +127,43 @@ displaySessionDashboard();
 
 ## API Reference
 
-### Session Activity Methods
+### ductape.sessions methods (activity & dashboard)
 
 | Method | Description |
 |--------|-------------|
 | `fetchUsers(options)` | Get paginated session users |
 | `fetchUserDetails(options)` | Get detailed user info with session history |
-| `fetchActivityLogs(options)` | Get paginated session activity logs |
-| `fetchDashboard(options)` | Get comprehensive dashboard metrics |
+| `fetchDashboard(options)` | Get dashboard metrics for a session |
 
-### TypeScript Interfaces
+### Options
 
 ```ts
-interface IFetchSessionUsersOptions {
-  product: string;
-  session: string;
-  env?: string;
-  page?: number;
-  limit?: number;
-}
+// fetchUsers
+{ product: string; session: string; env?: string; page?: number; limit?: number }
 
-interface IFetchSessionUserDetailsOptions {
-  product: string;
-  session: string;
-  identifier: string;
-  env?: string;
-}
+// fetchUserDetails
+{ product: string; session: string; identifier: string; env?: string }
 
-interface IFetchSessionActivityLogsOptions {
-  product: string;
-  session: string;
-  env?: string;
-  status?: 'success' | 'fail' | 'processing';
-  start?: string;
-  end?: string;
-  page?: number;
-  limit?: number;
-}
-
-interface IFetchSessionDashboardOptions {
-  product: string;
-  session: string;
-  env?: string;
-}
-
-interface ISessionDashboardMetrics {
-  totalUsers: number;
-  activeUsers: number;
-  inactiveUsers: number;
-  expiredUsers: number;
-  newUsersToday: number;
-  newUsersThisWeek: number;
-  totalSessions: number;
-  activeSessions: number;
-  averageSessionsPerUser: number;
-}
+// fetchDashboard
+{ product: string; session: string; env?: string }
 ```
 
----
+### Error handling
 
-## Error Handling
-
-All session activity methods throw `SessionError` on failure:
+These methods throw `SessionError` on failure:
 
 ```ts
 import { SessionError } from '@ductape/sdk';
 
 try {
-  const logs = await sessions.fetchActivityLogs({
+  const dashboard = await ductape.sessions.fetchDashboard({
     product: 'my-product',
     session: 'user-session',
+    env: 'prd',
   });
 } catch (error) {
   if (error instanceof SessionError) {
     console.log('Error code:', error.code);
-    // Codes: FETCH_USERS_FAILED, FETCH_USER_DETAILS_FAILED,
-    //        FETCH_ACTIVITY_LOGS_FAILED, FETCH_DASHBOARD_FAILED,
-    //        USER_NOT_FOUND
   }
 }
 ```

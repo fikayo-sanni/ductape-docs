@@ -62,28 +62,32 @@ const result = await ductape.storage.download({
   fileName: 'invoices/invoice-001.pdf',
 });
 
-console.log('Content type:', result.contentType);
+console.log('MIME type:', result.mimeType);
 console.log('Size:', result.size);
 // result.data contains the file buffer
 ```
 
-### Delete a file
+### Remove a file
+
+Use `storage.remove()` to delete a file:
 
 ```ts
-const result = await ductape.storage.delete({
+const result = await ductape.storage.remove({
   product: 'billing',
   env: 'prd',
   storage: 'invoices-storage',
   fileName: 'invoices/old-invoice.pdf',
 });
 
-console.log('Deleted:', result.success);
+console.log('Removed:', result.success);
 ```
 
 ### List files
 
+Use `storage.listFiles()` for paginated listing:
+
 ```ts
-const result = await ductape.storage.list({
+const result = await ductape.storage.listFiles({
   product: 'billing',
   env: 'prd',
   storage: 'invoices-storage',
@@ -96,41 +100,13 @@ result.files.forEach(file => {
 });
 ```
 
-### List files by type
-
-Filter files by type to retrieve only specific categories:
-
-```ts
-// Get only images
-const images = await ductape.storage.list({
-  product: 'media',
-  env: 'prd',
-  storage: 'uploads-storage',
-  fileType: 'image',
-  limit: 50,
-});
-
-console.log(`Found ${images.files.length} images`);
-
-// Get only documents
-const docs = await ductape.storage.list({
-  product: 'media',
-  env: 'prd',
-  storage: 'uploads-storage',
-  fileType: 'document',
-  limit: 50,
-});
-
-// Available file types: 'image', 'video', 'audio', 'document', 'archive', 'other'
-```
-
 ### List files with pagination
 
 For large storage buckets, use pagination to fetch files in batches:
 
 ```ts
 // First page
-const firstPage = await ductape.storage.list({
+const firstPage = await ductape.storage.listFiles({
   product: 'billing',
   env: 'prd',
   storage: 'invoices-storage',
@@ -143,7 +119,7 @@ console.log(`Has more: ${firstPage.hasMore}`);
 
 // Load next page if available
 if (firstPage.hasMore && firstPage.nextToken) {
-  const secondPage = await ductape.storage.list({
+  const secondPage = await ductape.storage.listFiles({
     product: 'billing',
     env: 'prd',
     storage: 'invoices-storage',
@@ -225,14 +201,16 @@ const result = await ductape.storage.dispatch({
   env: 'prd',
   storage: 'reports-storage',
   operation: 'upload',
-  fileName: 'reports/monthly.pdf',
-  buffer: reportBuffer,
-  mimeType: 'application/pdf',
-  startAt: Date.now() + 60000, // Delay 1 minute
+  input: {
+    fileName: 'reports/monthly.pdf',
+    buffer: reportBuffer,
+    mimeType: 'application/pdf',
+  },
+  schedule: { start_at: Date.now() + 60000 }, // Delay 1 minute
 });
 
-console.log('Job ID:', result.jobId);
-console.log('Status:', result.status); // 'queued'
+console.log('Job ID:', result.job_id);
+console.log('Status:', result.status);
 ```
 
 ## Organizing Files in Folders
@@ -335,15 +313,10 @@ interface IDownloadOptions {
 }
 ```
 
-### IDeleteOptions
+### IRemoveOptions (delete a file)
 
 ```ts
-interface IDeleteOptions {
-  product: string;
-  env: string;
-  storage: string;
-  fileName: string;
-}
+// Same shape as upload/download: product, env, storage, fileName
 ```
 
 ### IListFilesOptions
@@ -354,10 +327,9 @@ interface IListFilesOptions {
   env: string;
   storage: string;
   prefix?: string;
-  /** Filter by file type (image, video, audio, document, archive, other) */
-  fileType?: 'image' | 'video' | 'audio' | 'document' | 'archive' | 'other';
   limit?: number;
   continuationToken?: string;
+  cache?: string;
 }
 ```
 
@@ -389,9 +361,12 @@ interface IStorageResult {
 
 ```ts
 interface IDownloadResult {
-  data: Buffer;
-  contentType: string;
-  size: number;
+  success: boolean;
+  data?: Buffer | string;
+  fileName?: string;
+  size?: number;
+  mimeType?: string;
+  metadata?: Record<string, unknown>;
 }
 ```
 
