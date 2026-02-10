@@ -382,18 +382,6 @@ const sidebars: SidebarsConfig = {
         // },
       ],
     },
-
-    // Reference
-    {
-      type: 'category',
-      label: 'Reference',
-      collapsed: true,
-      items: [
-        'processing-overview',
-        'pricing',
-        'paystack',
-      ],
-    },
   ],
 };
 
