@@ -62,6 +62,9 @@ Ductape provides multiple ways to reference data within your workflows:
 | **Default** | `$Default` | Provide default/fallback values | `$Default` |
 | **Size** | `$Size{reference}` | Get size of object (number of keys) | `$Size{$Input{user}}` |
 | **Length** | `$Length{reference}` | Get length of array or string | `$Length{$Input{items}}` |
+| **Now** | `$Now` or `$Now()` | Current timestamp (ms) at workflow execution | `$Now` |
+
+These references (and all operators below) are **resolved at runtime** when a workflow or feature runs—e.g. `$Now` becomes the execution-time timestamp, and `$Input{...}` is filled from the run input.
 
 ### How Operators Fit In
 

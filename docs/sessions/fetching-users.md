@@ -135,16 +135,29 @@ const ductape = new Ductape({
   accessKey: 'your-access-key',
 });
 
-// Fetch users
-const users = await ductape.products.sessions.users({
-  session: "user-session",
+// Fetch paginated users
+const users = await ductape.sessions.fetchUsers({
   product: "my-product",
+  session: "user-session",
+  env: "production",
   page: 1,
   limit: 20
 });
 
-// Fetch specific user
-const user = await ductape.products.sessions.user("ductape_user_id");
+// Fetch specific user details
+const userDetails = await ductape.sessions.fetchUserDetails({
+  product: "my-product",
+  session: "user-session",
+  identifier: "user@example.com",
+  env: "production"
+});
+
+// Fetch dashboard metrics
+const dashboard = await ductape.sessions.fetchDashboard({
+  product: "my-product",
+  session: "user-session",
+  env: "production"
+});
 ```
 
 ---

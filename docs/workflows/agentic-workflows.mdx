@@ -163,16 +163,13 @@ Guidelines:
         priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
       },
       handler: async (ctx, params) => {
-        await ctx.publish.send({
-          broker: 'support-queue',
-          event: 'escalation',
-          input: {
-            message: {
-              ticketId: ctx.input.ticketId,
-              reason: params.reason,
-              priority: params.priority,
-              conversation: ctx.getConversationHistory(),
-            },
+        await ctx.messaging.produce({
+          event: 'support-queue:escalation',
+          message: {
+            ticketId: ctx.input.ticketId,
+            reason: params.reason,
+            priority: params.priority,
+            conversation: ctx.getConversationHistory(),
           },
         });
         return { escalated: true, message: 'Ticket escalated to human support' };

@@ -1,4 +1,4 @@
-<svg width="230" height="32" viewBox="0 0 230 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="270" height="32" viewBox="0 0 270 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800;900&amp;display=swap');
     text {
@@ -23,8 +23,11 @@
   </g>
   <!-- Ductape Text -->
   <text x="44" y="23" font-size="23" font-weight="700" letter-spacing="-0.02em" fill="#0846A6">Ductape</text>
+  <!-- Beta pill badge (matches landing + workbench) -->
+  <rect x="130" y="14" width="38" height="14" rx="4" ry="4" fill="#0846A6" fill-opacity="0.12" />
+  <text x="149" y="24" font-size="10" font-weight="700" letter-spacing="0.08em" fill="#0846A6" text-anchor="middle">BETA</text>
   <!-- Docs Text -->
-  <text x="154" y="22" font-size="18" font-weight="450" letter-spacing="-0.01em" fill="#9CA3AF">Docs</text>
+  <text x="188" y="22" font-size="18" font-weight="450" letter-spacing="-0.01em" fill="#9CA3AF">Docs</text>
   <!-- Vertical Divider Line -->
-  <line x1="229" y1="1" x2="229" y2="31" stroke="#d6d8dc" stroke-width="1" />
+  <line x1="269" y1="1" x2="269" y2="31" stroke="#d6d8dc" stroke-width="1" />
 </svg>

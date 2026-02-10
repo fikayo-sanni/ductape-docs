@@ -58,6 +58,16 @@ await ductape.workflows.define({
 });
 ```
 
+### Recording options (conditionals, loops, switch)
+
+When your handler uses **if/early return**, **loops**, or **switch**, the compiler needs help to record all branches. See [Conditionals, loops, and switch](#conditionals-loops-and-switch) for full details.
+
+| Option | Purpose |
+|--------|--------|
+| **branchOverrides** | Step result overrides so the handler continues past an `if (result.x) return …` and records later steps. Those steps get a condition at runtime (e.g. `$Step{validate}{valid} == true`). |
+| **recordInput** | Sample input used during recording so loops (e.g. `for (const item of ctx.input.items)`) run and record steps. Use unique step tags per iteration. |
+| **recordScenarios** | Array of input scenarios; the handler runs once per scenario. Each step gets a condition (e.g. `$Input{type} == 'a'`) so only the matching branch runs at runtime. Use for switch-style branches. |
+
 ### Signals
 
 Define signals that external systems can send to the workflow:
@@ -97,6 +107,145 @@ await ductape.workflows.define({
     // ...
   },
 });
+```
+
+---
+
+## Conditionals, loops, and switch
+
+The handler runs once at **define time** to record steps. If you use `if`, early `return`, loops, or `switch`, only the path taken during that run is recorded. Use the options below so all branches are recorded and the right **step conditions** are applied at runtime.
+
+| You want to… | Use | Runtime behavior |
+|--------------|-----|------------------|
+| **If / else on a step result** (e.g. "only run payment if validation passed") | `branchOverrides` | Steps after the branch get a condition like `$Step{validate}{valid} == true`; executor skips them when the condition is false. |
+| **Loop over input** (e.g. process each item in `ctx.input.items`) | `recordInput` | Supply sample input so the loop runs during recording; steps are recorded per iteration. |
+| **If/else or switch on workflow input** (e.g. different steps for `type: 'a'` vs `type: 'b'`) | `recordScenarios` | Handler runs once per scenario; each step gets a condition like `$Input{type} == 'a'` and only runs when input matches. |
+
+### If / else (early return) – branchOverrides
+
+When the handler branches on a **step result** and returns early, later steps are never recorded. Use `branchOverrides` so the compiler "pretends" a step returned a value that keeps the handler running and records those steps. At runtime, those steps get a **condition** so they only run when the real step output matches.
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-product',
+  tag: 'order-fulfillment',
+  name: 'Order Fulfillment',
+  // So the handler continues past the if and records process-payment
+  branchOverrides: {
+    validate: { valid: true },
+  },
+  handler: async (ctx) => {
+    const validation = await ctx.step('validate', async () => {
+      return ctx.action.run({
+        app: 'orders-api',
+        event: 'validate-order',
+        input: { body: { orderId: ctx.input.orderId } },
+      });
+    });
+    if (!validation.valid) return { success: false, error: validation.reason };
+
+    const payment = await ctx.step('process-payment', async () =>
+      ctx.action.run({
+        app: 'stripe',
+        event: 'create-charge',
+        input: { body: { amount: ctx.input.amount } },
+      })
+    );
+    return { success: true, orderId: ctx.input.orderId, chargeId: payment.id };
+  },
+});
+```
+
+- **Compile:** With `validate: { valid: true }`, the handler does not early-return, so `process-payment` is recorded. The step gets condition `$Step{validate}{valid} == true`.
+- **Runtime:** The executor runs `validate`; if the real result has `valid === false`, `process-payment` is skipped; if `valid === true`, it runs.
+
+### Loops (for) – recordInput
+
+By default, recording uses empty input, so a loop like `for (const item of ctx.input.items)` runs zero times and no steps are recorded. Use **recordInput** to supply sample input during recording so the loop runs and each iteration’s steps are recorded.
+
+Use **unique step tags per iteration** (e.g. `` `process-${item.id}` ``).
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-product',
+  tag: 'process-orders',
+  name: 'Process Orders',
+  recordInput: {
+    items: [{ id: '1' }, { id: '2' }],
+  },
+  handler: async (ctx) => {
+    for (const item of ctx.input.items) {
+      await ctx.step(`process-${item.id}`, async () =>
+        ctx.action.run({
+          app: 'orders-api',
+          event: 'process-item',
+          input: { body: { id: item.id } },
+        })
+      );
+    }
+  },
+});
+```
+
+Recording runs with `ctx.input.items = [{ id: '1' }, { id: '2' }]`, so steps `process-1` and `process-2` are recorded. Keys not in `recordInput` still compile to `$Input{...}` in the schema.
+
+### If/else or switch on input – recordScenarios
+
+For **if/else or switch** on **workflow input** (e.g. different steps per `type` or `status`), use **recordScenarios**. The handler runs once per scenario (with that scenario as input). Every step recorded in that run gets a **condition** so it only runs when the real input matches (e.g. `$Input{type} == 'a'`). Steps from all runs are merged; if the same step appears in multiple scenarios, conditions are combined with **||**. You can use either `if (ctx.input.type === 'a') { ... } else if (ctx.input.type === 'b') { ... }` or `switch (ctx.input.type) { case 'a': ... }` in the handler.
+
+```typescript
+await ductape.workflows.define({
+  product: 'my-product',
+  tag: 'handle-by-type',
+  name: 'Handle by type',
+  recordScenarios: [
+    { type: 'a' },
+    { type: 'b' },
+  ],
+  handler: async (ctx) => {
+    switch (ctx.input.type) {
+      case 'a':
+        await ctx.step('handle-a', async () =>
+          ctx.action.run({ app: 'api', event: 'handle-a', input: {} })
+        );
+        break;
+      case 'b':
+        await ctx.step('handle-b', async () =>
+          ctx.action.run({ app: 'api', event: 'handle-b', input: {} })
+        );
+        break;
+    }
+  },
+});
+```
+
+- **Compile:** Two runs: one with `{ type: 'a' }`, one with `{ type: 'b' }`. Steps `handle-a` (condition `$Input{type} == 'a'`) and `handle-b` (condition `$Input{type} == 'b'`) are recorded.
+- **Runtime:** The executor evaluates the condition and runs only the matching step.
+
+### Step condition syntax
+
+Conditions are evaluated at runtime by the workflow executor. You can combine conditions with **`&&`** (and) and **`||`** (or). Each part can use these operators:
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `==`, `===` | Equal | `$Step{validate}{valid} == true` |
+| `!=`, `!==` | Not equal | `$Input{status} != 'draft'` |
+| `>`, `>=` | Greater than (or equal) | `$Step{score}{value} >= 5` |
+| `<`, `<=` | Less than (or equal) | `$Input{count} <= 100` |
+
+**Left and right sides** can be:
+
+- **Step output:** `$Step{stepTag}{field}` or `$Step{stepTag}{nested.field}`
+- **Workflow input:** `$Input{field}` or `$Input{nested.field}`
+- **Literals:** `true`, `false`, numbers, or quoted strings (`'a'`, `"draft"`)
+
+Examples:
+
+```text
+$Step{validate}{available} == true
+$Input{type} == 'premium'
+$Step{score}{value} >= 80 && $Input{role} != 'guest'
+($Input{region} == 'eu') || ($Input{region} == 'uk')
 ```
 
 ---
@@ -385,22 +534,18 @@ await ctx.storage.delete({
 });
 ```
 
-### ctx.publish - Message Broker
+### ctx.messaging - Message Broker (Ductape primitive)
 
 ```typescript
-// Send message
-await ctx.publish.send({
-  broker: 'order-events',
-  event: 'order-created',
-  input: {
-    message: {
-      orderId: ctx.input.orderId,
-      customerId: ctx.input.customerId,
-      items: ctx.input.items,
-      timestamp: Date.now(),
-    },
+// Publish message (event = "broker-tag:topic-tag")
+await ctx.messaging.produce({
+  event: 'order-events:order-created',
+  message: {
+    orderId: ctx.input.orderId,
+    customerId: ctx.input.customerId,
+    items: ctx.input.items,
+    timestamp: Date.now(),
   },
-  retries: 2,
 });
 ```
 
@@ -599,6 +744,8 @@ ctx.log.error('Step failed', { error: err.message });
 
 ## Complete Example
 
+This example uses **branchOverrides** so the compiler records the payment step even though the handler can early-return when validation fails. At runtime, the payment step runs only when `$Step{validate}{available}` is true.
+
 ```typescript
 await ductape.workflows.define({
   product: 'my-product',
@@ -614,6 +761,9 @@ await ductape.workflows.define({
   signals: {
     'cancel-order': { input: { reason: 'string' } },
   },
+
+  // Record the "continue" branch so payment and later steps are in the schema
+  branchOverrides: { validate: { available: true } },
 
   handler: async (ctx) => {
     ctx.log.info('Starting order fulfillment', { orderId: ctx.input.orderId });
@@ -714,14 +864,11 @@ await ductape.workflows.define({
 
     // Step 6: Queue for fulfillment
     await ctx.step('queue-fulfillment', async () => {
-      await ctx.publish.send({
-        broker: 'warehouse',
-        event: 'new-order',
-        input: {
-          message: {
-            orderId: order.id,
-            items: ctx.input.items,
-          },
+      await ctx.messaging.produce({
+        event: 'warehouse:new-order',
+        message: {
+          orderId: order.id,
+          items: ctx.input.items,
         },
       });
     });

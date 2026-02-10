@@ -79,38 +79,27 @@ Each log entry includes:
 
 ## Fetching Dashboard Metrics
 
-Get comprehensive dashboard metrics for your session including user statistics and operation analytics:
+Get comprehensive dashboard metrics for your session including user statistics and session analytics:
 
 ```ts
 const dashboard = await sessions.fetchDashboard({
   product: "my-product",
   session: "user-session",
   env: "production",         // Optional: filter by environment
-  groupBy: "day",            // Optional: 'hour', 'day', 'week', 'month'
-  start: "2024-01-01",       // Optional: start date
-  end: "2024-01-31"          // Optional: end date
 });
 
-// User & Session Metrics
+// User Metrics
 console.log('Total users:', dashboard.totalUsers);
 console.log('Active users:', dashboard.activeUsers);
+console.log('Inactive users:', dashboard.inactiveUsers);
+console.log('Expired users:', dashboard.expiredUsers);
+console.log('New users today:', dashboard.newUsersToday);
+console.log('New users this week:', dashboard.newUsersThisWeek);
+
+// Session Metrics
 console.log('Total sessions:', dashboard.totalSessions);
 console.log('Active sessions:', dashboard.activeSessions);
-console.log('Expired sessions:', dashboard.expiredSessions);
-
-// Performance Metrics
-console.log('Success rate:', dashboard.successRate + '%');
-console.log('Error rate:', dashboard.errorRate + '%');
-console.log('Avg duration:', dashboard.averageSessionDuration + 'ms');
-
-// Operations over time
-for (const period of dashboard.operationsOverTime) {
-  console.log(`${period.period}:`);
-  console.log(`  Create: ${period.create}`);
-  console.log(`  Verify: ${period.verify}`);
-  console.log(`  Refresh: ${period.refresh}`);
-  console.log(`  Revoke: ${period.revoke}`);
-}
+console.log('Avg sessions per user:', dashboard.averageSessionsPerUser);
 ```
 
 ### Parameters
@@ -120,42 +109,23 @@ for (const period of dashboard.operationsOverTime) {
 | `product` | string   | Yes      | The tag of your product.                          |
 | `session` | string   | Yes      | The tag of the session.                           |
 | `env`     | string   | No       | Filter by environment.                            |
-| `groupBy` | string   | No       | Time grouping: 'hour', 'day', 'week', 'month'.    |
-| `start`   | string   | No       | Start date for filtering (ISO format).            |
-| `end`     | string   | No       | End date for filtering (ISO format).              |
 
 ### Response
 
 ```ts
 {
   // User Metrics
-  totalUsers: number;           // Total unique users
-  activeUsers: number;          // Users active in last 24 hours
+  totalUsers: number;              // Total unique users
+  activeUsers: number;             // Users with active sessions
+  inactiveUsers: number;           // Users with no active sessions
+  expiredUsers: number;            // Users with all sessions expired
+  newUsersToday: number;           // New users registered today
+  newUsersThisWeek: number;        // New users registered this week
 
   // Session Metrics
-  totalSessions: number;        // Total session count
-  activeSessions: number;       // Currently active sessions
-  expiredSessions: number;      // Expired session count
-
-  // Performance Metrics
-  successRate: number;          // Percentage of successful operations
-  errorRate: number;            // Percentage of failed operations
-  averageSessionDuration: number; // Average operation duration in ms
-
-  // Time-series Data
-  sessionsOverTime: {
-    period: string;             // Time period label
-    created: number;            // Sessions created
-    expired: number;            // Sessions expired
-  }[];
-
-  operationsOverTime: {
-    period: string;             // Time period label
-    create: number;             // Create operations count
-    verify: number;             // Verify operations count
-    refresh: number;            // Refresh operations count
-    revoke: number;             // Revoke operations count
-  }[];
+  totalSessions: number;           // Total session count
+  activeSessions: number;          // Currently active sessions
+  averageSessionsPerUser: number;  // Average sessions per user
 }
 ```
 
@@ -166,28 +136,28 @@ for (const period of dashboard.operationsOverTime) {
 Here's a complete example showing how to build a session monitoring dashboard:
 
 ```ts
-import { SessionsService } from '@ductape/sdk';
+import Ductape from '@ductape/sdk';
 
-const sessions = new SessionsService({
+const ductape = new Ductape({
   accessKey: 'your-access-key',
 });
 
 async function displaySessionDashboard() {
   // Get dashboard metrics
-  const dashboard = await sessions.fetchDashboard({
+  const dashboard = await ductape.sessions.fetchDashboard({
     product: 'my-product',
     session: 'user-session',
     env: 'production',
-    groupBy: 'day',
   });
 
   console.log('=== Session Dashboard ===');
   console.log(`Users: ${dashboard.activeUsers}/${dashboard.totalUsers} active`);
   console.log(`Sessions: ${dashboard.activeSessions}/${dashboard.totalSessions} active`);
-  console.log(`Success Rate: ${dashboard.successRate}%`);
+  console.log(`New users today: ${dashboard.newUsersToday}`);
+  console.log(`Avg sessions per user: ${dashboard.averageSessionsPerUser}`);
 
   // Get recent users
-  const users = await sessions.fetchUsers({
+  const users = await ductape.sessions.fetchUsers({
     product: 'my-product',
     session: 'user-session',
     env: 'production',
@@ -200,19 +170,18 @@ async function displaySessionDashboard() {
     console.log(`${user.identifier} - Last seen: ${user.last_seen}`);
   }
 
-  // Get recent activity
-  const logs = await sessions.fetchActivityLogs({
-    product: 'my-product',
-    session: 'user-session',
-    env: 'production',
-    page: 1,
-    limit: 10,
-  });
+  // Get specific user details
+  if (users.users.length > 0) {
+    const userDetails = await ductape.sessions.fetchUserDetails({
+      product: 'my-product',
+      session: 'user-session',
+      identifier: users.users[0].identifier,
+      env: 'production',
+    });
 
-  console.log('\n=== Recent Activity ===');
-  for (const log of logs.logs) {
-    const status = log.status === 'success' ? '✓' : '✗';
-    console.log(`${status} ${log.parent_tag} - ${log.message}`);
+    console.log('\n=== User Details ===');
+    console.log(`Total sessions: ${userDetails.totalSessions}`);
+    console.log(`Active sessions: ${userDetails.activeSessionsCount}`);
   }
 }
 
@@ -265,9 +234,18 @@ interface IFetchSessionDashboardOptions {
   product: string;
   session: string;
   env?: string;
-  groupBy?: 'hour' | 'day' | 'week' | 'month';
-  start?: string;
-  end?: string;
+}
+
+interface ISessionDashboardMetrics {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  expiredUsers: number;
+  newUsersToday: number;
+  newUsersThisWeek: number;
+  totalSessions: number;
+  activeSessions: number;
+  averageSessionsPerUser: number;
 }
 ```
 

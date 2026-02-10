@@ -9,11 +9,11 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Examples
 
-Real-world workflow patterns using the code-first API.
+Real-world workflow patterns using the code-first API. For conditionals, loops, and switch (e.g. `branchOverrides`, `recordInput`, `recordScenarios`), see [Building Workflows - Conditionals, loops, and switch](./building-workflows#conditionals-loops-and-switch).
 
 ## E-Commerce Order Fulfillment
 
-A complete order processing workflow with payment, inventory, and notifications:
+A complete order processing workflow with payment, inventory, and notifications. Because the handler returns early when validation fails, use **branchOverrides** so the compiler records the payment and later steps; at runtime those steps run only when the condition holds.
 
 ```typescript
 await ductape.workflows.define({
@@ -30,6 +30,8 @@ await ductape.workflows.define({
   signals: {
     'cancel-order': { input: { reason: 'string' } },
   },
+
+  branchOverrides: { 'validate-order': { available: true } },
 
   handler: async (ctx) => {
     ctx.log.info('Starting order fulfillment', { orderId: ctx.input.orderId });
@@ -190,16 +192,13 @@ await ductape.workflows.define({
 
     // Step 7: Queue for warehouse fulfillment
     await ctx.step('queue-fulfillment', async () => {
-      await ctx.publish.send({
-        broker: 'warehouse-events',
-        event: 'new-order',
-        input: {
-          message: {
-            orderId: ctx.input.orderId,
-            items: ctx.input.items,
-            shippingAddress: ctx.input.shippingAddress,
-            priority: ctx.input.isPrime ? 'high' : 'normal',
-          },
+      await ctx.messaging.produce({
+        event: 'warehouse-events:new-order',
+        message: {
+          orderId: ctx.input.orderId,
+          items: ctx.input.items,
+          shippingAddress: ctx.input.shippingAddress,
+          priority: ctx.input.isPrime ? 'high' : 'normal',
         },
       });
     });
@@ -969,16 +968,13 @@ await ductape.workflows.define({
 
     // Step 7: Initiate reimbursement
     await ctx.step('initiate-reimbursement', async () => {
-      await ctx.publish.send({
-        broker: 'payroll-events',
-        event: 'process-reimbursement',
-        input: {
-          message: {
-            requestId,
-            employeeId,
-            amount,
-            approvals: ctx.getState('approvals'),
-          },
+      await ctx.messaging.produce({
+        event: 'payroll-events:process-reimbursement',
+        message: {
+          requestId,
+          employeeId,
+          amount,
+          approvals: ctx.getState('approvals'),
         },
       });
     });

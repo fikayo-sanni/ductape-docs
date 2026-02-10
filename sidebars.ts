@@ -17,17 +17,12 @@ const sidebars: SidebarsConfig = {
       id: 'getting-started',
       label: 'Getting Started',
     },
-    {
-      type: 'doc',
-      id: 'import',
-      label: 'Adding an App',
-    },
 
     // Backend SDK
     {
       type: 'category',
       label: 'Backend SDK',
-      collapsed: true,
+      collapsed: false,
       items: [
         // Products - Core Backend Systems
         {
@@ -156,13 +151,12 @@ const sidebars: SidebarsConfig = {
                 'databases/warehouse/best-practices',
               ],
             },
-            // Frontend Usage
+            // Frontend Usage (client SDK disabled for now)
             {
               type: 'category',
               label: 'Frontend Usage',
               collapsed: true,
               items: [
-                'frontend/client/databases',
                 'frontend/react/database-hooks',
               ],
             },
@@ -179,14 +173,7 @@ const sidebars: SidebarsConfig = {
             'storage/files',
             'storage/use',
             'storage/read-files',
-            {
-              type: 'category',
-              label: 'Frontend Usage',
-              collapsed: true,
-              items: [
-                'frontend/client/storage',
-              ],
-            },
+            // Frontend Usage (client SDK disabled for now - frontend/client/storage removed)
           ],
         },
 
@@ -202,14 +189,7 @@ const sidebars: SidebarsConfig = {
             'sessions/activity-dashboard',
             'sessions/decrypting',
             'sessions/refreshing',
-            {
-              type: 'category',
-              label: 'Frontend Usage',
-              collapsed: true,
-              items: [
-                'frontend/client/sessions',
-              ],
-            },
+            // Frontend Usage (client SDK disabled for now - frontend/client/sessions removed)
           ],
         },
 
@@ -235,6 +215,7 @@ const sidebars: SidebarsConfig = {
             'notifications/overview',
             'notifications/setup',
             'notifications/send',
+            'notifications/message-logs',
             {
               type: 'category',
               label: 'Templates',
@@ -293,14 +274,7 @@ const sidebars: SidebarsConfig = {
             'workflows/step-types',
             'workflows/execution',
             'workflows/examples',
-            {
-              type: 'category',
-              label: 'Frontend Usage',
-              collapsed: true,
-              items: [
-                'frontend/client/workflows',
-              ],
-            },
+            // Frontend Usage (client SDK disabled for now - frontend/client/workflows removed)
           ],
         },
 
@@ -364,57 +338,18 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Client SDKs - Framework-specific guides
-    {
-      type: 'category',
-      label: 'Client SDKs',
-      collapsed: true,
-      items: [
-        'frontend/overview',
-        {
-          type: 'category',
-          label: 'Vanilla JS',
-          collapsed: true,
-          items: [
-            'frontend/client/getting-started',
-            'frontend/client/databases',
-            'frontend/client/storage',
-            'frontend/client/workflows',
-            'frontend/client/sessions',
-            'frontend/client/notifications',
-            'frontend/client/actions',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'React',
-          collapsed: true,
-          items: [
-            'frontend/react/getting-started',
-            'frontend/react/database-hooks',
-            'frontend/react/storage-hooks',
-            'frontend/react/workflow-hooks',
-            'frontend/react/session-hooks',
-            'frontend/react/notification-hooks',
-            'frontend/react/action-hooks',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Vue 3',
-          collapsed: true,
-          items: [
-            'frontend/vue/getting-started',
-            'frontend/vue/database-composables',
-            'frontend/vue/storage-composables',
-            'frontend/vue/workflow-composables',
-            'frontend/vue/session-composables',
-            'frontend/vue/notification-composables',
-            'frontend/vue/action-composables',
-          ],
-        },
-      ],
-    },
+    // Client SDKs - disabled (not available for use yet)
+    // {
+    //   type: 'category',
+    //   label: 'Client SDKs',
+    //   collapsed: true,
+    //   items: [
+    //     'frontend/overview',
+    //     { type: 'category', label: 'Vanilla JS', collapsed: true, items: ['frontend/client/getting-started', 'frontend/client/databases', 'frontend/client/storage', 'frontend/client/workflows', 'frontend/client/sessions', 'frontend/client/notifications', 'frontend/client/actions'] },
+    //     { type: 'category', label: 'React', collapsed: true, items: ['frontend/react/getting-started', 'frontend/react/database-hooks', 'frontend/react/storage-hooks', 'frontend/react/workflow-hooks', 'frontend/react/session-hooks', 'frontend/react/notification-hooks', 'frontend/react/action-hooks'] },
+    //     { type: 'category', label: 'Vue 3', collapsed: true, items: ['frontend/vue/getting-started', 'frontend/vue/database-composables', 'frontend/vue/storage-composables', 'frontend/vue/workflow-composables', 'frontend/vue/session-composables', 'frontend/vue/notification-composables', 'frontend/vue/action-composables'] },
+    //   ],
+    // },
 
     // Tutorials
     {
@@ -433,29 +368,18 @@ const sidebars: SidebarsConfig = {
             'tutorials/backend/task-management-system',
           ],
         },
-        {
-          type: 'category',
-          label: 'Client SDKs',
-          collapsed: true,
-          items: [
-            'tutorials/client/building-a-todo-app',
-            'tutorials/client/shopping-cart',
-            'tutorials/client/social-media-feed',
-            'tutorials/client/real-time-chat-app',
-          ],
-        },
-      ],
-    },
-
-    // Reference
-    {
-      type: 'category',
-      label: 'Reference',
-      collapsed: true,
-      items: [
-        'processing-overview',
-        'pricing',
-        'paystack',
+        // Client SDK tutorials - disabled (not available for use yet)
+        // {
+        //   type: 'category',
+        //   label: 'Client SDKs',
+        //   collapsed: true,
+        //   items: [
+        //     'tutorials/client/building-a-todo-app',
+        //     'tutorials/client/shopping-cart',
+        //     'tutorials/client/social-media-feed',
+        //     'tutorials/client/real-time-chat-app',
+        //   ],
+        // },
       ],
     },
   ],

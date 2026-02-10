@@ -348,17 +348,13 @@ handler: async (ctx, params) => {
 
 ```typescript
 handler: async (ctx, params) => {
-  await ctx.publish.send({
-    broker: 'order-events',
-    event: 'order-created',
-    input: {
-      message: {
-        orderId: params.orderId,
-        customerId: params.customerId,
-        items: params.items,
-      },
+  await ctx.messaging.produce({
+    event: 'order-events:order-created',
+    message: {
+      orderId: params.orderId,
+      customerId: params.customerId,
+      items: params.items,
     },
-    retries: 3,
   });
 
   return { published: true };
