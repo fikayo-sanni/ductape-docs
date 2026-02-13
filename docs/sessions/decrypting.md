@@ -2,43 +2,47 @@
 sidebar_position: 6
 ---
 
-# Decrypting Session Tokens
+# Verifying Session Tokens
 
-Validate and decrypt session tokens to retrieve user data using `ductape.sessions.validate()`.
+Validate and decrypt session tokens to retrieve user data using `ductape.sessions.verify()`.
 
 ## Quick Example
 
 ```ts
-const userData = await ductape.sessions.validate({
-  product: 'my-app',
+const result = await ductape.sessions.verify({
+  product: 'my-product',
   env: 'prd',
   tag: 'user-session',
-  token: 'eyJhbGciOi...'
+  token: 'user-session:eyJhbGci...', // or the full token from sessions.start()
 });
 
-console.log(userData);
-// { userId: 'user_123', details: { email: 'john@example.com' } }
+if (result.valid) {
+  console.log('User data:', result.data);
+  console.log('Session ID:', result.sessionId);
+  console.log('Expires at:', result.expiresAt);
+}
 ```
 
 ## How It Works
 
-Pass your session token along with the product, environment, and tag to retrieve the original user data stored when the session was created.
+Pass the session token (and product, env, tag) to verify and decode the JWT. The returned `data` is the same object you passed when starting the session.
 
 ## Examples
 
-### Validate user session
+### Verify user session
 
 ```ts
-const session = await ductape.sessions.validate({
-  product: 'ecommerce',
+const result = await ductape.sessions.verify({
+  product: 'my-product',
   env: 'prd',
   tag: 'checkout-session',
-  token: 'eyJhbGciOi...'
+  token: req.headers.authorization?.replace('Bearer ', '') ?? '',
 });
 
-// Returns the data you stored during session creation
-console.log(session.userId);
-console.log(session.details.email);
+if (result.valid && result.data) {
+  console.log('UserId:', result.data.userId);
+  console.log('Email:', result.data.email);
+}
 ```
 
 ### Use in middleware
@@ -48,14 +52,19 @@ async function authMiddleware(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
 
   try {
-    const user = await ductape.sessions.validate({
-      product: 'my-app',
+    const result = await ductape.sessions.verify({
+      product: 'my-product',
       env: 'prd',
       tag: 'user-session',
-      token
+      token: token ?? '',
     });
-    req.user = user;
-    next();
+    if (result.valid && result.data) {
+      req.user = result.data;
+      req.sessionId = result.sessionId;
+      next();
+    } else {
+      res.status(401).json({ error: 'Invalid session' });
+    }
   } catch (error) {
     res.status(401).json({ error: 'Invalid session' });
   }
@@ -64,32 +73,21 @@ async function authMiddleware(req, res, next) {
 
 ## Response
 
-The response contains the exact data you stored when creating the session:
-
-```json
-{
-  "userId": "user_123",
-  "details": {
-    "username": "johndoe",
-    "email": "john@example.com"
-  }
-}
-```
-
----
-
-## Reference
-
-### Input
-
 ```ts
-interface ValidateSessionInput {
-  product: string;  // Product tag
-  env: string;      // Environment (dev, staging, prd)
-  tag: string;      // Session tag
-  token: string;    // Session token to validate
+interface IVerifyResult {
+  valid: boolean;
+  data?: Record<string, unknown>;  // The data you stored when starting the session
+  sessionId?: string;
+  expiresAt?: Date;
 }
 ```
+
+| Field      | Description                                |
+|------------|--------------------------------------------|
+| `valid`    | Whether the token is valid and not expired |
+| `data`     | Decrypted session data                     |
+| `sessionId`| Session identifier                         |
+| `expiresAt`| Token expiration date                      |
 
 ## See Also
 

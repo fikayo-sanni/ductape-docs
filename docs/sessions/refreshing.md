@@ -10,10 +10,10 @@ Extend session validity by refreshing tokens using `ductape.sessions.refresh()`.
 
 ```ts
 const newTokens = await ductape.sessions.refresh({
-  product: 'my-app',
+  product: 'my-product',
   env: 'prd',
   tag: 'user-session',
-  refreshToken: 'your-refresh-token'
+  refreshToken: 'your-refresh-token',
 });
 
 console.log(newTokens.token);        // New session token

@@ -9,21 +9,30 @@ Create session tokens to track user activity across your products using `ductape
 ## Quick Example
 
 ```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  env_type: 'prd', // optional
+});
+
 const result = await ductape.sessions.start({
-  product: 'my-app',
+  product: 'my-product',
   env: 'prd',
   tag: 'user-session',
   data: {
     userId: 'user_123',
     details: {
       username: 'johndoe',
-      email: 'john@example.com'
-    }
-  }
+      email: 'john@example.com',
+    },
+  },
 });
 
-console.log(result.token);        // Session token
+console.log(result.token);        // Session token (format: tag:jwt)
 console.log(result.refreshToken); // Refresh token
+console.log(result.sessionId);    // Session ID
+console.log(result.expiresAt);    // Expiration date
 ```
 
 ## How It Works
@@ -92,17 +101,21 @@ const supportSession = await ductape.sessions.start({
 
 ## Response
 
-```json
+```ts
 {
-  "token": "ejyui11919102393:abc123xyz456...",
-  "refreshToken": "eueywuwjwmwmw:zyx456cba321..."
+  token: string;        // Format: "tag:jwt" (e.g. "user-session:eyJhbGci...")
+  refreshToken: string;
+  expiresAt?: Date;
+  sessionId?: string;
 }
 ```
 
 | Field | Description |
 |-------|-------------|
-| `token` | Short-lived token for the current session |
+| `token` | Session token (tag:jwt); use in verify() or pass to messaging/storage when needed |
 | `refreshToken` | Long-lived token to refresh or resume sessions |
+| `expiresAt` | When the access token expires |
+| `sessionId` | Unique session identifier |
 
 ## Best Practices
 
@@ -117,14 +130,12 @@ const supportSession = await ductape.sessions.start({
 ### Parameters
 
 ```ts
-interface CreateSessionInput {
+interface StartSessionInput {
   product: string;
   env: string;
   tag: string;
-  data: {
-    userId: string;
-    details: Record<string, unknown>;
-  };
+  data: Record<string, unknown>;  // Any JSON-serializable data (must match session schema)
+  cache?: string;                 // Optional cache tag for idempotency
 }
 ```
 

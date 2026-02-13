@@ -2,46 +2,71 @@
 sidebar_position: 3
 ---
 
-# Fetching Files
+# Listing Files
 
-To fetch files that have been previously uploaded, use the `ductape.storage.files` function. This function allows you to retrieve a paginated list of files within your workspace, filtered by optional parameters.
+List files in a storage bucket with pagination using `ductape.storage.listFiles()`.
 
-## Input Parameters
-| Field    | Type     | Required | Default | Description                                                      |
-|:---------|:---------|:---------|:--------|:-----------------------------------------------------------------|
-| `page`   | number   | No       | 0       | The page number to fetch. Starts from 0.                         |
-| `limit`  | number   | No       | 20      | Number of results per page.                                      |
-| `event`  | string   | Yes      | null    | Required storage tag of the bucket you want to look up.          |
+## Parameters
+
+| Field                | Type   | Required | Default | Description                                    |
+|----------------------|--------|----------|--------|------------------------------------------------|
+| `product`            | string | Yes      | —      | Product tag.                                   |
+| `env`                | string | Yes      | —      | Environment slug (e.g. `prd`, `dev`).          |
+| `storage`            | string | Yes      | —      | Storage configuration tag.                     |
+| `prefix`             | string | No       | —      | Prefix to filter keys (e.g. `documents/`).     |
+| `limit`              | number | No       | 100    | Max results per page (max: 1000).               |
+| `continuationToken`  | string | No       | —      | Token for the next page (from previous result). |
+| `cache`              | string | No       | —      | Optional cache tag for caching the result.      |
 
 ## Example
-```typescript
-const files = await ductape.storage.files({
-  event: "primary-storage",
-  page: 0,
-  limit: 20
+
+```ts
+const result = await ductape.storage.listFiles({
+  product: 'my-product',
+  env: 'prd',
+  storage: 'primary-storage',
+  prefix: 'uploads/',
+  limit: 20,
 });
+
+console.log('Files:', result.files);
+console.log('Has more:', result.hasMore);
+console.log('Next token:', result.nextToken);
 ```
 
-## Output Structure
-The data returned is an array of file metadata objects with the following structure:
+## Response
 
-| Field         | Type     | Description                                         |
-|:--------------|:---------|:----------------------------------------------------|
-| `url`         | string   | The public or signed URL for accessing the file.    |
-| `workspace_id`| string   | The workspace this file belongs to.                 |
-| `type`        | string   | The file type category.                             |
-| `product`     | string   | The product the file is associated with.            |
-| `provider`    | string   | The cloud storage provider used (e.g., gcp, azure). |
-| `process_id`  | string   | The process run identifier for this file.           |
-| `event`       | string   | The event that triggered this file upload.          |
-| `env`         | string   | The environment this file was uploaded in.          |
-| `size`        | number   | The file size in bytes.                             |
+| Field       | Type     | Description                                  |
+|-------------|----------|----------------------------------------------|
+| `success`   | boolean  | Whether the request succeeded.               |
+| `files`     | array    | List of file metadata objects.               |
+| `limit`     | number   | Page size.                                   |
+| `nextToken` | string?  | Token to pass as `continuationToken` for the next page. |
+| `hasMore`   | boolean  | Whether more results are available.          |
 
-## Key Points
-- Use the correct storage tag (`event`) to fetch files from the right bucket.
-- Pagination is supported via `page` and `limit` parameters.
-- Output includes all relevant metadata for each file.
+Each file in `files` has: `name`, `size`, `lastModified`, and optionally `url`, `mimeType`, `metadata`.
 
-## Next Steps
-- [Managing Storage Providers](./overview.md)
-- [Storage Provider Configuration](./providers/aws.md)
+## Pagination
+
+Use `continuationToken` and `nextToken` to fetch the next page:
+
+```ts
+let token: string | undefined;
+do {
+  const result = await ductape.storage.listFiles({
+    product: 'my-product',
+    env: 'prd',
+    storage: 'primary-storage',
+    limit: 100,
+    continuationToken: token,
+  });
+  // process result.files
+  token = result.nextToken;
+} while (token);
+```
+
+## See Also
+
+- [Storage Overview](./overview)
+- [Processing Storage](./use)
+- [Reading Files](./read-files)
