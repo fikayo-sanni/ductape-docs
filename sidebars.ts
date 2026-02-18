@@ -338,18 +338,60 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Client SDKs - disabled (not available for use yet)
-    // {
-    //   type: 'category',
-    //   label: 'Client SDKs',
-    //   collapsed: true,
-    //   items: [
-    //     'frontend/overview',
-    //     { type: 'category', label: 'Vanilla JS', collapsed: true, items: ['frontend/client/getting-started', 'frontend/client/databases', 'frontend/client/storage', 'frontend/client/workflows', 'frontend/client/sessions', 'frontend/client/notifications', 'frontend/client/actions'] },
-    //     { type: 'category', label: 'React', collapsed: true, items: ['frontend/react/getting-started', 'frontend/react/database-hooks', 'frontend/react/storage-hooks', 'frontend/react/workflow-hooks', 'frontend/react/session-hooks', 'frontend/react/notification-hooks', 'frontend/react/action-hooks'] },
-    //     { type: 'category', label: 'Vue 3', collapsed: true, items: ['frontend/vue/getting-started', 'frontend/vue/database-composables', 'frontend/vue/storage-composables', 'frontend/vue/workflow-composables', 'frontend/vue/session-composables', 'frontend/vue/notification-composables', 'frontend/vue/action-composables'] },
-    //   ],
-    // },
+    // Frontend / Client SDKs
+    {
+      type: 'category',
+      label: 'Client SDKs',
+      collapsed: true,
+      items: [
+        'frontend/overview',
+        {
+          type: 'category',
+          label: 'Vanilla JS',
+          collapsed: true,
+          items: [
+            'frontend/client/getting-started',
+            'frontend/client/databases',
+            'frontend/client/storage',
+            'frontend/client/workflows',
+            'frontend/client/sessions',
+            'frontend/client/notifications',
+            'frontend/client/actions',
+            'frontend/client/resilience',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'React',
+          collapsed: true,
+          items: [
+            'frontend/react/getting-started',
+            'frontend/react/database-hooks',
+            'frontend/react/storage-hooks',
+            'frontend/react/workflow-hooks',
+            'frontend/react/session-hooks',
+            'frontend/react/notification-hooks',
+            'frontend/react/action-hooks',
+            'frontend/react/resilience-hooks',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Vue 3',
+          collapsed: true,
+          items: [
+            'frontend/vue/getting-started',
+            'frontend/vue/database-composables',
+            'frontend/vue/storage-composables',
+            'frontend/vue/workflow-composables',
+            'frontend/vue/session-composables',
+            'frontend/vue/notification-composables',
+            'frontend/vue/action-composables',
+            'frontend/vue/resilience-composables',
+          ],
+        },
+      ],
+    },
 
     // Tutorials
     {
@@ -368,18 +410,17 @@ const sidebars: SidebarsConfig = {
             'tutorials/backend/task-management-system',
           ],
         },
-        // Client SDK tutorials - disabled (not available for use yet)
-        // {
-        //   type: 'category',
-        //   label: 'Client SDKs',
-        //   collapsed: true,
-        //   items: [
-        //     'tutorials/client/building-a-todo-app',
-        //     'tutorials/client/shopping-cart',
-        //     'tutorials/client/social-media-feed',
-        //     'tutorials/client/real-time-chat-app',
-        //   ],
-        // },
+        {
+          type: 'category',
+          label: 'Client SDKs',
+          collapsed: true,
+          items: [
+            'tutorials/client/building-a-todo-app',
+            'tutorials/client/shopping-cart',
+            'tutorials/client/social-media-feed',
+            'tutorials/client/real-time-chat-app',
+          ],
+        },
       ],
     },
   ],
