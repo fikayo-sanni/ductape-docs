@@ -17,9 +17,11 @@ Query data from a database table with reactive state.
 <script setup lang="ts">
 import { useDatabaseQuery } from '@ductape/vue';
 
+const sessionToken = useSessionToken(); // from your auth
 const { data, isLoading, error, refetch } = useDatabaseQuery('users', {
   table: 'users',
-  limit: 10
+  limit: 10,
+  session: sessionToken,
 });
 </script>
 
@@ -48,13 +50,15 @@ import { useDatabaseQuery } from '@ductape/vue';
 const category = ref('electronics');
 const priceLimit = ref(1000);
 
+const sessionToken = useSessionToken();
 const queryOptions = computed(() => ({
   table: 'products',
   where: {
     category: category.value,
     price: { $lt: priceLimit.value }
   },
-  orderBy: [{ column: 'price', order: 'asc' }]
+  orderBy: [{ column: 'price', order: 'asc' }],
+  session: sessionToken.value,
 }));
 
 const { data, isLoading } = useDatabaseQuery(
@@ -100,6 +104,7 @@ import { useDatabaseInsert } from '@ductape/vue';
 const name = ref('');
 const email = ref('');
 
+const sessionToken = useSessionToken();
 const { mutate, isLoading, error } = useDatabaseInsert({
   onSuccess: (data) => {
     console.log('User created:', data.rows[0]);
@@ -116,7 +121,8 @@ const handleSubmit = () => {
       name: name.value,
       email: email.value,
       role: 'user'
-    }
+    },
+    session: sessionToken.value,
   });
 };
 </script>

@@ -23,9 +23,7 @@ The core client library that works with any JavaScript framework or vanilla Java
 import { Ductape } from '@ductape/client';
 
 const ductape = new Ductape({
-  accessKey: 'your-public-access-key',
-  product: 'your-product-tag',
-  env: 'prd'
+  publishableKey: 'your-publishable-key',
 });
 ```
 
@@ -39,11 +37,13 @@ React hooks and components built on top of @ductape/client, providing a React-id
 
 ```tsx
 import { DuctapeProvider, useDatabaseQuery } from '@ductape/react';
+import { session } from './config'; // or from your auth (e.g. useSessionToken())
 
 function UsersList() {
   const { data, isLoading } = useDatabaseQuery('users', {
     table: 'users',
-    limit: 10
+    limit: 10,
+    session, // required when using publishable key
   });
 }
 ```
@@ -60,9 +60,10 @@ Vue 3 composables and plugin built on top of @ductape/client for Vue application
 <script setup>
 import { useDatabaseQuery } from '@ductape/vue';
 
+const sessionToken = useSessionToken(); // from your auth/backend
 const { data, isLoading } = useDatabaseQuery(
   ['users'],
-  { table: 'users', limit: 10 }
+  { table: 'users', limit: 10, session: sessionToken }
 );
 </script>
 ```
@@ -73,39 +74,58 @@ const { data, isLoading } = useDatabaseQuery(
 Subscribe to database changes, workflow updates, and more with WebSocket-based real-time synchronization.
 
 ```typescript
+// Session token from your backend (e.g. after auth)
+const sessionToken = getSessionFromYourBackend();
+
 // Automatic real-time updates
 const { data } = useDatabaseQuery('todos', {
   table: 'todos',
-  where: { completed: false }
+  where: { completed: false },
+  session: sessionToken,
 });
 
 // Subscribe to changes
 ductape.databases.subscribe({
   table: 'todos',
+  session: sessionToken,
   onChange: (event) => console.log('Todo changed:', event)
 });
 ```
 
-### Built-in Security
-Access control and authentication are handled automatically through your product configuration. The client only exposes what you've configured as accessible from the frontend.
+### Publishable key and session (required)
+
+When you use a **publishable key** (the normal frontend setup), the proxy requires a **session** as a second layer of validation:
+
+- **Session in params:** Every request must include a `session` property in the options object. The value is a session token issued by **your backend** (e.g. after user login). If `session` is missing or empty, the proxy rejects the request.
 
 ```typescript
-// Session management
-await ductape.sessions.start({
-  userId: 'user-123',
-  metadata: { role: 'user' }
+// Get session token from your backend (e.g. after auth)
+const sessionToken = getSessionFromYourBackend();
+
+// Include session in every Ductape request
+const data = await ductape.databases.query({
+  table: 'orders',
+  limit: 10,
+  session: sessionToken,  // required when using publishable key
 });
 
-// All subsequent requests include session context
-const data = await ductape.databases.query({
-  table: 'private_data' // Access controlled by your product config
+await ductape.storage.upload({
+  storage: 'gcp-storage',
+  fileName: 'path/file.txt',
+  data: blob,
+  mimeType: 'text/plain',
+  session: sessionToken,
 });
 ```
+
+- **Session APIs are backend-only:** When using a publishable key, you **cannot** call session methods (`sessions.start`, `sessions.verify`, `sessions.refresh`, `sessions.revoke`, etc.) from the client—they throw. Sessions must be started and managed **only on your backend**. Your backend returns a session token to the frontend; the frontend only passes that token as `session` in each request.
 
 ### Type Safety
 Full TypeScript support with intelligent type inference for your database schemas and API responses.
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 interface User {
   id: string;
   name: string;
@@ -114,7 +134,8 @@ interface User {
 
 const { data } = await ductape.databases.query<User>({
   table: 'users',
-  where: { active: true }
+  where: { active: true },
+  session: sessionToken,
 });
 // data.rows is typed as User[]
 ```
@@ -123,6 +144,8 @@ const { data } = await ductape.databases.query<User>({
 Update your UI instantly while changes sync in the background.
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const { mutate } = useDatabaseInsert({
   onMutate: async (newTodo) => {
     // Optimistically update UI
@@ -132,6 +155,9 @@ const { mutate } = useDatabaseInsert({
     // Rollback on error
   }
 });
+
+// When calling mutate, include session in the payload
+mutate({ table: 'todos', data: newTodo, session: sessionToken });
 ```
 
 ## What Can You Build?

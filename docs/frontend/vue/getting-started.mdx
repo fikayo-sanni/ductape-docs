@@ -28,6 +28,14 @@ Both `@ductape/vue` and `@ductape/client` are required. The Vue package is a pee
 
 ## Basic Setup
 
+:::caution Frontend: use only publishable key
+In browser/frontend **never** use `accessKey`. Use `publishableKey` and `baseUrl` (your Ductape proxy). Get your publishable key from Workbench → Tokens → Publishable Key.
+:::
+
+:::info Session required in every request (publishable key)
+When using a publishable key, **every** request must include a `session` property in the options/payload—a session token from **your backend**. Pass it in composable options, e.g. `useDatabaseQuery(['key'], { table: 'users', session: sessionToken })` or in the payload for `useActionRun`, `useMutation`, etc. Session composables (`useSessionStart`, `useSessionVerify`, etc.) are **not** available with a publishable key—they throw. Sessions are backend-only; the frontend only passes the token in the `session` field. See [Session Composables](./session-composables) for the backend/access-key usage.
+:::
+
 ### 1. Install the Plugin
 
 ```typescript
@@ -39,10 +47,8 @@ import App from './App.vue';
 const app = createApp(App);
 
 const ductape = createDuctape({
-  accessKey: import.meta.env.VITE_DUCTAPE_KEY,
-  product: 'my-product',
-  env: 'prd',
-  autoConnect: true // Automatically establish WebSocket connection
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
+  autoConnect: false,
 });
 
 app.use(ductape);
@@ -55,12 +61,14 @@ app.mount('#app');
 <script setup lang="ts">
 import { useDatabaseQuery } from '@ductape/vue';
 
+const sessionToken = useSessionToken(); // from your auth
 const { data, isLoading, error, refetch } = useDatabaseQuery(
   ['users'],
   {
     table: 'users',
     where: { active: true },
-    limit: 10
+    limit: 10,
+    session: sessionToken,
   }
 );
 </script>
@@ -87,14 +95,8 @@ The `createDuctape` function accepts these options:
 
 ```typescript
 interface DuctapePluginOptions {
-  accessKey: string;      // Your public access key
-  product: string;        // Product tag
-  env: string;           // Environment
-  baseURL?: string;      // Optional: Custom API URL
-  wsURL?: string;        // Optional: Custom WebSocket URL
-  timeout?: number;      // Optional: Request timeout (ms)
-  debug?: boolean;       // Optional: Enable debug logging
-  autoConnect?: boolean; // Optional: Auto-connect WebSocket (default: false)
+  publishableKey: string;   // From Workbench → Tokens → Publishable Key
+  autoConnect?: boolean;     // Optional: Auto-connect WebSocket (default: false)
 }
 ```
 
@@ -102,19 +104,16 @@ interface DuctapePluginOptions {
 
 ```env
 # .env.local
-VITE_DUCTAPE_ACCESS_KEY=your_access_key
-VITE_DUCTAPE_PRODUCT=my-product
-VITE_DUCTAPE_ENV=prd
+VITE_PUBLISHABLE_KEY=dpk_xxx
 ```
 
 ```typescript
 // main.ts
 const ductape = createDuctape({
-  accessKey: import.meta.env.VITE_DUCTAPE_ACCESS_KEY,
-  product: import.meta.env.VITE_DUCTAPE_PRODUCT,
-  env: import.meta.env.VITE_DUCTAPE_ENV,
-  autoConnect: true
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
+  autoConnect: false,
 });
+app.use(ductape);
 ```
 
 ## Quick Examples
@@ -125,13 +124,15 @@ const ductape = createDuctape({
 <script setup lang="ts">
 import { useDatabaseQuery } from '@ductape/vue';
 
+const sessionToken = useSessionToken();
 const { data, isLoading, error } = useDatabaseQuery(
   ['products', 'electronics'],
   {
     table: 'products',
     where: { category: 'electronics' },
     orderBy: [{ column: 'price', order: 'asc' }],
-    limit: 20
+    limit: 20,
+    session: sessionToken,
   }
 );
 </script>
@@ -415,9 +416,7 @@ import { DUCTAPE_INJECTION_KEY } from '@ductape/vue';
 
 // Create client
 const client = new Ductape({
-  accessKey: 'your-key',
-  product: 'my-product',
-  env: 'prd'
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
 });
 
 // Provide to children

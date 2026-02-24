@@ -7,6 +7,10 @@ title: Workflow Hooks
 
 React hooks for executing and managing Ductape Workflows.
 
+:::info Session required (publishable key)
+When using a **publishable key**, include `session` in every workflow call. Example: `import { session } from './config'`.
+:::
+
 ## useWorkflowExecution
 
 Execute a workflow and track its progress.
@@ -15,6 +19,7 @@ Execute a workflow and track its progress.
 
 ```tsx
 import { useWorkflowExecution } from '@ductape/react';
+import { session } from './config';
 
 function OrderProcessor() {
   const { mutate, isLoading, data, error } = useWorkflowExecution({
@@ -33,7 +38,8 @@ function OrderProcessor() {
       input: {
         orderId,
         priority: 'high'
-      }
+      },
+      session,
     });
   };
 
@@ -52,6 +58,8 @@ function OrderProcessor() {
 ### Workflow with Real-time Status
 
 ```tsx
+import { session } from './config';
+
 function WorkflowRunner() {
   const [executionId, setExecutionId] = useState<string | null>(null);
 
@@ -67,7 +75,8 @@ function WorkflowRunner() {
       input: {
         source: 'database',
         destination: 's3'
-      }
+      },
+      session,
     });
   };
 

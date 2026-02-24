@@ -7,28 +7,25 @@ title: Storage Hooks
 
 React hooks for working with Ductape Storage. Upload, download, and manage files with automatic progress tracking and error handling.
 
-## useStorageUpload
+:::info Session required (publishable key)
+When using a **publishable key**, include `session` in every storage call (upload, list, download, delete, signed URL). Example: `import { session } from './config'`.
+:::
 
-Upload files to Ductape Storage with progress tracking.
+## useUpload
+
+Upload files to Ductape Storage with progress tracking. Pass `storage`, `fileName`, `data`, and `session` (when using publishable key).
 
 ### Basic Upload
 
 ```tsx
-import { useStorageUpload } from '@ductape/react';
+import { useUpload } from '@ductape/react';
 import { useState } from 'react';
+import { session } from './config';
 
 function FileUploader() {
   const [file, setFile] = useState<File | null>(null);
 
-  const { mutate, isLoading, progress, error } = useStorageUpload({
-    onSuccess: (data) => {
-      console.log('File uploaded:', data.url);
-      alert('Upload successful!');
-    },
-    onError: (err) => {
-      alert('Upload failed: ' + err.message);
-    }
-  });
+  const { upload, isUploading, progress, error } = useUpload();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -36,20 +33,22 @@ function FileUploader() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) return;
-
-    mutate({
-      file,
-      path: 'uploads/documents'
+    await upload({
+      storage: 'gcp-storage',
+      fileName: `uploads/documents/${file.name}`,
+      data: file,
+      mimeType: file.type || 'application/octet-stream',
+      session,
     });
   };
 
   return (
     <div>
       <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload} disabled={isLoading || !file}>
-        {isLoading ? `Uploading ${progress}%` : 'Upload'}
+      <button onClick={handleUpload} disabled={isUploading || !file}>
+        {isUploading && progress ? `Uploading ${progress.percentage}%` : 'Upload'}
       </button>
       {error && <p className="error">{error.message}</p>}
     </div>
@@ -60,24 +59,25 @@ function FileUploader() {
 ### Upload with Progress Bar
 
 ```tsx
+import { session } from './config';
+
 function UploadWithProgress() {
   const [file, setFile] = useState<File | null>(null);
 
-  const { mutate, isLoading, progress } = useStorageUpload({
-    onSuccess: (data) => {
-      console.log('Uploaded:', data);
-    }
-  });
+  const { upload, isUploading, progress } = useUpload();
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) return;
-    mutate({
-      file,
-      path: 'uploads/images',
+    await upload({
+      storage: 'gcp-storage',
+      fileName: `uploads/images/${file.name}`,
+      data: file,
+      mimeType: file.type,
       metadata: {
         uploadedBy: 'user-123',
         category: 'profile-pictures'
-      }
+      },
+      session,
     });
   };
 
@@ -88,17 +88,17 @@ function UploadWithProgress() {
         accept="image/*"
         onChange={(e) => setFile(e.target.files?.[0] || null)}
       />
-      <button onClick={handleUpload} disabled={isLoading}>
+      <button onClick={handleUpload} disabled={isUploading}>
         Upload
       </button>
 
-      {isLoading && (
+      {isUploading && progress && (
         <div className="progress-container">
           <div
             className="progress-bar"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progress.percentage}%` }}
           />
-          <span>{progress}%</span>
+          <span>{progress.percentage}%</span>
         </div>
       )}
     </div>
@@ -109,24 +109,26 @@ function UploadWithProgress() {
 ### Multiple File Upload
 
 ```tsx
+import { useUpload } from '@ductape/react';
+import { session } from './config';
+
 function MultiFileUploader() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploads, setUploads] = useState<any[]>([]);
 
-  const { mutate, isLoading } = useStorageUpload({
-    onSuccess: (data) => {
-      setUploads(prev => [...prev, data]);
-    }
-  });
+  const { upload, isUploading } = useUpload();
 
   const handleUpload = async () => {
     if (!files) return;
-
     for (let i = 0; i < files.length; i++) {
-      mutate({
-        file: files[i],
-        path: 'uploads/batch'
+      const result = await upload({
+        storage: 'gcp-storage',
+        fileName: `uploads/batch/${files[i].name}`,
+        data: files[i],
+        mimeType: files[i].type || 'application/octet-stream',
+        session,
       });
+      setUploads(prev => [...prev, result]);
     }
   };
 
@@ -137,15 +139,15 @@ function MultiFileUploader() {
         multiple
         onChange={(e) => setFiles(e.target.files)}
       />
-      <button onClick={handleUpload} disabled={isLoading}>
+      <button onClick={handleUpload} disabled={isUploading}>
         Upload {files?.length || 0} Files
       </button>
 
       <div>
         <h3>Uploaded Files:</h3>
         <ul>
-          {uploads.map((upload, idx) => (
-            <li key={idx}>{upload.filename}</li>
+          {uploads.map((u, idx) => (
+            <li key={idx}>{u.fileName ?? u.url}</li>
           ))}
         </ul>
       </div>
@@ -156,26 +158,26 @@ function MultiFileUploader() {
 
 ## useStorageDownload
 
-Download files from Ductape Storage.
+Download files from Ductape Storage. Include `session` when using a publishable key.
 
 ```tsx
 import { useStorageDownload } from '@ductape/react';
+import { session } from './config';
 
-function FileDownloader({ fileId }: { fileId: string }) {
+function FileDownloader({ fileName }: { fileName: string }) {
   const { mutate, isLoading, progress } = useStorageDownload({
     onSuccess: (blob) => {
-      // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'downloaded-file.pdf';
+      a.download = fileName.split('/').pop() || 'download';
       a.click();
       URL.revokeObjectURL(url);
     }
   });
 
   const handleDownload = () => {
-    mutate({ fileId });
+    mutate({ storage: 'gcp-storage', fileName, session });
   };
 
   return (
@@ -188,12 +190,13 @@ function FileDownloader({ fileId }: { fileId: string }) {
 
 ## useStorageDelete
 
-Delete files from storage.
+Delete files from storage. Include `session` when using a publishable key.
 
 ```tsx
 import { useStorageDelete } from '@ductape/react';
+import { session } from './config';
 
-function FileDeleter({ fileId, filename }: { fileId: string; filename: string }) {
+function FileDeleter({ fileName, filename }: { fileName: string; filename: string }) {
   const { mutate, isLoading } = useStorageDelete({
     onSuccess: () => {
       alert('File deleted successfully');
@@ -202,7 +205,7 @@ function FileDeleter({ fileId, filename }: { fileId: string; filename: string })
 
   const handleDelete = () => {
     if (confirm(`Delete ${filename}?`)) {
-      mutate({ fileId });
+      mutate({ storage: 'gcp-storage', fileName, session });
     }
   };
 
@@ -216,15 +219,18 @@ function FileDeleter({ fileId, filename }: { fileId: string; filename: string })
 
 ## useStorageList
 
-List files in storage with filtering and pagination.
+List files in storage with filtering and pagination. Include `session` when using a publishable key.
 
 ```tsx
 import { useStorageList } from '@ductape/react';
+import { session } from './config';
 
 function FileGallery() {
   const { data, isLoading, refetch } = useStorageList({
-    path: 'uploads/images',
-    limit: 20
+    storage: 'gcp-storage',
+    prefix: 'uploads/images',
+    limit: 20,
+    session,
   });
 
   if (isLoading) return <div>Loading files...</div>;
@@ -249,15 +255,16 @@ function FileGallery() {
 ### With Filters
 
 ```tsx
+import { session } from './config';
+
 function FilteredFileList() {
   const [fileType, setFileType] = useState('image');
 
   const { data, isLoading } = useStorageList({
-    path: 'uploads',
-    filter: {
-      mimeType: fileType === 'image' ? 'image/*' : 'application/pdf'
-    },
-    orderBy: { field: 'createdAt', direction: 'desc' }
+    storage: 'gcp-storage',
+    prefix: 'uploads',
+    limit: 50,
+    session,
   });
 
   return (
@@ -285,15 +292,18 @@ function FilteredFileList() {
 
 ## useStorageURL
 
-Get a signed URL for a file.
+Get a signed URL for a file. Include `session` when using a publishable key.
 
 ```tsx
 import { useStorageURL } from '@ductape/react';
+import { session } from './config';
 
-function SecureImageDisplay({ fileId }: { fileId: string }) {
+function SecureImageDisplay({ fileName }: { fileName: string }) {
   const { data: url, isLoading } = useStorageURL({
-    fileId,
-    expiresIn: 3600 // 1 hour
+    storage: 'gcp-storage',
+    fileName,
+    expiresIn: 3600, // 1 hour
+    session,
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -305,47 +315,47 @@ function SecureImageDisplay({ fileId }: { fileId: string }) {
 ## Complete File Manager Example
 
 ```tsx
+import { useUpload, useStorageList, useStorageDelete } from '@ductape/react';
+import { session } from './config';
+
 interface FileItem {
-  id: string;
-  filename: string;
-  size: number;
-  url: string;
-  createdAt: string;
+  name: string;
+  size?: number;
+  url?: string;
 }
 
 function FileManager() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // List files
-  const { data: files, isLoading: isLoadingFiles, refetch } = useStorageList({
-    path: 'uploads',
-    limit: 50
+  const { data: listResult, isLoading: isLoadingFiles, refetch } = useStorageList({
+    storage: 'gcp-storage',
+    prefix: 'uploads',
+    limit: 50,
+    session,
   });
 
-  // Upload
-  const { mutate: upload, isLoading: isUploading, progress } = useStorageUpload({
-    onSuccess: () => {
-      setSelectedFile(null);
-      refetch();
-    }
-  });
+  const { upload, isUploading, progress } = useUpload();
 
-  // Delete
   const { mutate: deleteFile } = useStorageDelete({
     onSuccess: () => refetch()
   });
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!selectedFile) return;
-    upload({
-      file: selectedFile,
-      path: 'uploads'
+    await upload({
+      storage: 'gcp-storage',
+      fileName: `uploads/${selectedFile.name}`,
+      data: selectedFile,
+      mimeType: selectedFile.type || 'application/octet-stream',
+      session,
     });
+    setSelectedFile(null);
+    refetch();
   };
 
-  const handleDelete = (fileId: string, filename: string) => {
-    if (confirm(`Delete ${filename}?`)) {
-      deleteFile({ fileId });
+  const handleDelete = (fileName: string) => {
+    if (confirm(`Delete ${fileName}?`)) {
+      deleteFile({ storage: 'gcp-storage', fileName, session });
     }
   };
 
@@ -361,7 +371,7 @@ function FileManager() {
           onClick={handleUpload}
           disabled={!selectedFile || isUploading}
         >
-          {isUploading ? `Uploading ${progress}%` : 'Upload'}
+          {isUploading && progress ? `Uploading ${progress.percentage}%` : 'Upload'}
         </button>
       </div>
 
@@ -380,18 +390,16 @@ function FileManager() {
               </tr>
             </thead>
             <tbody>
-              {files?.files.map((file: FileItem) => (
-                <tr key={file.id}>
-                  <td>{file.filename}</td>
-                  <td>{(file.size / 1024).toFixed(2)} KB</td>
-                  <td>{new Date(file.createdAt).toLocaleDateString()}</td>
+              {(listResult?.files ?? []).map((file: FileItem) => (
+                <tr key={file.name}>
+                  <td>{file.name}</td>
+                  <td>{file.size != null ? (file.size / 1024).toFixed(2) + ' KB' : '—'}</td>
+                  <td>—</td>
                   <td>
-                    <a href={file.url} target="_blank" rel="noopener noreferrer">
-                      View
-                    </a>
-                    <button onClick={() => handleDelete(file.id, file.filename)}>
-                      Delete
-                    </button>
+                    {file.url && (
+                      <a href={file.url} target="_blank" rel="noopener noreferrer">View</a>
+                    )}
+                    <button onClick={() => handleDelete(file.name)}>Delete</button>
                   </td>
                 </tr>
               ))}

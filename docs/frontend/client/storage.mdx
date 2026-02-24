@@ -9,14 +9,18 @@ The storage service allows you to upload, download, list, and manage files in yo
 
 ## Uploading Files
 
+When using a publishable key, include `session` (token from your backend) in every storage request.
+
 ### Basic Upload
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
 const file = document.getElementById('fileInput').files[0];
 
 const result = await ductape.storage.upload({
   file: file,
-  path: 'uploads/documents'
+  path: 'uploads/documents',
+  session: sessionToken,
 });
 
 console.log('File URL:', result.url);
@@ -26,9 +30,12 @@ console.log('File key:', result.key);
 ### Upload with Progress Tracking
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const result = await ductape.storage.upload({
   file: file,
   path: 'uploads/images',
+  session: sessionToken,
   onProgress: (progress) => {
     console.log(`Progress: ${progress.percentage}%`);
     console.log(`Uploaded: ${progress.loaded} / ${progress.total} bytes`);
@@ -88,8 +95,11 @@ console.log('All files uploaded:', results);
 ### Download File
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const result = await ductape.storage.download({
-  key: 'uploads/documents/report.pdf'
+  key: 'uploads/documents/report.pdf',
+  session: sessionToken,
 });
 
 // Create download link

@@ -6,6 +6,15 @@ sidebar_position: 3
 
 Sessions let you track user behavior and manage authentication across your products using JWT-based tokens.
 
+## Frontend clients (publishable key)
+
+When using **@ductape/client**, **@ductape/react**, or **@ductape/vue** with a **publishable key** (frontend/BFF flow):
+
+- **Session in params:** Every request (e.g. `storage.upload`, `databases.query`, `actions.run`) must include a `session` property in the options object. The value is a session token issued by **your backend**. The proxy rejects requests that omit `session` or pass an empty value.
+- **Session APIs are backend-only:** The client SDKs do **not** allow calling session methods (`start`, `verify`, `refresh`, `revoke`, `revokeAll`, `listActive`, `getInfo`, `enableAutoRefresh`) when using a publishable key—those methods throw. Sessions must be started, verified, and revoked **only on the backend**. Your backend returns a session token to the frontend (e.g. after login); the frontend then passes that token as `session` in each Ductape request.
+
+See [Frontend access key strategies](/docs/FRONTEND_ACCESS_KEY_STRATEGIES) for the full security model.
+
 ## Quick Example
 
 Use the **sessions** API on the Ductape instance. Initialize with your access key:

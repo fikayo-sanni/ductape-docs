@@ -7,6 +7,10 @@ title: Session Hooks
 
 React hooks for managing JWT-based sessions with automatic encryption, token refresh, and session lifecycle management.
 
+:::warning Not available with publishable key
+When your app uses a **publishable key** (typical frontend setup), **all session hooks are disabled**—`useSessionStart`, `useSessionVerify`, `useSessionRefresh`, `useSessionRevoke`, `useSessionRevokeAll`, `useSessionList`, `useSessionAutoRefresh` will throw. Sessions can only be started and managed **on your backend**. Your backend returns a session token to the frontend; the frontend must pass that token as **`session`** in the options for every Ductape request (e.g. `useDatabaseQuery(..., { ...opts, session: token })`). The examples below apply when using an **access key** (e.g. server-side React or a backend that uses the client with full auth).
+:::
+
 ## useSessionStart
 
 Create a new session with encrypted JWT token.

@@ -7,6 +7,8 @@ title: Resilience
 
 Build fault-tolerant applications with Ductape's resilience features including quotas for load distribution, fallbacks for automatic failover, and health monitoring.
 
+When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
+
 ## Quotas
 
 Quotas distribute load across multiple providers based on weighted distribution, with health-aware provider selection.
@@ -23,13 +25,15 @@ const ductape = new Ductape({
 });
 
 // Execute operation with weighted provider distribution
+const sessionToken = getSessionFromYourBackend();
 const result = await ductape.resilience.quotas.run({
   tag: 'payment-quota',
   input: {
     amount: 1000,
     currency: 'usd',
     customer: 'cus_123'
-  }
+  },
+  session: sessionToken,
 });
 
 console.log(`Processed by ${result.provider}`);

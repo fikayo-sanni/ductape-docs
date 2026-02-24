@@ -7,6 +7,8 @@ title: Notifications
 
 Send notifications through various channels (email, SMS, push notifications) using Ductape's unified notification system.
 
+When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
+
 ## Sending Notifications
 
 ### Send Email Notification
@@ -15,10 +17,12 @@ Send notifications through various channels (email, SMS, push notifications) usi
 import { Ductape } from '@ductape/client';
 
 const ductape = new Ductape({
-  accessKey: 'your-access-key',
+  publishableKey: 'your-publishable-key',
   product: 'your-product',
   env: 'prd'
 });
+
+const sessionToken = getSessionFromYourBackend();
 
 // Send email notification
 await ductape.notifications.send({
@@ -28,7 +32,8 @@ await ductape.notifications.send({
   data: {
     name: 'John Doe',
     verificationLink: 'https://app.com/verify?token=abc123'
-  }
+  },
+  session: sessionToken,
 });
 ```
 
