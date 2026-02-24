@@ -7,17 +7,22 @@ title: Workflows
 
 Workflows allow you to execute complex, multi-step processes with built-in durability, retries, and state management. Execute backend workflows directly from your frontend application.
 
+When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
+
 ## Executing Workflows
 
 ### Basic Execution
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const execution = await ductape.workflows.execute({
   workflow: 'process-order',
   input: {
     orderId: 'order-123',
     userId: 'user-456'
-  }
+  },
+  session: sessionToken,
 });
 
 console.log('Execution ID:', execution.executionId);

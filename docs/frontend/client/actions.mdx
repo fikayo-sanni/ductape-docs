@@ -7,24 +7,30 @@ title: Actions
 
 Execute Ductape Actions - pre-built integrations with external services like Stripe, Paystack, and more.
 
+When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
+
 ## Basic Action Execution
 
 ```typescript
 import { Ductape } from '@ductape/client';
 
 const ductape = new Ductape({
-  accessKey: 'your-access-key',
+  publishableKey: 'your-publishable-key',
   product: 'your-product',
   env: 'prd'
 });
 
+const sessionToken = getSessionFromYourBackend();
+
 // Execute an action
-const result = await ductape.actions.execute({
-  action: 'stripe.create-customer',
+const result = await ductape.actions.run({
+  app: 'ductape:stripe',
+  action: 'create-customer',
   input: {
     email: 'customer@example.com',
     name: 'John Doe'
-  }
+  },
+  session: sessionToken,
 });
 
 console.log('Customer ID:', result.id);

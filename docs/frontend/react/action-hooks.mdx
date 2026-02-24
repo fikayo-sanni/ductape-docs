@@ -7,17 +7,22 @@ title: Action Hooks
 
 React hooks for executing Ductape Actions - pre-built integrations with external services.
 
-## useAction
+:::info Session required (publishable key)
+When using a **publishable key**, every action call must include `session` in the payload. Get the session token from your backend (or from config, e.g. `import { session } from './config'`). The examples below include `session` in each `mutate()` call.
+:::
 
-Execute any Ductape action with automatic loading states and error handling.
+## useActionRun
+
+Execute any Ductape action with automatic loading states and error handling. With a publishable key, pass `app`, `action`, `input`, and `session`.
 
 ### Basic Action Execution
 
 ```tsx
-import { useAction } from '@ductape/react';
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
 
 function CreateStripeCustomer() {
-  const { mutate, isLoading, error, data } = useAction({
+  const { mutate, isLoading, error, data } = useActionRun({
     onSuccess: (result) => {
       console.log('Customer created:', result);
       alert('Customer created successfully!');
@@ -26,14 +31,16 @@ function CreateStripeCustomer() {
 
   const handleCreate = () => {
     mutate({
-      action: 'stripe.create-customer',
+      app: 'ductape:stripe',
+      action: 'create-customer',
       input: {
         email: 'customer@example.com',
         name: 'John Doe',
         metadata: {
           userId: 'user-123'
         }
-      }
+      },
+      session,
     });
   };
 
@@ -52,29 +59,36 @@ function CreateStripeCustomer() {
 ### Action with Parameters
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function PaystackPaymentForm() {
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState('');
   const [currency, setCurrency] = useState('NGN');
 
-  const { mutate: initializePayment, isLoading, data } = useAction({
+  const { mutate: initializePayment, isLoading, data } = useActionRun({
     onSuccess: (result) => {
       console.log('Payment initialized:', result);
-      // Redirect to payment page
-      window.location.href = result.authorization_url;
+      const res = result as { data?: { authorization_url?: string } };
+      if (res.data?.authorization_url) {
+        window.location.href = res.data.authorization_url;
+      }
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     initializePayment({
-      action: 'paystack.initialize-transaction',
+      app: 'ductape:paystack',
+      action: 'initialize-transaction',
       input: {
         email,
         amount: parseFloat(amount) * 100, // Convert to kobo/cents
         currency,
         callback_url: window.location.origin + '/payment/callback'
-      }
+      },
+      session,
     });
   };
 
@@ -109,20 +123,23 @@ function PaystackPaymentForm() {
 
 ## useActionQuery
 
-Query data from an action (for read operations).
+Query data from an action (for read operations). Include `session` in options when using a publishable key.
 
 ```tsx
 import { useActionQuery } from '@ductape/react';
+import { session } from './config';
 
 function PaystackTransactions() {
   const { data, isLoading, error } = useActionQuery(
     'paystack-transactions',
     {
-      action: 'paystack.list-transactions',
+      app: 'ductape:paystack',
+      action: 'list-transactions',
       input: {
         perPage: 50,
         status: 'success'
-      }
+      },
+      session,
     }
   );
 
@@ -146,16 +163,18 @@ function PaystackTransactions() {
 ### Query with Filters
 
 ```tsx
+import { session } from './config';
+
 function StripeCustomers() {
   const [limit, setLimit] = useState(10);
 
   const { data, isLoading } = useActionQuery(
     ['stripe-customers', limit],
     {
-      action: 'stripe.list-customers',
-      input: {
-        limit
-      }
+      app: 'ductape:stripe',
+      action: 'list-customers',
+      input: { limit },
+      session,
     }
   );
 
@@ -242,12 +261,16 @@ function StripePaymentForm({ amount, customerId }: { amount: number; customerId:
 ### Verify Paystack Transaction
 
 ```tsx
+import { session } from './config';
+
 function PaystackVerification({ reference }: { reference: string }) {
   const { data, isLoading, error } = useActionQuery(
     ['paystack-verify', reference],
     {
-      action: 'paystack.verify-transaction',
-      input: { reference }
+      app: 'ductape:paystack',
+      action: 'verify-transaction',
+      input: { reference },
+      session,
     }
   );
 
@@ -277,8 +300,11 @@ function PaystackVerification({ reference }: { reference: string }) {
 ### Create Stripe Subscription
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId: string }) {
-  const { mutate: createSubscription, isLoading, data } = useAction({
+  const { mutate: createSubscription, isLoading, data } = useActionRun({
     onSuccess: (result) => {
       alert('Subscription created!');
       console.log('Subscription:', result);
@@ -287,7 +313,8 @@ function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId
 
   const handleSubscribe = () => {
     createSubscription({
-      action: 'stripe.create-subscription',
+      app: 'ductape:stripe',
+      action: 'create-subscription',
       input: {
         customer: customerId,
         items: [{ price: priceId }],
@@ -296,7 +323,8 @@ function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId
           payment_method_types: ['card']
         },
         expand: ['latest_invoice.payment_intent']
-      }
+      },
+      session,
     });
   };
 
@@ -319,17 +347,18 @@ function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId
 ### List Paystack Customers
 
 ```tsx
+import { session } from './config';
+
 function PaystackCustomersList() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useActionQuery(
     ['paystack-customers', page],
     {
-      action: 'paystack.list-customers',
-      input: {
-        perPage: 20,
-        page
-      }
+      app: 'ductape:paystack',
+      action: 'list-customers',
+      input: { perPage: 20, page },
+      session,
     }
   );
 
@@ -378,12 +407,16 @@ function PaystackCustomersList() {
 ### Retrieve Stripe Balance
 
 ```tsx
+import { session } from './config';
+
 function StripeBalanceDisplay() {
   const { data, isLoading, refetch } = useActionQuery(
     'stripe-balance',
     {
-      action: 'stripe.retrieve-balance',
-      input: {}
+      app: 'ductape:stripe',
+      action: 'retrieve-balance',
+      input: {},
+      session,
     }
   );
 
@@ -419,6 +452,9 @@ function StripeBalanceDisplay() {
 ### Paystack Create Plan
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function CreatePaystackPlan() {
   const [planData, setPlanData] = useState({
     name: '',
@@ -426,7 +462,7 @@ function CreatePaystackPlan() {
     interval: 'monthly'
   });
 
-  const { mutate, isLoading } = useAction({
+  const { mutate, isLoading } = useActionRun({
     onSuccess: (result) => {
       alert('Plan created successfully!');
       console.log('Plan:', result);
@@ -436,12 +472,14 @@ function CreatePaystackPlan() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutate({
-      action: 'paystack.create-plan',
+      app: 'ductape:paystack',
+      action: 'create-plan',
       input: {
         name: planData.name,
         amount: parseFloat(planData.amount) * 100, // Convert to kobo
         interval: planData.interval
-      }
+      },
+      session,
     });
   };
 
@@ -480,49 +518,48 @@ function CreatePaystackPlan() {
 
 ## Action Chaining
 
-Execute multiple actions in sequence.
+Execute multiple actions in sequence. Include `session` in each call when using a publishable key.
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function PaymentProcessor({ email, amount }: { email: string; amount: number }) {
-  const { mutate: createCustomer } = useAction();
-  const { mutate: createPayment } = useAction();
-  const { mutate: sendReceipt } = useAction();
+  const { mutateAsync: createCustomer } = useActionRun();
+  const { mutateAsync: createPayment } = useActionRun();
+  const { mutateAsync: sendReceipt } = useActionRun();
 
   const processPayment = async () => {
     try {
-      // Create or retrieve Stripe customer
       const customer = await createCustomer({
-        action: 'stripe.create-customer',
-        input: {
-          email,
-          metadata: { source: 'web-checkout' }
-        }
+        app: 'ductape:stripe',
+        action: 'create-customer',
+        input: { email, metadata: { source: 'web-checkout' } },
+        session,
       });
 
-      // Create payment intent
       const payment = await createPayment({
-        action: 'stripe.create-payment-intent',
+        app: 'ductape:stripe',
+        action: 'create-payment-intent',
         input: {
-          amount: amount * 100, // Convert to cents
+          amount: amount * 100,
           currency: 'usd',
-          customer: customer.id,
+          customer: (customer as any).id,
           automatic_payment_methods: { enabled: true }
-        }
+        },
+        session,
       });
 
-      // Send receipt via notification
       await sendReceipt({
-        action: 'ductape.send-notification',
+        app: 'ductape:notifications',
+        action: 'send',
         input: {
           channel: 'email',
           to: email,
           template: 'payment-receipt',
-          data: {
-            amount,
-            paymentId: payment.id,
-            customerName: email
-          }
-        }
+          data: { amount, paymentId: (payment as any).id, customerName: email }
+        },
+        session,
       });
 
       alert('Payment processed successfully!');
@@ -544,28 +581,32 @@ function PaymentProcessor({ email, amount }: { email: string; amount: number }) 
 ### Paystack Payment Flow with Verification
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function PaystackPaymentFlow({ email, amount }: { email: string; amount: number }) {
   const [reference, setReference] = useState<string | null>(null);
-  const { mutate: initialize } = useAction();
-  const { mutate: verify } = useAction();
+  const { mutateAsync: initialize } = useActionRun();
+  const { mutateAsync: verify } = useActionRun();
 
   const startPayment = async () => {
     try {
-      // Initialize transaction
       const transaction = await initialize({
-        action: 'paystack.initialize-transaction',
+        app: 'ductape:paystack',
+        action: 'initialize-transaction',
         input: {
           email,
-          amount: amount * 100, // Convert to kobo
+          amount: amount * 100,
           currency: 'NGN',
           callback_url: window.location.origin + '/verify'
-        }
-      });
+        },
+        session,
+      }) as any;
 
-      setReference(transaction.data.reference);
-
-      // Redirect to Paystack payment page
-      window.location.href = transaction.data.authorization_url;
+      setReference(transaction?.data?.reference);
+      if (transaction?.data?.authorization_url) {
+        window.location.href = transaction.data.authorization_url;
+      }
     } catch (error) {
       console.error('Payment initialization failed:', error);
     }
@@ -574,11 +615,13 @@ function PaystackPaymentFlow({ email, amount }: { email: string; amount: number 
   const verifyPayment = async (ref: string) => {
     try {
       const verification = await verify({
-        action: 'paystack.verify-transaction',
-        input: { reference: ref }
-      });
+        app: 'ductape:paystack',
+        action: 'verify-transaction',
+        input: { reference: ref },
+        session,
+      }) as any;
 
-      if (verification.data.status === 'success') {
+      if (verification?.data?.status === 'success') {
         alert('Payment verified successfully!');
       } else {
         alert('Payment verification failed');
@@ -606,19 +649,22 @@ function PaystackPaymentFlow({ email, amount }: { email: string; amount: number 
 ## Error Handling
 
 ```tsx
+import { useActionRun } from '@ductape/react';
+import { session } from './config';
+
 function ResilientActionExecution() {
-  const { mutate, isLoading, error, retry } = useAction({
+  const { mutate, isLoading, error, reset } = useActionRun({
     onError: (err) => {
       console.error('Action failed:', err);
-    },
-    retryCount: 3,
-    retryDelay: 1000
+    }
   });
 
   const handleExecute = () => {
     mutate({
+      app: 'your-app',
       action: 'external-api.call',
-      input: { data: 'test' }
+      input: { data: 'test' },
+      session,
     });
   };
 
@@ -630,7 +676,7 @@ function ResilientActionExecution() {
       {error && (
         <div className="error">
           <p>Error: {error.message}</p>
-          <button onClick={retry}>Retry</button>
+          <button onClick={() => reset()}>Retry</button>
         </div>
       )}
     </div>

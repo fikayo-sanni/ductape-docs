@@ -5,7 +5,11 @@ title: Sessions & Authentication
 
 # Sessions & Authentication
 
-Sessions provide secure user authentication and authorization for your Ductape application. Create JWT-based sessions with encrypted data, verify tokens, and handle authentication flows directly from the frontend.
+Sessions provide secure user authentication and authorization for your Ductape application. Create JWT-based sessions with encrypted data, verify tokens, and handle authentication flows.
+
+:::warning When using a publishable key (frontend)
+If your client is configured with a **publishable key** (browser/frontend), **session methods are not available**—calling `sessions.start`, `sessions.verify`, `sessions.refresh`, `sessions.revoke`, etc. will throw. Sessions can only be started and managed **on your backend** (e.g. BFF or API with an access key). Your backend issues a session token and returns it to the frontend; the frontend must then include that token as the **`session`** property in **every** Ductape request (e.g. `databases.query({ table: 'x', session: token })`). The proxy rejects requests that omit `session`. The examples on this page apply when using an **access key** (e.g. server-side or backend-only client).
+:::
 
 ## Starting a Session
 

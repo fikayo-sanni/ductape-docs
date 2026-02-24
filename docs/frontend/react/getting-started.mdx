@@ -28,20 +28,43 @@ Both `@ductape/react` and `@ductape/client` are required. The React package is a
 
 ## Basic Setup
 
-### 1. Wrap Your App with DuctapeProvider
+:::caution Frontend: use only publishable key
+In browser/frontend **never** use `accessKey`. Use `publishableKey` and `baseUrl` (your Ductape proxy). Get your publishable key from Workbench → Tokens → Publishable Key.
+:::
+
+:::info Session required in every request (publishable key)
+When using a publishable key, **every** request must include a `session` property in the options/payload—a session token from **your backend**. Pass it in hook options, e.g. `useDatabaseQuery('key', { table: 'users', session: sessionToken })` or `runAction({ ...payload, session: sessionToken })`. Session hooks (`useSessionStart`, `useSessionVerify`, etc.) are **not** available with a publishable key—they throw. Sessions are backend-only; the frontend only passes the token in the `session` field. See [Session Hooks](./session-hooks) for the backend/access-key usage.
+:::
+
+### 1. Create a config (publishable key, product, env, session)
+
+Session is **not** passed in the provider; it is included in **every request** (see step 2). Export it from a shared config so hooks can use it.
+
+```tsx
+// config.ts
+export const baseUrl = import.meta.env.VITE_BASE_URL || 'https://api.ductape.app';
+export const publishableKey = import.meta.env.VITE_PUBLISHABLE_KEY || '';
+export const product = import.meta.env.VITE_PRODUCT || 'ductape:rematch';
+export const env = import.meta.env.VITE_ENV || 'snd';
+/** Session token for publishable-key requests (from your backend or .env). */
+export const session = import.meta.env.VITE_SESSION || '';
+```
+
+### 2. Wrap Your App with DuctapeProvider
 
 ```tsx
 import { DuctapeProvider } from '@ductape/react';
+import { publishableKey, product, env } from './config';
 
 function App() {
   return (
     <DuctapeProvider
       config={{
-        accessKey: process.env.REACT_APP_DUCTAPE_KEY,
-        product: 'my-product',
-        env: 'prd'
+        publishableKey,
+        product,
+        env,
       }}
-      autoConnect={true} // Automatically establish WebSocket connection
+      autoConnect={false}
     >
       <YourApp />
     </DuctapeProvider>
@@ -51,10 +74,11 @@ function App() {
 export default App;
 ```
 
-### 2. Use Hooks in Your Components
+### 3. Use Hooks in Your Components (include session in every request)
 
 ```tsx
 import { useDatabaseQuery } from '@ductape/react';
+import { session } from './config';
 
 function UsersList() {
   const { data, isLoading, error, refetch } = useDatabaseQuery(
@@ -62,7 +86,8 @@ function UsersList() {
     {
       table: 'users',
       where: { active: true },
-      limit: 10
+      limit: 10,
+      session,
     }
   );
 
@@ -73,7 +98,7 @@ function UsersList() {
     <div>
       <button onClick={() => refetch()}>Refresh</button>
       <ul>
-        {data?.rows.map(user => (
+        {(data?.data ?? []).map((user: any) => (
           <li key={user.id}>{user.name}</li>
         ))}
       </ul>
@@ -89,40 +114,39 @@ The `DuctapeProvider` accepts these props:
 ```tsx
 interface DuctapeProviderProps {
   config: {
-    accessKey: string;      // Your public access key
-    product: string;        // Product tag
-    env: string;           // Environment
-    baseURL?: string;      // Optional: Custom API URL
-    wsURL?: string;        // Optional: Custom WebSocket URL
-    timeout?: number;      // Optional: Request timeout (ms)
-    debug?: boolean;       // Optional: Enable debug logging
+    publishableKey: string;  // From Workbench → Tokens → Publishable Key
+    product?: string;
+    env?: string;
   };
   autoConnect?: boolean;   // Auto-connect WebSocket (default: false)
   children: React.ReactNode;
 }
 ```
 
+Session is **not** in the provider config. Pass `session` in the options for every hook call (e.g. `useDatabaseQuery`, `useActionRun`, `useBrokerPublish`, `useMutation`).
+
 ### Environment Variables
 
+**Vite:** use the `VITE_` prefix so variables are exposed to the client.
+
 ```env
-# .env.local
-REACT_APP_DUCTAPE_ACCESS_KEY=your_access_key
-REACT_APP_DUCTAPE_PRODUCT=my-product
-REACT_APP_DUCTAPE_ENV=prd
+# .env (Vite)
+VITE_PUBLISHABLE_KEY=dpk_xxx
+VITE_PRODUCT=ductape:rematch
+VITE_ENV=snd
+# Session token (required for publishable-key requests). From your backend or a dev token.
+VITE_SESSION=user-session:eyJ...
 ```
 
 ```tsx
-<DuctapeProvider
-  config={{
-    accessKey: process.env.REACT_APP_DUCTAPE_ACCESS_KEY!,
-    product: process.env.REACT_APP_DUCTAPE_PRODUCT!,
-    env: process.env.REACT_APP_DUCTAPE_ENV!
-  }}
-  autoConnect
->
-  <App />
-</DuctapeProvider>
+// config.ts
+export const publishableKey = import.meta.env.VITE_PUBLISHABLE_KEY || '';
+export const product = import.meta.env.VITE_PRODUCT || 'ductape:rematch';
+export const env = import.meta.env.VITE_ENV || 'snd';
+export const session = import.meta.env.VITE_SESSION || '';
 ```
+
+**Create React App:** use `REACT_APP_` prefix and `process.env.REACT_APP_PUBLISHABLE_KEY`, etc.
 
 ## Quick Examples
 
@@ -130,6 +154,7 @@ REACT_APP_DUCTAPE_ENV=prd
 
 ```tsx
 import { useDatabaseQuery } from '@ductape/react';
+import { session } from './config';
 
 function ProductList() {
   const { data, isLoading, error } = useDatabaseQuery(
@@ -138,7 +163,8 @@ function ProductList() {
       table: 'products',
       where: { category: 'electronics' },
       orderBy: [{ column: 'price', order: 'asc' }],
-      limit: 20
+      limit: 20,
+      session,
     }
   );
 
@@ -147,7 +173,7 @@ function ProductList() {
 
   return (
     <div>
-      {data?.rows.map(product => (
+      {(data?.data ?? []).map((product: any) => (
         <div key={product.id}>
           <h3>{product.name}</h3>
           <p>${product.price}</p>
@@ -163,6 +189,7 @@ function ProductList() {
 ```tsx
 import { useDatabaseInsert } from '@ductape/react';
 import { useState } from 'react';
+import { session } from './config';
 
 function CreateUser() {
   const [name, setName] = useState('');
@@ -170,7 +197,7 @@ function CreateUser() {
 
   const { mutate, isLoading, error } = useDatabaseInsert({
     onSuccess: (data) => {
-      console.log('User created:', data.rows[0]);
+      console.log('User created:', data);
       setName('');
       setEmail('');
     }
@@ -180,7 +207,8 @@ function CreateUser() {
     e.preventDefault();
     mutate({
       table: 'users',
-      data: { name, email }
+      data: { name, email },
+      session,
     });
   };
 
@@ -213,6 +241,7 @@ function CreateUser() {
 ```tsx
 import { useDatabaseSubscription } from '@ductape/react';
 import { useState } from 'react';
+import { session } from './config';
 
 function LiveMessages() {
   const [messages, setMessages] = useState([]);
@@ -220,6 +249,7 @@ function LiveMessages() {
   useDatabaseSubscription({
     table: 'messages',
     where: { channel: 'general' },
+    session,
     onChange: (event) => {
       if (event.type === 'insert') {
         setMessages(prev => [...prev, event.data.new]);
@@ -241,6 +271,7 @@ function LiveMessages() {
 
 ```tsx
 import { useUpload } from '@ductape/react';
+import { session } from './config';
 
 function FileUploader() {
   const { upload, progress, isLoading, error } = useUpload();
@@ -249,11 +280,11 @@ function FileUploader() {
     const file = e.target.files?.[0];
     if (file) {
       upload({
-        file,
-        path: 'uploads/documents',
-        onSuccess: (result) => {
-          console.log('File uploaded:', result.url);
-        }
+        storage: 'gcp-storage',
+        fileName: `uploads/documents/${file.name}`,
+        data: file,
+        mimeType: file.type || 'application/octet-stream',
+        session,
       });
     }
   };
@@ -276,6 +307,7 @@ function FileUploader() {
 
 ```tsx
 import { useWorkflowExecute } from '@ductape/react';
+import { session } from './config';
 
 function ProcessOrder({ orderId }: { orderId: string }) {
   const { mutate, isLoading, data, error } = useWorkflowExecute();
@@ -283,7 +315,8 @@ function ProcessOrder({ orderId }: { orderId: string }) {
   const handleProcess = () => {
     mutate({
       workflow: 'process-order',
-      input: { orderId }
+      input: { orderId },
+      session,
     });
   };
 
@@ -301,18 +334,19 @@ function ProcessOrder({ orderId }: { orderId: string }) {
 
 ## Accessing the Client Directly
 
-You can access the underlying Ductape client instance:
+You can access the underlying Ductape client instance. Include `session` in every call when using a publishable key.
 
 ```tsx
 import { useDuctape } from '@ductape/react';
+import { session } from './config';
 
 function MyComponent() {
   const { client, isReady, isConnected } = useDuctape();
 
-  // Use client directly for operations not covered by hooks
   const handleCustomOperation = async () => {
     const result = await client.databases.query({
-      table: 'custom_table'
+      table: 'custom_table',
+      session,
     });
   };
 
@@ -330,6 +364,8 @@ function MyComponent() {
 The hooks are fully typed. You can provide type parameters:
 
 ```tsx
+import { session } from './config';
+
 interface User {
   id: string;
   name: string;
@@ -342,14 +378,15 @@ function UsersList() {
     'users',
     {
       table: 'users',
-      limit: 10
+      limit: 10,
+      session,
     }
   );
 
-  // data.rows is typed as User[]
+  // data.data is typed as User[]
   return (
     <ul>
-      {data?.rows.map(user => (
+      {(data?.data ?? []).map(user => (
         <li key={user.id}>
           {user.name} - {user.role}
         </li>
@@ -384,10 +421,13 @@ function App() {
 2. **Memoize query options**: Use `useMemo` for complex query options to prevent unnecessary re-renders:
 
 ```tsx
+import { session } from './config';
+
 const queryOptions = useMemo(
   () => ({
     table: 'users',
-    where: { active: true }
+    where: { active: true },
+    session,
   }),
   []
 );
@@ -407,4 +447,4 @@ const { data } = useDatabaseQuery('users', queryOptions);
 - [Storage Hooks](./storage-hooks)
 - [Workflow Hooks](./workflow-hooks)
 - [Real-time Subscriptions](./subscriptions)
-- [Session Management](./sessions)
+- [Session Hooks](./session-hooks) (backend/access-key only; with publishable key, pass `session` in every request)

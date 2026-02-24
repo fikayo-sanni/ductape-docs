@@ -19,15 +19,21 @@ pnpm add @ductape/client
 
 ## Basic Setup
 
+:::caution Frontend: use only publishable key
+In browser or any frontend code, **never** use `accessKey`. Use a **publishable key** and point the client at your Ductape proxy (BFF). The proxy resolves the key and enforces scope. Get your publishable key from Workbench → Tokens → Publishable Key.
+:::
+
+:::info Session required in every request (publishable key)
+When using a publishable key, **every** request (e.g. `databases.query`, `storage.upload`, `actions.run`) must include a `session` property in the options object—a session token issued by **your backend**. Session methods (`sessions.start`, `sessions.verify`, etc.) are **not** available from the client with a publishable key; they throw. Sessions can only be started and managed on the backend. See [Sessions & Authentication](./sessions) and the main docs on [frontend access key strategies](/docs/FRONTEND_ACCESS_KEY_STRATEGIES).
+:::
+
 ### 1. Initialize the Client
 
 ```typescript
 import { Ductape } from '@ductape/client';
 
 const ductape = new Ductape({
-  accessKey: 'your-public-access-key',
-  product: 'your-product-tag',
-  env: 'prd' // or 'dev', 'staging', etc.
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
 });
 ```
 
@@ -48,55 +54,54 @@ The connection is optional. You can use databases, storage, and other services o
 ### 3. Use Services
 
 ```typescript
-// Database operations
-await ductape.databases.connect({ database: 'main' });
+const sessionToken = getSessionFromYourBackend(); // from your auth
+
+// Database operations (include session in every request when using publishable key)
+await ductape.databases.connect({ database: 'main', session: sessionToken });
 
 const users = await ductape.databases.query({
   table: 'users',
   where: { active: true },
-  limit: 10
+  limit: 10,
+  session: sessionToken,
 });
 
 console.log('Active users:', users.rows);
 ```
 
-## Configuration Options
+## Configuration (frontend)
 
-The `Ductape` constructor accepts the following configuration:
+In frontend code you only need **`publishableKey`**. Never use `accessKey` in the browser.
 
 ```typescript
 interface IDuctapeClientConfig {
-  // Required
-  accessKey: string;      // Your public access key
-  product: string;        // Product tag
-  env: string;           // Environment (e.g., 'prd', 'dev')
-
-  // Optional
-  baseURL?: string;      // API base URL (defaults to Ductape cloud)
-  wsURL?: string;        // WebSocket URL (defaults to Ductape cloud)
-  timeout?: number;      // Request timeout in ms (default: 30000)
-  retryAttempts?: number; // Number of retry attempts (default: 3)
-  debug?: boolean;       // Enable debug logging
+  publishableKey: string;  // From Workbench → Tokens → Publishable Key
 }
 ```
 
-### Example with Custom Configuration
+### Example
 
 ```typescript
 const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY,
-  product: 'my-app',
-  env: 'prd',
-  timeout: 60000, // 60 seconds
-  debug: true,    // Enable logging
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
 });
 ```
+
+:::tip
+Get your publishable key from the Workbench (Tokens → Publishable Key). Configure scope there to control which module/methods the key can call.
+:::
+
+:::note Server-side only
+`accessKey` is for **server-side or Node only** (e.g. BFF, scripts). Do not use it in frontend or browser code.
+:::
 
 ## Quick Examples
 
 ### Database Query
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const result = await ductape.databases.query({
   table: 'products',
   where: {
@@ -104,7 +109,8 @@ const result = await ductape.databases.query({
     price: { $lt: 1000 }
   },
   orderBy: [{ column: 'price', order: 'asc' }],
-  limit: 20
+  limit: 20,
+  session: sessionToken,
 });
 
 console.log(`Found ${result.count} products`);
@@ -113,13 +119,16 @@ console.log(`Found ${result.count} products`);
 ### Insert Data
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const newUser = await ductape.databases.insert({
   table: 'users',
   data: {
     name: 'Alice Johnson',
     email: 'alice@example.com',
     role: 'user'
-  }
+  },
+  session: sessionToken,
 });
 
 console.log('Created user:', newUser.rows[0]);
@@ -128,11 +137,13 @@ console.log('Created user:', newUser.rows[0]);
 ### Upload a File
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
 const file = document.getElementById('fileInput').files[0];
 
 const result = await ductape.storage.upload({
   file: file,
   path: 'uploads/documents',
+  session: sessionToken,
   onProgress: (progress) => {
     console.log(`Upload progress: ${progress.percentage}%`);
   }
@@ -144,12 +155,15 @@ console.log('File uploaded:', result.url);
 ### Execute a Workflow
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 const execution = await ductape.workflows.execute({
   workflow: 'process-order',
   input: {
     orderId: '12345',
     userId: 'user-789'
-  }
+  },
+  session: sessionToken,
 });
 
 console.log('Workflow execution:', execution.executionId);
@@ -158,11 +172,13 @@ console.log('Workflow execution:', execution.executionId);
 ### Subscribe to Database Changes
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
 await ductape.connect(); // WebSocket connection required
 
 const subscription = ductape.databases.subscribe({
   table: 'messages',
   where: { channel: 'general' },
+  session: sessionToken,
   onChange: (event) => {
     console.log('Change detected:', event.type, event.data);
 
@@ -194,10 +210,13 @@ ductape.onConnectionStateChange((state) => {
 All async operations throw errors that you should handle:
 
 ```typescript
+const sessionToken = getSessionFromYourBackend();
+
 try {
   const result = await ductape.databases.query({
     table: 'users',
-    where: { id: userId }
+    where: { id: userId },
+    session: sessionToken,
   });
   console.log('User:', result.rows[0]);
 } catch (error) {
@@ -223,9 +242,12 @@ interface User {
   createdAt: Date;
 }
 
+const sessionToken = getSessionFromYourBackend();
+
 const result = await ductape.databases.query<User>({
   table: 'users',
-  limit: 10
+  limit: 10,
+  session: sessionToken,
 });
 
 // result.rows is typed as User[]
@@ -244,15 +266,15 @@ const firstUser: User = result.rows[0];
     import { Ductape } from 'https://cdn.jsdelivr.net/npm/@ductape/client/+esm';
 
     const ductape = new Ductape({
-      accessKey: 'your-key',
-      product: 'my-product',
-      env: 'prd'
+      publishableKey: 'your-publishable-key',
     });
 
     async function loadUsers() {
+      const sessionToken = getSessionFromYourBackend(); // from your auth
       const result = await ductape.databases.query({
         table: 'users',
-        limit: 10
+        limit: 10,
+        session: sessionToken,
       });
 
       document.getElementById('users').innerHTML = result.rows
@@ -276,9 +298,7 @@ import { Ductape } from '@ductape/client';
 import { useEffect, useState } from 'react';
 
 const ductape = new Ductape({
-  accessKey: process.env.REACT_APP_DUCTAPE_KEY,
-  product: 'my-product',
-  env: 'prd'
+  publishableKey: process.env.REACT_APP_PUBLISHABLE_KEY,
 });
 
 function UsersList() {
@@ -288,9 +308,11 @@ function UsersList() {
   useEffect(() => {
     async function loadUsers() {
       try {
+        const sessionToken = getSessionFromYourBackend();
         const result = await ductape.databases.query({
           table: 'users',
-          limit: 10
+          limit: 10,
+          session: sessionToken,
         });
         setUsers(result.rows);
       } catch (error) {
@@ -326,9 +348,7 @@ For React applications, we recommend using [@ductape/react](../react/getting-sta
 import { Ductape } from '@ductape/client';
 
 const ductape = new Ductape({
-  accessKey: import.meta.env.VITE_DUCTAPE_KEY,
-  product: 'my-product',
-  env: 'prd'
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
 });
 
 export default {
@@ -340,9 +360,11 @@ export default {
   },
   async mounted() {
     try {
+      const sessionToken = getSessionFromYourBackend();
       const result = await ductape.databases.query({
         table: 'users',
-        limit: 10
+        limit: 10,
+        session: sessionToken,
       });
       this.users = result.rows;
     } catch (error) {
@@ -385,9 +407,7 @@ The package also exports a `createClient` helper:
 import { createClient } from '@ductape/client';
 
 const ductape = createClient({
-  accessKey: 'your-key',
-  product: 'my-product',
-  env: 'prd'
+  publishableKey: import.meta.env.VITE_PUBLISHABLE_KEY,
 });
 
 // Equivalent to: new Ductape({ ... })

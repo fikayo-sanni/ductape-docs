@@ -7,6 +7,10 @@ title: Notification Hooks
 
 React hooks for sending notifications through email, SMS, and push notification channels.
 
+:::info Session required (publishable key)
+When using a **publishable key**, include `session` in every notification call. Example: `import { session } from './config'`.
+:::
+
 ## useNotification
 
 Send notifications with automatic loading states and error handling.
@@ -15,6 +19,7 @@ Send notifications with automatic loading states and error handling.
 
 ```tsx
 import { useNotification } from '@ductape/react';
+import { session } from './config';
 
 function WelcomeEmail({ userEmail, userName }: { userEmail: string; userName: string }) {
   const { mutate: sendNotification, isLoading, error } = useNotification({
@@ -31,7 +36,8 @@ function WelcomeEmail({ userEmail, userName }: { userEmail: string; userName: st
       data: {
         name: userName,
         loginLink: 'https://app.com/login'
-      }
+      },
+      session,
     });
   };
 
@@ -46,6 +52,8 @@ function WelcomeEmail({ userEmail, userName }: { userEmail: string; userName: st
 ### Send SMS Notification
 
 ```tsx
+import { session } from './config';
+
 function SendVerificationCode({ phoneNumber }: { phoneNumber: string }) {
   const [code] = useState(() => Math.floor(100000 + Math.random() * 900000).toString());
 
@@ -63,7 +71,8 @@ function SendVerificationCode({ phoneNumber }: { phoneNumber: string }) {
       data: {
         code,
         expiresIn: '10 minutes'
-      }
+      },
+      session,
     });
   };
 
@@ -78,6 +87,8 @@ function SendVerificationCode({ phoneNumber }: { phoneNumber: string }) {
 ### Send Push Notification
 
 ```tsx
+import { session } from './config';
+
 function SendPushNotification({ deviceToken, message }: { deviceToken: string; message: string }) {
   const { mutate, isLoading } = useNotification();
 
@@ -90,7 +101,8 @@ function SendPushNotification({ deviceToken, message }: { deviceToken: string; m
         body: message,
         badge: 1,
         sound: 'default'
-      }
+      },
+      session,
     });
   };
 
