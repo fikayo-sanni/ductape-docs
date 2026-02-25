@@ -11,6 +11,57 @@ React hooks for working with Ductape Storage. Upload, download, and manage files
 When using a **publishable key**, include `session` in every storage call (upload, list, download, delete, signed URL). Example: `import { session } from './config'`.
 :::
 
+## useReadFile
+
+Read a file from disk (local `File` or `Blob`). Uses the browser FileReader API; does not call Ductape storage. Use this to read a user-selected file before uploading or processing (e.g. to get base64, show a preview, or validate content).
+
+### Basic usage
+
+```tsx
+import { useReadFile } from '@ductape/react';
+import { useState } from 'react';
+
+function ReadFileExample() {
+  const [file, setFile] = useState<File | null>(null);
+  const { readFile, data, isLoading, error, reset } = useReadFile();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setFile(f ?? null);
+    reset();
+  };
+
+  const handleRead = async () => {
+    if (!file) return;
+    const result = await readFile(file);
+    console.log('Read from disk:', result.fileName, result.mimeType, result.data.length, 'bytes (base64)');
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleRead} disabled={isLoading || !file}>
+        {isLoading ? 'Reading…' : 'Read file from disk'}
+      </button>
+      {error && <p className="error">{error.message}</p>}
+      {data && (
+        <p className="muted">
+          {data.fileName} — {data.mimeType} — {Math.round((data.data.length * 3) / 4)} bytes
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+### With custom fileName
+
+When reading a `Blob` (no `.name`), pass a `fileName` in options:
+
+```tsx
+const result = await readFile(blob, { fileName: 'export.json' });
+```
+
 ## useUpload
 
 Upload files to Ductape Storage with progress tracking. Pass `storage`, `fileName`, `data`, and `session` (when using publishable key).

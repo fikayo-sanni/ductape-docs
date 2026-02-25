@@ -98,18 +98,23 @@ console.log('All files uploaded:', results);
 const sessionToken = getSessionFromYourBackend();
 
 const result = await ductape.storage.download({
-  key: 'uploads/documents/report.pdf',
+  storage: 'gcp-storage',
+  fileName: 'uploads/documents/report.pdf',
   session: sessionToken,
 });
+```
 
-// Create download link
-const blob = new Blob([result.data], { type: result.contentType });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = 'report.pdf';
-a.click();
-URL.revokeObjectURL(url);
+### Read File
+
+`readFile` is an alias for `download`—use it when you want to read file content (e.g. for in-memory use or display). Same options and return type.
+
+```typescript
+const result = await ductape.storage.readFile({
+  storage: 'gcp-storage',
+  fileName: 'uploads/documents/report.pdf',
+  session: sessionToken,
+});
+// result.data (base64), result.fileName, result.mimeType
 ```
 
 ### Download as Data URL
