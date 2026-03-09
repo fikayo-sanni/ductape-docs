@@ -17,6 +17,46 @@ const sidebars: SidebarsConfig = {
       id: 'getting-started',
       label: 'Getting Started',
     },
+    {
+      type: 'category',
+      label: 'Workbench',
+      collapsed: false,
+      items: [
+        'workbench/getting-started',
+        'workbench/creating-workspace',
+        'workbench/sdk-access',
+        {
+          type: 'category',
+          label: 'Creating an app',
+          collapsed: true,
+          items: [
+            'workbench/app/creating-app',
+            'workbench/app/postman-collections',
+            'workbench/app/individual-requests',
+            'workbench/app/shared-variables',
+            'workbench/app/app-visibility',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Products',
+          collapsed: true,
+          items: [
+            'workbench/products/creating-product',
+            'workbench/products/connecting-app',
+            'workbench/products/database',
+            'workbench/products/storage',
+            'workbench/products/notifications',
+            'workbench/products/caching',
+            'workbench/products/messaging',
+            'workbench/products/sessions',
+          ],
+        },
+        'workbench/secrets',
+        //'workbench/logs-overview',
+        // 'workbench/team-management',
+      ],
+    },
 
     // Backend SDK
     {
