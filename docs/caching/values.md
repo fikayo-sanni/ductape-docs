@@ -11,7 +11,6 @@ Retrieve previously stored values from your caches using `ductape.cache.values()
 ```ts
 const values = await ductape.cache.values({
   cache_tag: 'api-responses',
-  product: 'my-app'
 });
 
 console.log(values);
@@ -28,7 +27,6 @@ Query cached data by specifying filters like cache tag, component tag, or produc
 ```ts
 const values = await ductape.cache.values({
   cache_tag: 'user-data',
-  product: 'dashboard'
 });
 ```
 
@@ -39,7 +37,6 @@ const values = await ductape.cache.values({
   cache_tag: 'api-responses',
   component_tag: 'fetch-user',
   component_type: 'action',
-  product: 'my-app'
 });
 ```
 
@@ -48,7 +45,6 @@ const values = await ductape.cache.values({
 ```ts
 const values = await ductape.cache.values({
   cache_tag: 'temp-data',
-  product: 'my-app',
   expiry: new Date()
 });
 ```
@@ -61,7 +57,6 @@ const values = await ductape.cache.values({
     "key": "user_123_result",
     "value": "{\"score\":88}",
     "cache_tag": "api-responses",
-    "product": "my-app",
     "component_tag": "score_action",
     "component_type": "action",
     "expiry": "2025-05-01T00:00:00.000Z"

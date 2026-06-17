@@ -26,7 +26,6 @@ const ductape = new Ductape({
 
 // Define a healthcheck using code-first API
 const healthcheck = await ductape.health.define({
-  product: 'my-product',
   tag: 'stripe-health',
   name: 'Stripe API Health',
   description: 'Monitors Stripe API availability',
@@ -77,7 +76,6 @@ Test database connectivity by establishing a connection:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 'postgres-health',
   name: 'PostgreSQL Health',
   handler: async (ctx) => {
@@ -98,7 +96,6 @@ Test graph database connectivity:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 'neo4j-health',
   name: 'Neo4j Health',
   handler: async (ctx) => {
@@ -119,7 +116,6 @@ Test message broker connectivity:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 'rabbitmq-health',
   name: 'RabbitMQ Health',
   handler: async (ctx) => {
@@ -140,7 +136,6 @@ Test object storage connectivity:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 's3-health',
   name: 'S3 Bucket Health',
   handler: async (ctx) => {
@@ -161,7 +156,6 @@ Run a workflow to verify end-to-end functionality:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 'order-workflow-health',
   name: 'Order Workflow Health',
   handler: async (ctx) => {
@@ -327,8 +321,6 @@ Check the current cached status of a healthcheck:
 
 ```ts
 const status = await ductape.health.status({
-  product: 'my-product',
-  env: 'prd',
   tag: 'stripe-health',
 });
 
@@ -346,8 +338,6 @@ The `check` method is an alias for `status`:
 
 ```ts
 const status = await ductape.health.check({
-  product: 'my-product',
-  env: 'prd',
   tag: 'stripe-health',
 });
 ```
@@ -358,8 +348,6 @@ Trigger a healthcheck immediately. This executes the healthcheck locally using t
 
 ```ts
 const result = await ductape.health.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'stripe-health',
 });
 
@@ -390,7 +378,6 @@ Use dynamic values in your healthcheck configuration:
 
 ```ts
 await ductape.health.define({
-  product: 'my-product',
   tag: 'stripe-health',
   handler: async (ctx) => {
     ctx.probe().app('stripe-app').action('health');
@@ -455,7 +442,7 @@ The `$Secret{}` syntax ensures that:
 
 ## OAuth Auto-Refresh for App Probes
 
-For app healthchecks that use OAuth-protected APIs, you can configure automatic token refresh using `ductape.actions.oauth()`. This ensures your healthchecks continue working even when access tokens expire.
+For app healthchecks that use OAuth-protected APIs, you can configure automatic token refresh using `ductape.api.oauth()`. This ensures your healthchecks continue working even when access tokens expire.
 
 ### Setting Up OAuth
 
@@ -469,10 +456,8 @@ const ductape = new Ductape({
 });
 
 // Set up OAuth with automatic refresh
-await ductape.actions.oauth({
-  product: 'my-product',
+await ductape.api.oauth({
   app: 'salesforce',
-  env: 'prd',
   tokens: {
     accessToken: initialAccessToken,
     refreshToken: initialRefreshToken,
@@ -488,11 +473,9 @@ await ductape.actions.oauth({
 
   // Called automatically when tokens expire
   onExpiry: async (currentTokens) => {
-    // Use ductape.actions.run to call your refresh token endpoint
-    const response = await ductape.actions.run({
-      product: 'my-product',
+    // Use ductape.api.run to call your refresh token endpoint
+    const response = await ductape.api.run({
       app: 'salesforce',
-      env: 'prd',
       action: 'refresh-token',
       input: {
         'body:grant_type': 'refresh_token',
@@ -521,7 +504,6 @@ Once OAuth is configured, your app healthchecks automatically use the refreshed 
 ```ts
 // Define a healthcheck for an OAuth-protected API
 await ductape.health.define({
-  product: 'my-product',
   tag: 'salesforce-health',
   name: 'Salesforce API Health',
   handler: async (ctx) => {

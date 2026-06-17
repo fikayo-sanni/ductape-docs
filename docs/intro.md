@@ -50,5 +50,5 @@ You define these building blocks in code, configure them for your environments, 
 
 - [Quickstart](./getting-started/quickstart.md)
 - [Apps](./apps/getting-started.md)
-- [Features](./features/overview.md)
+- [Features](/features/overview)
 - [Environments](./apps/product-environments.md)

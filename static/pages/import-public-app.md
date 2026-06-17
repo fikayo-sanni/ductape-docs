@@ -50,8 +50,6 @@ await ductape.product.apps.add({
 
 ```typescript
 const result = await ductape.processor.action.run({
-  env: "prd",
-  product: "payments_service",
   app: "paystack_apis",
   event: "charge_card",
   input: {

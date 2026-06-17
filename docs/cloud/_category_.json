@@ -1,0 +1,8 @@
+{
+  "label": "Cloud",
+  "position": 5,
+  "link": {
+    "type": "doc",
+    "id": "cloud/overview"
+  }
+}

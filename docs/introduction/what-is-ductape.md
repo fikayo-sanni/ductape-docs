@@ -30,11 +30,12 @@ A **Product** is your application or service in Ductape. It's the top-level cont
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  workspace_id: 'your-workspace',
-  private_key: 'your-key',
+  accessKey: 'your-access-key',
+  product: 'my-saas-app',
+  env: 'dev',
 });
 
-await ductape.product.init('my-saas-app');
+await ductape.product.init('my-saas-app'); // product builder APIs
 ```
 
 ### Apps (Integrations)
@@ -56,10 +57,13 @@ const customer = await stripe.customers.create({
 Every resource in Ductape supports **Environments**. Define different configurations for development, staging, and production without changing your code.
 
 ```typescript
-// Same code, different environments
+// Set env on the constructor once; omit it from queries
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  env: process.env.ENV!, // 'dev', 'stg', or 'prd'
+});
+
 await ductape.database.query({
-  product: 'my-product',
-  env: process.env.ENV, // 'dev', 'stg', or 'prd'
   database: 'users-db',
   query: 'SELECT * FROM users WHERE id = ?',
   params: [userId],
@@ -85,8 +89,6 @@ await ductape.features.create('my-product', {
 
 // Execute it anywhere
 const result = await ductape.features.run({
-  product: 'my-product',
-  env: 'prd',
   feature: 'create-order',
   input: { userId, items, paymentMethod },
 });
@@ -101,8 +103,6 @@ Connect to any database with a unified query interface. Ductape supports Postgre
 ```typescript
 // Works with any supported database
 const users = await ductape.database.query({
-  product: 'my-product',
-  env: 'prd',
   database: 'main-db',
   table: 'users',
   where: { status: 'active' },
@@ -124,8 +124,6 @@ First-class support for graph databases like Neo4j, Amazon Neptune, ArangoDB, an
 ```typescript
 // Find user's social connections
 const connections = await ductape.graph.traverse({
-  product: 'my-product',
-  env: 'prd',
   graph: 'social-graph',
   startNode: { label: 'User', id: userId },
   relationship: 'FOLLOWS',
@@ -141,8 +139,6 @@ Build AI-powered applications with semantic search, RAG, and recommendations usi
 ```typescript
 // Semantic search
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'prd',
   tag: 'documents',
   vector: queryEmbedding,
   topK: 10,
@@ -157,8 +153,6 @@ Intelligent caching with Redis, Memcached, or in-memory stores. Ductape handles 
 ```typescript
 // Automatic caching for any operation
 const data = await ductape.caches.get({
-  product: 'my-product',
-  env: 'prd',
   cache: 'api-cache',
   key: `user:${userId}`,
   fallback: async () => {
@@ -183,8 +177,6 @@ await ductape.jobs.create('my-product', {
 
 // Or dispatch immediately
 await ductape.jobs.dispatch({
-  product: 'my-product',
-  env: 'prd',
   job: 'process-upload',
   data: { fileId, userId },
 });
@@ -197,8 +189,6 @@ Multi-channel notifications with templating, scheduling, and delivery tracking.
 ```typescript
 // Send across channels
 await ductape.notifications.send({
-  product: 'my-product',
-  env: 'prd',
   template: 'order-confirmation',
   channels: ['email', 'sms', 'push'],
   recipient: {
@@ -217,8 +207,6 @@ File storage abstraction for AWS S3, Google Cloud Storage, Azure Blob, and local
 ```typescript
 // Upload a file
 const url = await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'user-uploads',
   file: fileBuffer,
   path: `users/${userId}/avatar.png`,
@@ -227,8 +215,6 @@ const url = await ductape.storage.upload({
 
 // Generate signed URLs
 const downloadUrl = await ductape.storage.getSignedUrl({
-  product: 'my-product',
-  env: 'prd',
   storage: 'user-uploads',
   path: `users/${userId}/avatar.png`,
   expiresIn: 3600,
@@ -242,8 +228,6 @@ Pub/sub messaging with Kafka, RabbitMQ, AWS SQS/SNS, and Redis Streams.
 ```typescript
 // Publish events
 await ductape.messageBrokers.publish({
-  product: 'my-product',
-  env: 'prd',
   broker: 'events',
   topic: 'user.created',
   message: { userId, email, createdAt },
@@ -257,8 +241,6 @@ Secure session management with JWT support, refresh tokens, and multi-device han
 ```typescript
 // Start a session
 const session = await ductape.sessions.start({
-  product: 'my-product',
-  env: 'prd',
   session: 'user-sessions',
   identifier: user.email,
   data: { userId: user.id, role: user.role },
@@ -266,8 +248,6 @@ const session = await ductape.sessions.start({
 
 // Verify on subsequent requests
 const verified = await ductape.sessions.verify({
-  product: 'my-product',
-  env: 'prd',
   session: 'user-sessions',
   token: request.headers.authorization,
 });
@@ -280,7 +260,6 @@ Receive and process webhooks from third-party services with automatic verificati
 ```typescript
 // Configure webhook handling
 await ductape.webhooks.enable({
-  product: 'my-product',
   app: 'stripe',
   webhook: 'payment-events',
   events: ['payment_intent.succeeded', 'payment_intent.failed'],
@@ -295,8 +274,6 @@ Protect your resources with configurable quotas and rate limits.
 ```typescript
 // Check quota before expensive operations
 const allowed = await ductape.quotas.check({
-  product: 'my-product',
-  env: 'prd',
   quota: 'api-calls',
   identifier: userId,
   cost: 1,
@@ -314,8 +291,6 @@ Automatic logging for all operations with structured data, searchable queries, a
 ```typescript
 // Query logs
 const logs = await ductape.logs.query({
-  product: 'my-product',
-  env: 'prd',
   type: 'feature',
   status: 'fail',
   from: new Date(Date.now() - 24 * 60 * 60 * 1000),
@@ -367,7 +342,6 @@ Deploy the same code to development, staging, and production. Ductape handles th
 ```typescript
 // This exact code works in dev, staging, AND production
 const users = await ductape.database.query({
-  product: 'my-product',
   env: process.env.NODE_ENV, // 'dev', 'stg', or 'prd'
   database: 'users-db',
   table: 'users',
@@ -395,8 +369,6 @@ Every operation includes enterprise-grade reliability features out of the box:
 ```typescript
 // All of this is automatic—no configuration needed
 const result = await ductape.features.run({
-  product: 'my-product',
-  env: 'prd',
   feature: 'process-payment',
   input: { userId, amount },
   // Built-in: retries, circuit breaker, logging, caching, rate limiting
@@ -413,16 +385,12 @@ Your infrastructure choices shouldn't lock you into specific vendors. Ductape ab
 // Your code: unchanged
 
 await ductape.database.query({
-  product: 'my-product',
-  env: 'prd',
   database: 'main-db', // Works with any SQL database
   table: 'orders',
   where: { status: 'pending' },
 });
 
 await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'uploads', // Works with S3, GCS, Azure, or local
   file: buffer,
   path: 'invoices/invoice-123.pdf',
@@ -438,8 +406,6 @@ Every operation is automatically logged with full context. No more adding log st
 ```typescript
 // Query recent failures
 const failures = await ductape.logs.query({
-  product: 'my-product',
-  env: 'prd',
   status: 'fail',
   from: new Date(Date.now() - 60 * 60 * 1000), // Last hour
 });
@@ -472,7 +438,6 @@ Security isn't an afterthought—it's foundational:
 ```typescript
 // Secrets are injected at runtime—never exposed in code
 await ductape.vector.create({
-  product: 'my-product',
   tag: 'embeddings',
   envs: [
     {
@@ -504,7 +469,6 @@ Ductape is designed by developers, for developers:
 ```typescript
 // Set quotas to control costs
 await ductape.quotas.configure({
-  product: 'my-product',
   quota: 'ai-api-calls',
   limits: {
     daily: 10000,
@@ -531,15 +495,15 @@ import Ductape from '@ductape/sdk';
 const ductape = new Ductape({
   workspace_id: process.env.DUCTAPE_WORKSPACE_ID,
   private_key: process.env.DUCTAPE_PRIVATE_KEY,
+  product: 'my-product',
+  env: 'prd',
 });
 
-// Initialize your product
+// Initialize your product (builder APIs)
 await ductape.product.init('my-product');
 
 // Start building!
 const users = await ductape.database.query({
-  product: 'my-product',
-  env: 'prd',
   database: 'main-db',
   table: 'users',
   where: { status: 'active' },

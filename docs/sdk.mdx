@@ -1,0 +1,72 @@
+---
+title: SDK Reference
+slug: /sdk
+---
+
+# SDK Reference
+
+Ductape provides server SDKs for TypeScript, Java, Go, and .NET. Code examples in this site use **tabs** for each language where applicable.
+
+## Install
+
+import SdkInstallTabs from '@site/src/components/SdkInstallTabs';
+
+<SdkInstallTabs />
+
+## Current versions
+
+| Language | Package / module | Version |
+|----------|------------------|---------|
+| TypeScript | `@ductape/sdk` | **0.1.8** |
+| NestJS | `@ductape/nestjs` | **0.1.0** (requires `@ductape/sdk` ≥ 0.1.12) |
+| Java | `app.ductape:sdk` | **0.1.8** |
+| Go | `github.com/ductape/ductape/sdk/go` | **v0.1.8** (git tag `sdk/go/v0.1.8`) |
+| .NET | `Ductape.Sdk` | **0.1.8** |
+
+Changelogs: [TypeScript](https://github.com/ductape/ductape/blob/main/sdk/ts/CHANGELOG.md), [Java](https://github.com/ductape/ductape/blob/main/sdk/java/CHANGELOG.md), [Go](https://github.com/ductape/ductape/blob/main/sdk/go/CHANGELOG.md), [.NET](https://github.com/ductape/ductape/blob/main/sdk/dotnet/CHANGELOG.md).
+
+## Documentation by language
+
+| Language | Package / module | Repo docs |
+|----------|------------------|-----------|
+| TypeScript | `@ductape/sdk` | This site (Backend sections) |
+| NestJS | `@ductape/nestjs` | [NestJS integration](/nestjs/overview) on this site |
+| Java | `app.ductape:sdk` | [sdk/java/README.md](https://github.com/ductape/ductape/blob/main/sdk/java/README.md), [migration](https://github.com/ductape/ductape/blob/main/sdk/java/docs/migration.md) |
+| Go | `github.com/ductape/ductape/sdk/go` | [sdk/go/README.md](https://github.com/ductape/ductape/blob/main/sdk/go/README.md), [migration](https://github.com/ductape/ductape/blob/main/sdk/go/docs/migration.md) |
+| .NET | `Ductape.Sdk` | [sdk/dotnet/README.md](https://github.com/ductape/ductape/blob/main/sdk/dotnet/README.md), [migration](https://github.com/ductape/ductape/blob/main/sdk/dotnet/docs/migration.md) |
+
+## Readiness
+
+See [SDK readiness](/sdk-readiness) for production comparison across Java, Go, and .NET.
+
+## Runtime defaults (TypeScript)
+
+Set **`product`** and **`env`** on the [`Ductape` constructor](/sdk/runtime-defaults) only (not via `configure()`, env vars, or `product.init`). Omitted fields on `connect()` and queries inherit from the constructor or active connection.
+
+```ts
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env: 'dev',
+});
+await ductape.databases.connect({ database: 'users-db' });
+await ductape.api.run({
+  app: 'stripe',
+  action: 'create-charge',
+  input: { amount: 1000, currency: 'usd' },
+});
+```
+
+## NestJS
+
+For NestJS apps, use **`@ductape/nestjs`** — modules, injectable handles, and decorators such as `@Api`, `@Database`, `@Storage`, and `@Webhook`. See the [NestJS integration guide](/nestjs/overview). NestJS examples are **TypeScript only** (not included in the multi-language SDK tabs above).
+
+```bash
+npm install @ductape/nestjs @ductape/sdk
+```
+
+## Quickstart
+
+- [Getting Started](/getting-started)
+- [NestJS getting started](/nestjs/getting-started)
+- [Quickstart](/getting-started/quickstart)

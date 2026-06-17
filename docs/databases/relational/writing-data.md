@@ -66,8 +66,6 @@ const result = await ductape.database.insert({
 
 ```ts
 const result = await ductape.database.insert({
-  env: 'prd',
-  product: 'my-app',
   database: 'users-db',
   table: 'users',
   data: {
@@ -390,8 +388,6 @@ Wrap multiple write operations in a transaction:
 
 ```ts
 const result = await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   // Insert order
@@ -435,8 +431,6 @@ const result = await ductape.database.transaction({
 
 ```ts
 const transaction = await ductape.database.beginTransaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 

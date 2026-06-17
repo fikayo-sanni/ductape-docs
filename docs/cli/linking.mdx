@@ -1,0 +1,49 @@
+---
+title: Project linking
+sidebar_position: 4
+---
+
+# Project linking
+
+Link a repo to a **product** and **environment** for sdk-proxy commands (`resources`, `db`, `graph`, etc.).
+
+```bash
+ductape init
+ductape init --link
+ductape link --product <tag> --env dev
+ductape link --workspace <id> --product <tag> --env dev
+ductape unlink
+```
+
+`ductape link` uses the **active workspace** from login when `--workspace` is omitted.
+
+## Config file
+
+`.ductape/config.json`:
+
+```json
+{
+  "workspace_tag": "my-team",
+  "product_tag": "my-product",
+  "env_slug": "dev",
+  "linked_profile": "cloud"
+}
+```
+
+Use **workspace_tag** (workspace name or slug from `ductape workspaces list`) — you do not need the workspace MongoDB id. The CLI resolves it at runtime and may add `workspace_id` when you run `ductape link`.
+
+## Using the same values in `@ductape/sdk`
+
+The CLI stores `product_tag` and `env_slug` in `.ductape/config.json`. In application code, set the matching values **only on the Ductape constructor** (not via `configure()` or `DUCTAPE_*` env vars for defaults):
+
+```ts
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product', // same as product_tag in .ductape/config.json
+  env: 'dev',            // same as env_slug
+});
+```
+
+See [SDK runtime defaults](/sdk/runtime-defaults).
+
+`ductape init` also creates `.env.ductape.example`, a language example file, and `.ductape/README.md`.

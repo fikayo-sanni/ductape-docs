@@ -39,7 +39,6 @@ const { resilience } = ductape;
 
 // Define a healthcheck
 const healthcheck = await resilience.healthcheck.define({
-  product: 'my-product',
   tag: 'stripe-health',
   handler: async (ctx) => {
     ctx.probe().app('stripe-app').action('health');
@@ -51,7 +50,6 @@ const healthcheck = await resilience.healthcheck.define({
 
 // Define a quota for load distribution
 const quota = await resilience.quota.define({
-  product: 'my-product',
   tag: 'sms-quota',
   input: {
     phone: { type: 'string' },
@@ -76,7 +74,6 @@ const quota = await resilience.quota.define({
 
 // Define a fallback for automatic failover
 const fallback = await resilience.fallback.define({
-  product: 'my-product',
   tag: 'payment-fallback',
   input: {
     amount: { type: 'number' },
@@ -105,8 +102,6 @@ Manually trigger a healthcheck and cache the result:
 
 ```ts
 const result = await ductape.health.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'stripe-health',
 });
 
@@ -119,8 +114,6 @@ Get the current cached status of a healthcheck:
 
 ```ts
 const status = await ductape.health.status({
-  product: 'my-product',
-  env: 'prd',
   tag: 'stripe-health',
 });
 ```
@@ -129,8 +122,6 @@ const status = await ductape.health.status({
 
 ```ts
 const result = await ductape.quota.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: { phone: '+1234567890', message: 'Hello!' },
 });
@@ -140,8 +131,6 @@ const result = await ductape.quota.run({
 
 ```ts
 const paymentResult = await ductape.fallback.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: { amount: 1000 },
 });

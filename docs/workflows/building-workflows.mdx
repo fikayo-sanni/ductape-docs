@@ -17,7 +17,7 @@ Define a workflow by passing a configuration object with a handler function:
 
 ```typescript
 const workflow = await ductape.workflows.define({
-  product: 'my-product',      // Target product
+  // Target product
   tag: 'workflow-tag',        // Unique identifier
   name: 'Workflow Name',      // Display name
   description: 'Description', // Optional
@@ -34,7 +34,6 @@ const workflow = await ductape.workflows.define({
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-product',
   tag: 'order-process',
   name: 'Order Processing',
   description: 'Handles complete order fulfillment',
@@ -127,7 +126,6 @@ When the handler branches on a **step result** and returns early, later steps ar
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-product',
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   // So the handler continues past the if and records process-payment
@@ -167,7 +165,6 @@ Use **unique step tags per iteration** (e.g. `` `process-${item.id}` ``).
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-product',
   tag: 'process-orders',
   name: 'Process Orders',
   recordInput: {
@@ -195,7 +192,6 @@ For **if/else or switch** on **workflow input** (e.g. different steps per `type`
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-product',
   tag: 'handle-by-type',
   name: 'Handle by type',
   recordScenarios: [
@@ -748,7 +744,6 @@ This example uses **branchOverrides** so the compiler records the payment step e
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-product',
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   description: 'Complete order processing workflow',

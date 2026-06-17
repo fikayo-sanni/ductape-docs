@@ -29,8 +29,6 @@ import { Ductape } from '@ductape/sdk';
 
 const ductape = new Ductape({
   apiKey: process.env.DUCTAPE_API_KEY!,
-  product: 'my-blog',
-  env: 'prd'
 });
 ```
 
@@ -41,7 +39,6 @@ import { DatabaseType } from '@ductape/sdk';
 
 // Create database
 await ductape.databases.create({
-  product: 'my-blog',
   name: 'BlogDB',
   tag: 'blog-db',
   type: DatabaseType.POSTGRESQL,
@@ -55,8 +52,6 @@ await ductape.databases.create({
 
 // Connect to database
 await ductape.databases.connect({
-  env: 'prd',
-  product: 'my-blog',
   database: 'blog-db'
 });
 

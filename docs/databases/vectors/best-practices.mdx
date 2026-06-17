@@ -61,8 +61,6 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 ```typescript
 // Good - meaningful, queryable IDs
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vectors: [
     { id: 'doc:product:12345', values: [...], metadata: {...} },
@@ -72,8 +70,6 @@ await ductape.vector.upsert({
 
 // Bad - random IDs that can't be reconstructed
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vectors: [
     { id: crypto.randomUUID(), values: [...], metadata: {...} },
@@ -136,8 +132,6 @@ Design metadata to support your query patterns:
 ```typescript
 // Separate data by tenant, user, or category
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   namespace: `tenant:${tenantId}`,
   vectors: [...],
@@ -145,8 +139,6 @@ await ductape.vector.upsert({
 
 // Query within namespace
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   namespace: `tenant:${tenantId}`,
   vector: queryVector,
@@ -161,8 +153,6 @@ Return only what you need:
 ```typescript
 // Start conservative
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 5,  // Start small
@@ -180,8 +170,6 @@ if (results.matches.length < 5) {
 ```typescript
 // Good - filter before similarity search
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -193,8 +181,6 @@ const results = await ductape.vector.query({
 
 // Less efficient - filter after retrieval
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 1000,  // Over-fetch
@@ -209,8 +195,6 @@ const filtered = results.matches.filter(
 ```typescript
 // Good - batch upserts
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vectors: allVectors,  // Up to 100 vectors at once
 });
@@ -218,8 +202,6 @@ await ductape.vector.upsert({
 // Bad - individual upserts
 for (const vector of allVectors) {
   await ductape.vector.upsert({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vectors: [vector],
   });
@@ -306,8 +288,6 @@ Combine vector similarity with keyword matching:
 async function hybridSearch(query: string) {
   // 1. Get semantic results
   const semanticResults = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vector: await generateEmbedding(query),
     topK: 20,
@@ -362,8 +342,6 @@ async function cleanupOldVectors(olderThanDays: number) {
 
   // Fetch IDs of old vectors
   const oldVectors = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vector: [/* any vector */],
     topK: 10000,
@@ -376,8 +354,6 @@ async function cleanupOldVectors(olderThanDays: number) {
   const ids = oldVectors.matches.map((m) => m.id);
   for (let i = 0; i < ids.length; i += 100) {
     await ductape.vector.deleteVectors({
-      product: 'my-product',
-      env: 'dev',
       tag: 'my-vectors',
       ids: ids.slice(i, i + 100),
     });
@@ -428,8 +404,6 @@ Choose index settings based on your needs:
 ```typescript
 // Isolate data by organization
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   namespace: `org:${organizationId}`,
   vectors: [...],
@@ -438,8 +412,6 @@ await ductape.vector.upsert({
 // Enforce namespace in queries
 async function searchWithAccessControl(query: string, user: User) {
   return ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     namespace: `org:${user.organizationId}`,  // Enforce tenant isolation
     vector: await generateEmbedding(query),

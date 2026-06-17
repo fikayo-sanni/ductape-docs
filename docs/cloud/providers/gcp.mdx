@@ -1,0 +1,45 @@
+---
+title: GCP
+sidebar_position: 2
+---
+
+# GCP cloud connection
+
+GCP connections use a **service account JSON key** scoped to your project.
+
+## Setup checklist
+
+1. IAM & Admin → **Service accounts** → create account for Ductape.
+2. Grant project roles: Storage Admin, Pub/Sub Admin, Cloud SQL Admin, Cloud Spanner Admin, Vertex AI Administrator (as needed).
+3. Create **JSON key** and store securely.
+4. Enable APIs: Cloud SQL Admin, Storage, Pub/Sub, Spanner, Vertex AI (Workbench shows enable links when APIs are disabled).
+5. Workbench → **Cloud** → Add GCP connection with tag e.g. `prod_gcp`.
+
+## SDK lifecycle
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'gcp',
+  name: 'prod_gcp',
+  scopes: ['storage', 'database', 'broker'],
+});
+
+await ductape.cloud.connections.complete('prod_gcp', {
+  project_id: 'my-project-id',
+  service_account_json: { /* parsed JSON key object */ },
+});
+
+await ductape.cloud.connections.validate('prod_gcp');
+```
+
+Pass `service_account_json` as a parsed object or JSON string. On credential rotation, call `connections.complete` again with the new key.
+
+## Linked services
+
+| `service` | Component type |
+|-----------|----------------|
+| `gcs` | Storage |
+| `pubsub` | Message brokers |
+| `cloudsql` | Databases (PostgreSQL) |
+| `spanner-graph` | Graphs |
+| `vertex-vector-search` | Vectors |

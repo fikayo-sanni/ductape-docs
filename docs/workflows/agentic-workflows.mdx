@@ -67,7 +67,6 @@ Use **Traditional Workflows** when:
 
 ```typescript
 const supportAgent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'customer-support-agent',
   name: 'Customer Support Agent',
   description: 'An AI agent that handles customer support tickets',
@@ -204,8 +203,6 @@ Guidelines:
 
 // Execute the agent
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'customer-support-agent',
   input: {
     ticketId: 'TICKET-12345',
@@ -712,8 +709,6 @@ if (approval.decision === 'approve') {
 ```typescript
 // External approval via workflow signal
 await ductape.agents.requestApproval({
-  product: 'my-product',
-  env: 'prd',
   agentRunId: 'run-12345',
   approval: {
     type: 'tool-execution',
@@ -751,8 +746,6 @@ Stream agent responses for real-time UX:
 
 ```typescript
 const stream = await ductape.agents.stream({
-  product: 'my-product',
-  env: 'prd',
   tag: 'support-agent',
   input: { message: 'Check my order status' },
 });
@@ -789,7 +782,6 @@ Coordinate multiple specialized agents:
 
 ```typescript
 const orchestrator = await ductape.agents.defineOrchestrator({
-  product: 'my-product',
   tag: 'support-orchestrator',
 
   // Available sub-agents
@@ -850,8 +842,6 @@ tracing: {
 ```typescript
 // Run in debug mode
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'support-agent',
   input: { message: 'Test message' },
   debug: {
@@ -864,8 +854,6 @@ const result = await ductape.agents.run({
 
 // Replay a previous run
 const replay = await ductape.agents.replay({
-  product: 'my-product',
-  env: 'dev',
   runId: 'run-12345',
   modifyInputAt: 3,  // Modify after step 3
 });
@@ -958,7 +946,6 @@ A more complex example showing a research agent:
 
 ```typescript
 const researchAgent = await ductape.agents.define({
-  product: 'research-platform',
   tag: 'research-agent',
   name: 'Research Assistant',
 

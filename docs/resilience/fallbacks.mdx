@@ -19,7 +19,6 @@ Fallbacks provide sequential failover - try the primary provider first, and if i
 
 ```ts
 const fallback = await resilience.fallback.define({
-  product: 'my-product',
   tag: 'payment-fallback',
   name: 'Payment Provider Fallback',
   description: 'Failover between payment providers',
@@ -209,8 +208,6 @@ ctx.primary('stripe')
 
 ```ts
 const result = await resilience.fallback.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: {
     amount: 5000,
@@ -224,8 +221,6 @@ const result = await resilience.fallback.run({
 
 ```ts
 const result = await resilience.fallback.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: { amount: 5000, currency: 'usd', card_token: 'tok_visa' },
   session: {
@@ -239,8 +234,6 @@ const result = await resilience.fallback.run({
 
 ```ts
 const result = await resilience.fallback.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: { amount: 5000, currency: 'usd', card_token: 'tok_visa' },
   cache: 'payment-cache',
@@ -254,8 +247,6 @@ Schedule fallback execution for later:
 ```ts
 // Dispatch with delay
 const job = await resilience.fallback.dispatch({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: { amount: 5000, currency: 'usd', card_token: 'tok_visa' },
   schedule: {
@@ -265,8 +256,6 @@ const job = await resilience.fallback.dispatch({
 
 // Dispatch at specific time
 const job = await resilience.fallback.dispatch({
-  product: 'my-product',
-  env: 'prd',
   tag: 'payment-fallback',
   input: { amount: 5000, currency: 'usd', card_token: 'tok_visa' },
   schedule: {

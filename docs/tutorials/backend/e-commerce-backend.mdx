@@ -271,7 +271,7 @@ async function createOrGetCustomer(customerData: {
   }
 
   // Create Stripe customer
-  const stripeCustomer = await ductape.actions.execute({
+  const stripeCustomer = await ductape.api.execute({
     action: 'stripe.create-customer',
     input: {
       email: customerData.email,

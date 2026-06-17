@@ -1,0 +1,61 @@
+---
+title: Products
+sidebar_position: 6
+---
+
+# Products
+
+Manage **products** in the active workspace. These commands use the same REST and sdk-proxy paths as the Workbench (not the generic `resources` command).
+
+Requires: `ductape login` and an active workspace (`ductape workspaces current`).
+
+## Commands
+
+```bash
+ductape products list
+ductape products list --status all
+ductape products get --id <product_id>
+ductape products get --tag <product_tag>
+ductape products create              # interactive prompts
+ductape products create -f product.json
+ductape products update --tag <product_tag> -f patch.json
+ductape products delete --id <product_id>
+ductape products apps list --product <product_id>
+```
+
+Use `--json` for machine-readable output.
+
+## How it works
+
+| Verb | API |
+|------|-----|
+| `list` | `GET /integrations/v1/workspace/:workspace_id/:status` |
+| `get` | `GET /integrations/v1/:id` or `GET /integrations/v1/fetch/tag` |
+| `create` | `POST /integrations/v1/create` |
+| `update` | sdk-proxy `product.update` (encrypted) |
+| `delete` | `DELETE /integrations/v1/:integration_id` |
+| `apps list` | `GET /integrations/v1/fetch-product-apps/:product_id` |
+
+## Example: create product
+
+`product.json`:
+
+```json
+{
+  "name": "My API",
+  "description": "Backend product",
+  "tag": "my-api"
+}
+```
+
+```bash
+ductape products create -f product.json
+```
+
+`workspace_id`, `user_id`, and `public_key` are added automatically from your session.
+
+## vs `resources product`
+
+`ductape resources product …` still targets **sdk-proxy** for low-level SDK methods (`create`, `fetch`, `update`) and requires a **linked project**. Prefer `ductape products` for workspace-level product management.
+
+`ductape products list` is the correct way to list products — sdk-proxy has no `product.list` method.

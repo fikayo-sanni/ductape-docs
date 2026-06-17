@@ -17,7 +17,7 @@ const ductape = new Ductape({
 });
 
 // Connect to database
-await ductape.databases.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+await ductape.databases.connect({ database: 'main-db' });
 
 // Create a table with Mongoose-style schema
 await ductape.databases.schema.create('users', {
@@ -49,8 +49,6 @@ const ductape = new Ductape({
 
 // Connect once
 await ductape.databases.connect({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 

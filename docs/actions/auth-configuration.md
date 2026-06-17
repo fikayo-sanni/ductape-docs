@@ -19,20 +19,16 @@ const ductape = new Ductape({
 });
 
 // Simple API key authentication
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'stripe',
-  env: 'prd',
   credentials: {
     'headers:Authorization': 'Bearer sk_live_xxx',
   }
 });
 
 // Now all Stripe actions include the Authorization header automatically
-await ductape.actions.run({
-  product: 'my-product',
+await ductape.api.run({
   app: 'stripe',
-  env: 'prd',
   action: 'create-charge',
   input: { amount: 1000, currency: 'usd' }
 });
@@ -47,10 +43,8 @@ Use `actions.config()` for credentials that don't expire or are manually rotated
 ### Basic Usage
 
 ```ts
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'stripe',
-  env: 'prd',
   credentials: {
     'headers:Authorization': 'Bearer sk_live_xxx',
   }
@@ -62,10 +56,8 @@ ductape.actions.config({
 For security, use `$Secret{}` references instead of hardcoding credentials:
 
 ```ts
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'stripe',
-  env: 'prd',
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
   }
@@ -80,10 +72,8 @@ Secrets are:
 ### Multiple Credential Types
 
 ```ts
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'internal-api',
-  env: 'prd',
   credentials: {
     'headers:Authorization': '$Secret{API_TOKEN}',
     'headers:X-API-Key': '$Secret{API_KEY}',
@@ -98,18 +88,18 @@ Define your app configuration once and reuse it:
 
 ```ts
 // Define configurations
-const stripeConfig = { product: 'my-product', app: 'stripe', env: 'prd' };
-const twilioConfig = { product: 'my-product', app: 'twilio', env: 'prd' };
+const stripeConfig = { app: 'stripe' };
+const twilioConfig = { app: 'twilio' };
 
 // Set up credentials
-ductape.actions.config({
+ductape.api.config({
   ...stripeConfig,
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
   }
 });
 
-ductape.actions.config({
+ductape.api.config({
   ...twilioConfig,
   credentials: {
     'headers:Authorization': '$Secret{TWILIO_AUTH_TOKEN}',
@@ -117,13 +107,13 @@ ductape.actions.config({
 });
 
 // Use the same config for all action calls
-await ductape.actions.run({
+await ductape.api.run({
   ...stripeConfig,
   action: 'create-charge',
   input: { amount: 1000, currency: 'usd' }
 });
 
-await ductape.actions.run({
+await ductape.api.run({
   ...twilioConfig,
   action: 'send-sms',
   input: { to: '+1234567890', body: 'Hello!' }
@@ -134,13 +124,13 @@ await ductape.actions.run({
 
 ```ts
 const stripe = {
-  dev: { product: 'my-product', app: 'stripe', env: 'dev' },
-  prd: { product: 'my-product', app: 'stripe', env: 'prd' },
+  dev: { app: 'stripe' },
+  prd: { app: 'stripe' },
 };
 
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
 
-ductape.actions.config({
+ductape.api.config({
   ...stripe[env],
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
@@ -168,10 +158,8 @@ Use `actions.oauth()` for tokens that expire and need automatic refresh (OAuth 2
 ### Basic OAuth Setup
 
 ```ts
-await ductape.actions.oauth({
-  product: 'my-product',
+await ductape.api.oauth({
   app: 'salesforce',
-  env: 'prd',
 
   // Initial tokens
   tokens: {
@@ -190,10 +178,8 @@ await ductape.actions.oauth({
   // How to refresh tokens when expired
   onExpiry: async (currentTokens) => {
     // Call your refresh token endpoint
-    const response = await ductape.actions.run({
-      product: 'my-product',
+    const response = await ductape.api.run({
       app: 'salesforce',
-      env: 'prd',
       action: 'refresh-token',
       input: {
         'body:grant_type': 'refresh_token',
@@ -229,10 +215,8 @@ Both work the same in the initial config and in the `onExpiry` return value.
 You can initialize OAuth with existing secrets:
 
 ```ts
-await ductape.actions.oauth({
-  product: 'my-product',
+await ductape.api.oauth({
   app: 'salesforce',
-  env: 'prd',
 
   // Use existing secrets
   tokens: {
@@ -247,10 +231,8 @@ await ductape.actions.oauth({
   }),
 
   onExpiry: async (currentTokens) => {
-    const response = await ductape.actions.run({
-      product: 'my-product',
+    const response = await ductape.api.run({
       app: 'salesforce',
-      env: 'prd',
       action: 'refresh-token',
       input: {
         'body:grant_type': 'refresh_token',
@@ -289,10 +271,8 @@ These secrets are updated automatically when tokens refresh.
 By default, tokens are refreshed 1 minute before actual expiry. Customize this with `refreshBuffer`:
 
 ```ts
-await ductape.actions.oauth({
-  product: 'my-product',
+await ductape.api.oauth({
   app: 'salesforce',
-  env: 'prd',
   tokens: { ... },
   expiresAt: tokenExpiry,
   credentials: (tokens) => ({ ... }),
@@ -309,10 +289,8 @@ Here's a complete example with Google OAuth:
 
 ```ts
 // Initialize OAuth for Google APIs
-await ductape.actions.oauth({
-  product: 'my-product',
+await ductape.api.oauth({
   app: 'google',
-  env: 'prd',
 
   tokens: {
     accessToken: initialAccessToken,
@@ -327,10 +305,8 @@ await ductape.actions.oauth({
 
   onExpiry: async (currentTokens) => {
     // Use the OAuth token endpoint
-    const response = await ductape.actions.run({
-      product: 'my-product',
+    const response = await ductape.api.run({
       app: 'google',
-      env: 'prd',
       action: 'token-refresh',
       input: {
         'body:client_id': '$Secret{GOOGLE_CLIENT_ID}',
@@ -354,10 +330,8 @@ await ductape.actions.oauth({
 });
 
 // Now all Google API calls automatically handle token refresh
-const events = await ductape.actions.run({
-  product: 'my-product',
+const events = await ductape.api.run({
   app: 'google',
-  env: 'prd',
   action: 'list-calendar-events',
   input: {
     calendarId: 'primary',
@@ -385,7 +359,7 @@ const events = await ductape.actions.run({
 
 When credentials come from multiple sources, they merge with this priority (highest to lowest):
 
-1. **Input credentials** - Passed directly in `actions.run()`
+1. **Input credentials** - Passed directly in `api.run()`
 2. **OAuth credentials** - From `actions.oauth()` configuration
 3. **Config credentials** - From `actions.config()` configuration
 
@@ -393,20 +367,16 @@ This means you can always override shared credentials on a per-request basis:
 
 ```ts
 // Config sets default Authorization
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'api',
-  env: 'prd',
   credentials: {
     'headers:Authorization': '$Secret{DEFAULT_TOKEN}',
   }
 });
 
 // Override for a specific request
-await ductape.actions.run({
-  product: 'my-product',
+await ductape.api.run({
   app: 'api',
-  env: 'prd',
   action: 'admin-endpoint',
   input: {
     'headers:Authorization': '$Secret{ADMIN_TOKEN}', // Overrides default
@@ -423,18 +393,18 @@ await ductape.actions.run({
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `product` | string | Yes | Product tag |
+| `product` | string | No | Product tag (defaults to constructor) |
 | `app` | string | Yes | App tag |
-| `env` | string | Yes | Environment (dev, stg, prd) |
+| `env` | string | No | Environment (dev, stg, prd; defaults to constructor) |
 | `credentials` | object | Yes | Flat credentials object |
 
 ### actions.oauth() Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `product` | string | Yes | Product tag |
+| `product` | string | No | Product tag (defaults to constructor) |
 | `app` | string | Yes | App tag |
-| `env` | string | Yes | Environment (dev, stg, prd) |
+| `env` | string | No | Environment (dev, stg, prd; defaults to constructor) |
 | `tokens` | object | Yes | Initial tokens object |
 | `tokens.accessToken` | string | Yes | Access token (value or `$Secret{}`) |
 | `tokens.refreshToken` | string | No | Refresh token (value or `$Secret{}`) |

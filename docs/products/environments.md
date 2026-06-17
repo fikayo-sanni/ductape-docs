@@ -98,22 +98,22 @@ await ductape.product.environment.update('dev', {
 
 ## Using Environments
 
-Environments are referenced when running actions, features, and other operations:
+Set **product** and **env** on the [`Ductape` constructor](/sdk/runtime-defaults). Runtime calls inherit them automatically:
 
 ```typescript
-// Run action in production
-await ductape.actions.run({
-  env: 'prd',
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
   product: 'my-product',
+  env: 'prd', // or 'dev', 'stg'
+});
+
+await ductape.api.run({
   app: 'stripe',
-  event: 'create-charge',
+  action: 'create-charge',
   input: { amount: 1000 },
 });
 
-// Run feature in development
 await ductape.features.run({
-  env: 'dev',
-  product: 'my-product',
   feature_tag: 'process-payment',
   input: { userId: '123' },
 });

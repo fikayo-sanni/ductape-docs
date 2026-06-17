@@ -1,0 +1,378 @@
+---
+sidebar_position: 8
+sidebar_label: Use cases & possibilities
+---
+
+# Use cases & possibilities
+
+The MCP server turns Ductape into a **toolbox for AI agents**. Any MCP client with the server configured can orchestrate platform operations through natural language. Below is a comprehensive map of what agents can accomplish, organized by platform area.
+
+---
+
+## Platform administration
+
+Agents can manage the structural layer of your Ductape workspace without touching the Workbench UI.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create a product | `product` | `create` |
+| Add environments (prd, stg) | `product` | `environments.create` |
+| Connect an app to a product | `product` | `apps.connect`, `apps.add` |
+| List connected apps | `product` | `apps.list` |
+| Create an integration app | `app` | `create` |
+| Configure app environments | `app` | `environments.create` |
+| Manage app variables/constants | `app` | `variables.create`, `constants.create` |
+| Define app actions | `app` | `actions.create` |
+| Configure auth schemes | `app` | `auths.create` |
+
+**Example agent prompt:** *"Create a new product called 'Analytics Platform' with prd and stg environments, then connect the Stripe app."*
+
+---
+
+## Actions & integrations
+
+Run and manage HTTP integrations defined in Ductape apps.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Run a synchronous action | `actions` | `run` |
+| Schedule or retry an action | `actions` | `dispatch` |
+| List available actions | `actions` | `list` |
+| Import actions from OpenAPI/Postman | `actions` | `import` |
+| Create/update action definitions | `actions` | `create`, `update` |
+
+Action input uses prefixed keys: `body:field`, `headers:Authorization`, `params:id`, `query:limit`.
+
+**Example agent prompt:** *"Call the Stripe create-customer action with email user@example.com in the prd environment."*
+
+---
+
+## Databases
+
+Full CRUD, schema management, migrations, and custom database actions.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Query records with filters | `databases` | `query` |
+| Insert / update / delete | `databases` | `insert`, `update`, `delete` |
+| Upsert with conflict keys | `databases` | `upsert` |
+| Aggregations (count, sum, avg) | `databases` | `count`, `aggregate` |
+| Manage schema (fields, indexes) | `databases` | `schema.create`, `schema.addField` |
+| Run migrations | `databases` | `migration.run`, `migration.rollback` |
+| Execute custom SQL/NoSQL actions | `databases` | `action.dispatch`, `dispatch` |
+| Test database connectivity | `databases` | `testConnection` |
+
+Supports MongoDB, PostgreSQL, MySQL, and SQLite.
+
+**Example agent prompt:** *"Find the 10 most recent orders where status is 'pending' in the main-db database."*
+
+---
+
+## Graph databases
+
+Node/relationship CRUD, traversal, Cypher queries, and graph actions.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create nodes and relationships | `graph` | `createNode`, `createRelationship` |
+| Find and update nodes | `graph` | `findNodes`, `updateNode` |
+| Traverse the graph | `graph` | `traverse`, `getNeighborhood` |
+| Shortest path | `graph` | `shortestPath` |
+| Run Cypher queries | `graph` | `query` |
+| Full-text and vector search | `graph` | `fullTextSearch`, `vectorSearch` |
+| Manage indexes/constraints | `graph` | `createNodeIndex`, `createNodeConstraint` |
+| Transactional operations | `graph` | `beginTransaction`, `commitTransaction` |
+
+Supports Neo4j, Nebula, and ArangoDB.
+
+**Example agent prompt:** *"Find all Person nodes connected to Company 'Acme' within 2 hops."*
+
+---
+
+## Vector stores
+
+Embedding storage, similarity search, and namespace management.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Similarity search | `vector` | `findSimilar`, `query` |
+| Upsert embeddings | `vector` | `upsert`, `upsertOne` |
+| Fetch/delete vectors | `vector` | `fetchOne`, `deleteByIds`, `deleteAll` |
+| Manage namespaces | `vector` | `listNamespaces`, `deleteNamespace` |
+| Index management | `vector` | `createIndex`, `describeIndex`, `getStats` |
+
+Supports Pinecone, Qdrant, Weaviate, and others.
+
+**Example agent prompt:** *"Search the embeddings-index for the 5 vectors most similar to this embedding array."*
+
+Ideal for RAG pipelines where an agent retrieves context before answering.
+
+---
+
+## Storage
+
+Object storage across AWS S3, Azure Blob, and GCP.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Upload files | `storage` | `upload` |
+| Download files | `storage` | `download` |
+| List files by prefix | `storage` | `listFiles` |
+| Generate signed URLs | `storage` | `getSignedUrl` |
+| Storage statistics | `storage` | `stats` |
+| Scheduled storage operations | `storage` | `dispatch` |
+
+**Example agent prompt:** *"Upload report.pdf to the assets bucket and give me a signed read URL valid for 1 hour."*
+
+---
+
+## Sessions & users
+
+User session lifecycle, verification, and activity dashboards.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Start a session | `sessions` | `start` |
+| Verify JWT tokens | `sessions` | `verify` |
+| Refresh sessions | `sessions` | `refresh` |
+| Revoke sessions | `sessions` | `revoke`, `listActive` |
+| List session users | `sessions` | `fetchUsers`, `fetchUserDetails` |
+| Activity dashboard | `sessions` | `fetchDashboard` |
+
+**Example agent prompt:** *"Show me all active sessions for the customer-portal session type in production."*
+
+---
+
+## Caching
+
+Redis, Memcached, and in-memory cache operations.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Get/set cache values | `caches` | `get`, `set` |
+| Clear keys or entire cache | `caches` | `clear`, `clearAll` |
+| Browse cached values | `caches` | `fetchValues` |
+| Cache dashboard | `caches` | `fetchDashboard` |
+
+**Example agent prompt:** *"Set cache key 'user:123:profile' to the JSON profile data with a 1-hour expiry."*
+
+---
+
+## Notifications
+
+Email, push, SMS, and callback notifications.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Send email | `notifications` | `email.send` |
+| Send push notification | `notifications` | `push.send` |
+| Send SMS | `notifications` | `sms.send` |
+| HTTP callback | `notifications` | `callback.send` |
+| Schedule notification dispatch | `notifications` | `dispatch` |
+| Message logs | `notifications` | `getMessages` |
+| Manage templates | `notifications` | `messages.create`, `messages.update` |
+
+**Example agent prompt:** *"Send a welcome email to new-user@example.com using the onboarding template."*
+
+---
+
+## Message brokers
+
+Kafka, RabbitMQ, Redis Streams, and SQS messaging.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Produce messages | `messageBrokers` | `produce` |
+| Subscribe/consume | `messageBrokers` | `subscribe`, `consume` |
+| Query message history | `messageBrokers` | `messages.query` |
+| Dead letter inspection | `messageBrokers` | `messages.getDeadLetters` |
+| Broker dashboard | `messageBrokers` | `messages.getDashboard` |
+
+**Example agent prompt:** *"Publish a user-signup event to the events-broker orders-topic."*
+
+---
+
+## Workflows
+
+Multi-step durable workflows with signals, queries, and scheduling.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Define workflows | `workflow` | `create`, `define` |
+| Execute a workflow | `workflow` | `execute` |
+| Schedule workflow runs | `workflow` | `dispatch` |
+| Send signals | `workflow` | `signal` |
+| Query workflow state | `workflow` | `query`, `status` |
+| Cancel / replay / resume | `workflow` | `cancel`, `replay`, `resume` |
+| Execution history | `workflow` | `history`, `stepDetail` |
+
+Step types include actions, database ops, graph queries, notifications, storage, messaging, child workflows, sleep, and wait-for-signal.
+
+**Example agent prompt:** *"Run the order-fulfillment workflow with order ID 12345 and show me the execution status."*
+
+---
+
+## Jobs
+
+Scheduled and recurring background jobs.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create scheduled jobs | `jobs` | `create` |
+| List and inspect jobs | `jobs` | `listJobs`, `get` |
+| Cancel / pause / resume | `jobs` | `cancel`, `pause`, `resume` |
+| Retry failed jobs | `jobs` | `retry`, `retryMany` |
+| Reschedule | `jobs` | `reschedule` |
+| Job history and stats | `jobs` | `getHistory`, `getStats` |
+
+**Example agent prompt:** *"Show me all failed jobs in the last 24 hours and retry them."*
+
+---
+
+## Resilience
+
+Quotas, fallbacks, and health checks for fault-tolerant integrations.
+
+### Quotas
+
+Try providers in order until one succeeds within quota limits.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Define quota chains | `quotas` | `create` |
+| Execute with failover | `quotas` | `run`, `dispatch` |
+| Check/consume quota | `quotas` | `check`, `consume` |
+
+### Fallbacks
+
+Ordered provider failover without usage limits.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Define fallback chains | `fallback` | `create` |
+| Execute with failover | `fallback` | `run`, `dispatch` |
+
+### Health checks
+
+Probe external services and react on failure.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Define health probes | `health` | `create` |
+| Check current status | `health` | `status`, `check` |
+| Run probe manually | `health` | `run` |
+
+**Example agent prompt:** *"Run the payment-gateway quota with amount 99.99 and tell me which provider handled it."*
+
+---
+
+## Secrets
+
+Workspace secret management and resolution.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create/update secrets | `secrets` | `create`, `update` |
+| List and fetch secrets | `secrets` | `list`, `fetch` |
+| Resolve `$Secret{key}` references | `secrets` | `resolve` |
+| Validate secret syntax | `secrets` | `validate` |
+| Revoke secrets | `secrets` | `revoke` |
+
+**Example agent prompt:** *"List all secrets scoped to the prd environment."*
+
+---
+
+## Webhooks
+
+Inbound webhook configuration and event management.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create webhooks | `webhooks` | `create` |
+| Define webhook events | `webhooks` | `events.create` |
+| Enable and generate links | `webhooks` | `enable`, `generateLink` |
+| Trigger test events | `webhooks` | `trigger` |
+
+---
+
+## Logs
+
+Query application and product logs.
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Initialize log context | `logs` | `init` |
+| Fetch filtered logs | `logs` | `fetch` |
+| Stream logs | `logs` | `stream` |
+
+**Example agent prompt:** *"Show me error-level logs from the payment app in the last hour."*
+
+---
+
+## Feature flags
+
+| Task | Module | Example method |
+|------|--------|----------------|
+| Create feature flags | `features` | `create` |
+| Check if enabled | `features` | `isEnabled` |
+| Run feature-gated logic | `features` | `run`, `dispatch` |
+
+---
+
+## Agent workflow patterns
+
+### 1. Explore → execute
+
+1. List resources (`databases.list`, `actions.list`)
+2. Inspect schema (`databases.schema.describe`)
+3. Execute operation (`databases.query`, `actions.run`)
+
+### 2. Generate → review → execute
+
+1. `ductape_generate_payload` to get canonical shape
+2. Agent reviews payload with user
+3. `ductape_execute` with finalized params
+
+### 3. Scaffold → hand off
+
+1. `ductape_generate_snippet` with `language: typescript`
+2. Agent pastes snippet into user's codebase
+3. Developer runs locally with SDK credentials
+
+### 4. Monitor → remediate
+
+1. `health.status` or `jobs.listJobs` to detect issues
+2. `jobs.retry` or `fallback.run` to recover
+3. `notifications.send` to alert team
+
+### 5. RAG assistant
+
+1. `vector.findSimilar` to retrieve relevant documents
+2. `databases.query` for structured data
+3. `actions.run` to call external APIs with retrieved context
+
+---
+
+## Combining with Ductape Agents
+
+The MCP server complements [Ductape Agents](/agents/overview). Agents defined in Ductape can use SDK tools internally; the MCP server extends that capability to **external** AI clients (Cursor, Claude Desktop, custom MCP hosts) that are not running inside Ductape.
+
+| Approach | Best for |
+|----------|----------|
+| **Ductape Agents** | Production AI systems hosted on Ductape with built-in memory, HITL, multi-agent |
+| **MCP Server** | Developer copilots, IDE integration, ad-hoc platform automation |
+| **Both** | Agents in production + MCP for developer tooling against the same workspace |
+
+---
+
+## Limitations
+
+| Limitation | Detail |
+|------------|--------|
+| **Stdio only** | No built-in HTTP/SSE transport; must be spawned by an MCP client |
+| **Proxy allowlist** | Only validated module/method pairs execute; see [Modules & methods](./modules-and-methods) |
+| **No streaming SDK callbacks** | Long-running streams (e.g. `logs.stream`, `messageBrokers.consume` with live callbacks) may not map cleanly to request/response MCP tools |
+| **Workflow `define` handler** | Code-based workflow handlers cannot be passed as JSON through MCP; use declarative `workflow.create` with steps instead |
+| **Snippet coverage** | Not all SDK methods have snippet generation; see [Code generation](./code-generation#supported-snippet-operations) |
+
+For operations outside the allowlist, use the SDK directly in application code or request proxy validator updates.

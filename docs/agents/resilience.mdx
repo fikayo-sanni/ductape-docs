@@ -123,7 +123,6 @@ Now reference these configurations in your agent definition:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'resilient-agent',
   name: 'Resilient Agent',
   model: 'claude-model',
@@ -224,7 +223,6 @@ You can configure resilience at the individual tool level for fine-grained contr
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'granular-agent',
   name: 'Granular Resilience Agent',
   model: 'default-model',
@@ -336,7 +334,7 @@ Check the health status of a specific healthcheck.
 ```typescript
 const health = await ctx.resilience.healthcheck.check({
   tag: 'healthcheck-tag',         // Tag of existing healthcheck
-  env: 'production',              // Optional, defaults to current env
+  // Optional, defaults to current env
 });
 
 // Returns:
@@ -382,7 +380,6 @@ const ductape = new Ductape({...});
 // - fallbacks: 'llm-fallback'
 
 const agent = await ductape.agents.define({
-  product: 'production-app',
   tag: 'resilient-support-agent',
   name: 'Resilient Support Agent',
   model: 'claude-primary',
@@ -462,8 +459,6 @@ Please provide a helpful, accurate response.`,
 
 // Run the agent
 const result = await ductape.agents.run({
-  product: 'production-app',
-  env: 'production',
   tag: 'resilient-support-agent',
   input: {
     question: 'How do I reset my password?',

@@ -31,13 +31,14 @@ import Ductape from '@ductape/sdk';
 const ductape = new Ductape({
   workspace_id: 'your-workspace-id',
   private_key: 'your-private-key',
+  product: 'my-product',
+  env: 'prd',
 });
 
 await ductape.product.init('my-product');
 
 // Create a vector database configuration
 await ductape.vector.create({
-  product: 'my-product',
   tag: 'document-embeddings',
   name: 'Document Embeddings',
   type: 'pinecone',
@@ -60,8 +61,6 @@ Once configured, connecting and querying is straightforward:
 ```typescript
 // Upsert vectors
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'prd',
   tag: 'document-embeddings',
   vectors: [
     {
@@ -79,8 +78,6 @@ await ductape.vector.upsert({
 
 // Query for similar vectors
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'prd',
   tag: 'document-embeddings',
   vector: queryEmbedding,
   topK: 10,
@@ -141,8 +138,6 @@ Combine vector similarity with metadata filters for precise results:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'prd',
   tag: 'products',
   vector: queryEmbedding,
   topK: 20,
@@ -163,8 +158,6 @@ Enable caching for repeated queries to reduce latency and costs:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'prd',
   tag: 'document-embeddings',
   vector: queryEmbedding,
   topK: 10,
@@ -186,7 +179,6 @@ View logs in the Ductape dashboard or query them programmatically:
 const logs = await ductape.logs.fetch({
   component: 'product',
   type: 'vector',
-  product: 'my-product',
 });
 ```
 
@@ -203,8 +195,6 @@ async function semanticSearch(query: string) {
 
   // Find similar documents
   const results = await ductape.vector.query({
-    product: 'my-product',
-    env: 'prd',
     tag: 'documents',
     vector: queryEmbedding,
     topK: 10,
@@ -228,8 +218,6 @@ async function ragQuery(userQuestion: string) {
   // 1. Find relevant context
   const queryEmbedding = await generateEmbedding(userQuestion);
   const context = await ductape.vector.query({
-    product: 'my-product',
-    env: 'prd',
     tag: 'knowledge-base',
     vector: queryEmbedding,
     topK: 5,
@@ -258,16 +246,12 @@ Power personalized recommendations:
 async function getRecommendations(userId: string, productId: string) {
   // Get the product's embedding
   const product = await ductape.vector.fetchVectors({
-    product: 'my-product',
-    env: 'prd',
     tag: 'products',
     ids: [productId],
   });
 
   // Find similar products
   const similar = await ductape.vector.query({
-    product: 'my-product',
-    env: 'prd',
     tag: 'products',
     vector: product.vectors[productId].values,
     topK: 10,

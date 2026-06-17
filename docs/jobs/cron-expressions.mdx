@@ -154,9 +154,7 @@ By default, cron expressions are evaluated in UTC. Use the `tz` field to specify
 
 ```ts
 // Run at 9 AM Eastern Time
-const job = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'reports',
+const job = await ductape.api.dispatch({
   app: 'report-service',
   event: 'generate_report',
   input: { body: {} },
@@ -255,8 +253,6 @@ schedule: {
 ```ts
 // Generate daily sales report at 6 AM Eastern
 const dailyReport = await ductape.features.dispatch({
-  env: 'prd',
-  product: 'analytics',
   tag: 'daily_sales_report',
   input: { reportType: 'daily' },
   retries: 3,
@@ -272,8 +268,6 @@ const dailyReport = await ductape.features.dispatch({
 ```ts
 // Backup database every Sunday at 2 AM
 const weeklyBackup = await ductape.databases.action.dispatch({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   event: 'create_backup',
   input: { query: {}, data: { type: 'full' } },
@@ -289,9 +283,7 @@ const weeklyBackup = await ductape.databases.action.dispatch({
 
 ```ts
 // Process billing on the 1st of each month at midnight
-const monthlyBilling = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'billing',
+const monthlyBilling = await ductape.api.dispatch({
   app: 'billing-service',
   event: 'process_monthly_billing',
   input: { body: {} },
@@ -307,9 +299,7 @@ const monthlyBilling = await ductape.actions.dispatch({
 
 ```ts
 // Run health check every 5 minutes
-const healthCheck = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'monitoring',
+const healthCheck = await ductape.api.dispatch({
   app: 'health-service',
   event: 'check_system_health',
   input: { body: {} },
@@ -325,8 +315,6 @@ const healthCheck = await ductape.actions.dispatch({
 ```ts
 // Clean up expired sessions every night at 3 AM
 const sessionCleanup = await ductape.databases.dispatch({
-  env: 'prd',
-  product: 'auth',
   database: 'sessions-db',
   operation: 'delete',
   input: {

@@ -1,0 +1,109 @@
+---
+sidebar_position: 7
+title: Workspace builders
+---
+
+# Workspace builders
+
+Workspace mode (`DuctapeModule.forWorkspace`) enables **declarative builder decorators** that map HTTP handler bodies to Ductape admin APIs. **`DuctapeBuilderInterceptor`** inspects handler metadata and calls the SDK on your behalf.
+
+## Metadata decorators
+
+| Decorator | Purpose |
+|-----------|---------|
+| `@AppTag('my-app')` | App tag for webhook/model/agent builder operations |
+| `@WebhookBuilder.Define({ operation, … })` | Webhook and event CRUD |
+| `@ModelBuilder.Define({ operation, product?, tag? })` | Model CRUD |
+| `@AgentBuilder.Define({ operation, product?, tag? })` | Agent definition CRUD |
+
+Apply `@AppTag` on the controller class (or method) so builder interceptors know which app context to use.
+
+## `@WebhookBuilder.Define`
+
+Maps to `ductape.webhooks.*` and `ductape.webhooks.events.*`.
+
+| `operation` | SDK area |
+|-------------|----------|
+| `create`, `list`, `fetch`, `update`, `delete` | Webhook definitions |
+| Event operations (as supported) | Webhook events |
+
+```typescript
+import { Controller, Post, Body } from '@nestjs/common';
+import { AppTag, WebhookBuilder } from '@ductape/nestjs';
+import type { IAppWebhook } from '@ductape/sdk';
+
+@AppTag('stripe')
+@Controller('admin/webhooks')
+export class WebhookAdminController {
+  @Post()
+  @WebhookBuilder.Define({ operation: 'create' })
+  create(body: Partial<IAppWebhook>) {
+    return body;
+  }
+
+  @Post('list')
+  @WebhookBuilder.Define({ operation: 'list' })
+  list(body: Record<string, unknown>) {
+    return body;
+  }
+}
+```
+
+The method return value (request body) is passed to the SDK; the interceptor replaces it with the API response.
+
+See [App webhooks setup](/apps/webhooks/setup).
+
+## `@ModelBuilder.Define`
+
+Maps to `models.getService().*`.
+
+| `operation` | Typical use |
+|-------------|-------------|
+| `create` | Define a new model |
+| `list`, `fetch`, `update`, `delete` | Manage models |
+
+```typescript
+@Controller('admin/models')
+export class ModelAdminController {
+  @Post()
+  @ModelBuilder.Define({ operation: 'create', product: 'my-product' })
+  createModel(body: Record<string, unknown>) {
+    return body;
+  }
+}
+```
+
+## `@AgentBuilder.Define`
+
+Maps to `agents.getService().*`.
+
+| `operation` | Typical use |
+|-------------|-------------|
+| `define` | Create or update agent definition |
+| `fetch`, `delete` | Read or remove definitions |
+
+```typescript
+@Controller('admin/agents')
+export class AgentAdminController {
+  @Post()
+  @AgentBuilder.Define({ operation: 'define', product: 'my-product', tag: 'support' })
+  defineAgent(body: Record<string, unknown>) {
+    return body;
+  }
+}
+```
+
+## Integration vs workspace
+
+| Concern | Integration mode | Workspace mode |
+|---------|------------------|----------------|
+| `@Webhook.Register` / `@Webhook.Consumer` | Product integrator URLs | — |
+| `@WebhookBuilder.Define` | — | App builder webhook CRUD |
+| `@Api`, `@Database`, runtime decorators | Yes | Yes (same `accessKey`) |
+
+Register **`DuctapeBuilderInterceptor`** globally in workspace mode (default when using `forWorkspace`), or apply it per controller: [Interceptors](./interceptors).
+
+## Related
+
+- [Module setup](./module-setup) — `forWorkspace` options
+- [Core decorators](./decorators-core) — product-side `@Webhook.*`

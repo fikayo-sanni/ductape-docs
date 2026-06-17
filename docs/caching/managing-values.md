@@ -11,13 +11,13 @@ The `CacheService` provides comprehensive methods for managing cache values prog
 ```ts
 import Ductape from '@ductape/sdk';
 
-const {cache} = new Ductape({
+const ductape = new Ductape({
   accessKey: 'your-access-key',
 });
+const { caches } = ductape;
 
 // Fetch cache values
-const values = await cache.fetchValues({
-  product: 'my-product',
+const values = await caches.fetchValues({
   cache: 'user-cache',
 });
 
@@ -26,7 +26,6 @@ const value = await cache.get({ key: 'user:123' });
 
 // Set a value
 await cache.set({
-  product: 'my-product',
   cache: 'user-cache',
   key: 'user:123',
   value: JSON.stringify({ name: 'John' }),
@@ -43,12 +42,10 @@ await cache.clear({ key: 'user:123' });
 Retrieve paginated cache values with optional filtering by environment:
 
 ```ts
-const result = await cache.fetchValues({
-  product: 'my-product',
+const result = await caches.fetchValues({
   cache: 'user-cache',
-  env: 'production',    // Optional: filter by environment
-  page: 1,              // Page number (default: 1)
-  limit: 20,            // Values per page (default: 20)
+  page: 1,
+  limit: 20,
 });
 
 console.log('Total values:', result.total);
@@ -133,7 +130,6 @@ Store a value in the cache:
 
 ```ts
 await cache.set({
-  product: 'my-product',
   cache: 'user-cache',
   key: 'user:123',
   value: JSON.stringify({ name: 'John', email: 'john@example.com' }),
@@ -175,10 +171,8 @@ console.log('Cleared:', cleared);
 Remove all cache values for a product/cache combination:
 
 ```ts
-const result = await cache.clearAll({
-  product: 'my-product',
+const result = await caches.clearAll({
   cache: 'user-cache',
-  env: 'production',  // Optional: filter by environment
 });
 
 console.log('Cleared', result.cleared, 'values');
@@ -191,10 +185,8 @@ console.log('Cleared', result.cleared, 'values');
 Get comprehensive metrics about your cache:
 
 ```ts
-const dashboard = await cache.fetchDashboard({
-  product: 'my-product',
+const dashboard = await caches.fetchDashboard({
   cache: 'user-cache',
-  env: 'production',  // Optional
 });
 
 console.log('Total values:', dashboard.totalValues);
@@ -284,7 +276,6 @@ import { CacheService, CacheError } from '@ductape/sdk';
 
 try {
   const values = await cache.fetchValues({
-    product: 'my-product',
     cache: 'user-cache',
   });
 } catch (error) {

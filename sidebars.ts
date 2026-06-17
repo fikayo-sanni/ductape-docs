@@ -17,51 +17,11 @@ const sidebars: SidebarsConfig = {
       id: 'getting-started',
       label: 'Getting Started',
     },
-    {
-      type: 'category',
-      label: 'Workbench',
-      collapsed: false,
-      items: [
-        'workbench/getting-started',
-        'workbench/creating-workspace',
-        'workbench/sdk-access',
-        {
-          type: 'category',
-          label: 'Creating an app',
-          collapsed: true,
-          items: [
-            'workbench/app/creating-app',
-            'workbench/app/postman-collections',
-            'workbench/app/individual-requests',
-            'workbench/app/shared-variables',
-            'workbench/app/app-visibility',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Products',
-          collapsed: true,
-          items: [
-            'workbench/products/creating-product',
-            'workbench/products/connecting-app',
-            'workbench/products/database',
-            'workbench/products/storage',
-            'workbench/products/notifications',
-            'workbench/products/caching',
-            'workbench/products/messaging',
-            'workbench/products/sessions',
-          ],
-        },
-        'workbench/secrets',
-        //'workbench/logs-overview',
-        // 'workbench/team-management',
-      ],
-    },
 
-    // Backend SDK
+    // Backend
     {
       type: 'category',
-      label: 'Backend SDK',
+      label: 'Backend',
       collapsed: false,
       items: [
         // Products - Core Backend Systems
@@ -197,7 +157,7 @@ const sidebars: SidebarsConfig = {
               label: 'Frontend Usage',
               collapsed: true,
               items: [
-                'frontend/react/database-hooks',
+                'frontend/client/databases',
               ],
             },
           ],
@@ -210,10 +170,35 @@ const sidebars: SidebarsConfig = {
           collapsed: true,
           items: [
             'storage/overview',
+            'storage/crud',
             'storage/files',
             'storage/use',
             'storage/read-files',
-            // Frontend Usage (client SDK disabled for now - frontend/client/storage removed)
+          ],
+        },
+
+        // Cloud
+        {
+          type: 'category',
+          label: 'Cloud',
+          collapsed: true,
+          items: [
+            'cloud/overview',
+            'cloud/connections',
+            'cloud/cloud-linked-components',
+            'cloud/aws-networking',
+            {
+              type: 'category',
+              label: 'Providers',
+              collapsed: true,
+              items: [
+                'cloud/providers/aws',
+                'cloud/providers/gcp',
+                'cloud/providers/azure',
+                'cloud/providers/mongodb-atlas',
+                'cloud/providers/neo4j-aura',
+              ],
+            },
           ],
         },
 
@@ -345,6 +330,7 @@ const sidebars: SidebarsConfig = {
           label: 'Jobs (Preview)',
           collapsed: true,
           items: [
+            'jobs/overview',
             'jobs/scheduling-jobs',
             'jobs/cron-expressions',
             'jobs/job-management',
@@ -378,58 +364,129 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // Frontend / Client SDKs
     {
       type: 'category',
-      label: 'Client SDKs',
+      label: 'NestJS',
+      collapsed: false,
+      items: [
+        'nestjs/overview',
+        'nestjs/getting-started',
+        'nestjs/module-setup',
+        'nestjs/context-and-handles',
+        'nestjs/decorators-core',
+        'nestjs/decorators-runtime',
+        'nestjs/workspace-builders',
+        'nestjs/interceptors',
+      ],
+    },
+
+    // Frontend
+    {
+      type: 'category',
+      label: 'Frontend',
       collapsed: true,
       items: [
         'frontend/overview',
+        'frontend/client/getting-started',
+        'frontend/client/sessions',
+        'frontend/client/databases',
+        'frontend/client/storage',
+        'frontend/client/workflows',
+        'frontend/client/notifications',
+        'frontend/client/actions',
+        'frontend/client/resilience',
+        'frontend/client/analytics',
+      ],
+    },
+
+    {
+      type: 'category',
+      label: 'CLI',
+      collapsed: false,
+      items: [
+        'cli/index',
         {
           type: 'category',
-          label: 'Vanilla JS',
+          label: 'Setup',
+          collapsed: true,
+          items: ['cli/authentication', 'cli/workspaces', 'cli/linking', 'cli/local-platform'],
+        },
+        {
+          type: 'category',
+          label: 'Platform entities',
+          collapsed: true,
+          items: ['cli/products', 'cli/apps'],
+        },
+        {
+          type: 'category',
+          label: 'Components & runtime',
           collapsed: true,
           items: [
-            'frontend/client/getting-started',
-            'frontend/client/databases',
-            'frontend/client/storage',
-            'frontend/client/workflows',
-            'frontend/client/sessions',
-            'frontend/client/notifications',
-            'frontend/client/actions',
-            'frontend/client/resilience',
+            'cli/resources',
+            'cli/cloud',
+            'cli/database',
+            'cli/graph',
+            'cli/secrets',
+            'cli/generate',
+          ],
+        },
+        'cli/troubleshooting',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'MCP Server',
+      collapsed: false,
+      items: [
+        'mcp-server/overview',
+        'mcp-server/getting-started',
+        'mcp-server/configuration',
+        'mcp-server/tools',
+        'mcp-server/modules-and-methods',
+        'mcp-server/method-reference',
+        'mcp-server/code-generation',
+        'mcp-server/use-cases',
+        'mcp-server/security',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Workbench',
+      collapsed: false,
+      items: [
+        'workbench/getting-started',
+        'workbench/creating-workspace',
+        'workbench/sdk-access',
+        {
+          type: 'category',
+          label: 'Creating an app',
+          collapsed: true,
+          items: [
+            'workbench/app/creating-app',
+            'workbench/app/postman-collections',
+            'workbench/app/individual-requests',
+            'workbench/app/shared-variables',
+            'workbench/app/app-visibility',
           ],
         },
         {
           type: 'category',
-          label: 'React',
+          label: 'Products',
           collapsed: true,
           items: [
-            'frontend/react/getting-started',
-            'frontend/react/database-hooks',
-            'frontend/react/storage-hooks',
-            'frontend/react/workflow-hooks',
-            'frontend/react/session-hooks',
-            'frontend/react/notification-hooks',
-            'frontend/react/action-hooks',
-            'frontend/react/resilience-hooks',
+            'workbench/products/creating-product',
+            'workbench/products/connecting-app',
+            'workbench/products/database',
+            'workbench/products/storage',
+            'workbench/products/notifications',
+            'workbench/products/caching',
+            'workbench/products/messaging',
+            'workbench/products/sessions',
           ],
         },
-        {
-          type: 'category',
-          label: 'Vue 3',
-          collapsed: true,
-          items: [
-            'frontend/vue/getting-started',
-            'frontend/vue/database-composables',
-            'frontend/vue/storage-composables',
-            'frontend/vue/workflow-composables',
-            'frontend/vue/session-composables',
-            'frontend/vue/notification-composables',
-            'frontend/vue/action-composables',
-            'frontend/vue/resilience-composables',
-          ],
-        },
+        'workbench/secrets',
+        //'workbench/logs-overview',
+        // 'workbench/team-management',
       ],
     },
 
@@ -441,7 +498,7 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'category',
-          label: 'Backend SDK',
+          label: 'Backend',
           collapsed: true,
           items: [
             'tutorials/backend/building-a-blog-api',
@@ -452,7 +509,7 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'category',
-          label: 'Client SDKs',
+          label: 'Frontend',
           collapsed: true,
           items: [
             'tutorials/client/building-a-todo-app',
@@ -460,6 +517,23 @@ const sidebars: SidebarsConfig = {
             'tutorials/client/social-media-feed',
             'tutorials/client/real-time-chat-app',
           ],
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Miscellaneous',
+      collapsed: true,
+      items: [
+        {
+          type: 'doc',
+          id: 'sdk-readiness',
+          label: 'SDK Readiness',
+        },
+        {
+          type: 'doc',
+          id: 'sdk/runtime-defaults',
+          label: 'SDK runtime defaults',
         },
       ],
     },

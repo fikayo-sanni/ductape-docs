@@ -1,0 +1,40 @@
+---
+sidebar_position: 1
+sidebar_label: Overview
+---
+
+# Jobs Overview
+
+Jobs let you schedule background work: one-off tasks, recurring cron-style runs, and processor-backed operations (notifications, storage, database, graph, workflows).
+
+## Concepts
+
+| Term | Description |
+|------|-------------|
+| **Job** | A unit of scheduled work with payload, status, and optional repeat/cron |
+| **Monitor** | SDK worker loop that claims due jobs and routes them to the processor |
+| **Dispatch** | Enqueue work without blocking the caller (actions, workflows, resilience, etc.) |
+
+## When to use jobs
+
+- Run workflows on a schedule or with delay
+- Retry failed operations with backoff
+- Process notifications, storage, or database operations asynchronously
+- Run healthchecks and recurring maintenance
+
+## SDK
+
+Initialize the SDK once, then use `ductape.jobs` (TypeScript) or the equivalent service in [Java, Go, and .NET](/sdk).
+
+```bash
+npm install @ductape/sdk
+```
+
+## Next steps
+
+- [Scheduling jobs](./scheduling-jobs)
+- [Cron expressions](./cron-expressions)
+- [Job management](./job-management)
+- [Retry strategies](./retry-strategies)
+- [Examples](./examples)
+- [Processing overview](/processing-overview)

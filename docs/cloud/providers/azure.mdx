@@ -1,0 +1,51 @@
+---
+title: Azure
+sidebar_position: 3
+---
+
+# Azure cloud connection
+
+Azure connections use an **Entra ID service principal** (tenant, subscription, client ID, client secret).
+
+## Setup checklist
+
+1. **Microsoft Entra ID** → App registrations → create app → copy tenant ID and client ID.
+2. **Certificates & secrets** → create client secret.
+3. **Subscriptions** → copy subscription ID.
+4. **Access control (IAM)** → assign on subscription or resource group:
+   - **Owner** or **Contributor** (control plane)
+   - **Storage Blob Data Contributor** (blob data plane)
+   - **Azure Service Bus Data Owner** (queue data plane)
+5. Workbench → **Cloud** → Add Azure connection with tag e.g. `prod_azure`.
+
+## SDK lifecycle
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'azure',
+  name: 'prod_azure',
+  scopes: ['storage', 'database', 'broker'],
+});
+
+await ductape.cloud.connections.complete('prod_azure', {
+  tenant_id: '00000000-0000-0000-0000-000000000000',
+  subscription_id: '00000000-0000-0000-0000-000000000001',
+  client_id: '00000000-0000-0000-0000-000000000002',
+  client_secret: 'your-client-secret',
+  default_location: 'eastus',
+});
+
+await ductape.cloud.connections.validate('prod_azure');
+```
+
+Omit `client_secret` on later `complete` calls to keep the stored secret; include it only when rotating.
+
+## Linked services
+
+| `service` | Component type |
+|-----------|----------------|
+| `blob` | Storage |
+| `servicebus` | Message brokers |
+| `postgresql` | Databases (Flexible Server) |
+| `cosmos-gremlin` | Graphs |
+| `azure-search` | Vectors |

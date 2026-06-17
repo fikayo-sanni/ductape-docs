@@ -1,0 +1,73 @@
+Session lifecycle composables (`useSessionStart`, `useSessionVerify`, `useSessionRefresh`, etc.) are **not available** with a publishable key. Start sessions on your backend with `@ductape/sdk`, then pass the token in frontend composables.
+
+### Auth composable
+
+```vue
+<script setup lang="ts">
+import { ref, provide, inject, type InjectionKey } from 'vue';
+
+type AuthContext = {
+  sessionToken: Ref<string | null>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
+
+const authKey: InjectionKey<AuthContext> = Symbol('auth');
+
+const sessionToken = ref<string | null>(localStorage.getItem('ductape_session'));
+
+async function login(email: string, password: string) {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const { sessionToken: token, refreshToken } = await res.json();
+  localStorage.setItem('ductape_session', token);
+  localStorage.setItem('ductape_refresh', refreshToken);
+  sessionToken.value = token;
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  localStorage.removeItem('ductape_session');
+  localStorage.removeItem('ductape_refresh');
+  sessionToken.value = null;
+}
+
+provide(authKey, { sessionToken, login, logout });
+</script>
+```
+
+### Pass `session` in composables
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useDatabaseQuery } from '@ductape/vue';
+import { useAuth } from './useAuth'; // injects sessionToken from provider
+
+const { sessionToken } = useAuth();
+
+const { data, isLoading, error } = useDatabaseQuery(
+  'users',
+  computed(() => ({
+    table: 'users',
+    limit: 20,
+    session: sessionToken.value!,
+  })),
+  { enabled: computed(() => !!sessionToken.value) },
+);
+</script>
+
+<template>
+  <p v-if="!sessionToken">Please log in.</p>
+  <p v-else-if="isLoading">Loading…</p>
+  <p v-else-if="error">{{ error.message }}</p>
+  <ul v-else>
+    <li v-for="row in data?.rows" :key="row.id">{{ row.email }}</li>
+  </ul>
+</template>
+```
+
+The same `session` option applies to `useStorageUpload`, `useActionRun`, workflow composables, and other Ductape Vue helpers.

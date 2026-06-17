@@ -1,0 +1,109 @@
+---
+title: AWS networking
+sidebar_position: 3
+---
+
+# AWS networking (RDS & Neptune)
+
+RDS and Neptune run inside your VPC. **Provisioning** uses the AWS control plane and does not need TCP to the database. **Connecting** (runtime queries, Workbench test connect) opens TCP to the instance — your security group must allow it.
+
+Allow inbound from **both** your application servers and the Ductape proxy (Workbench and hosted proxy run the SDK server-side).
+
+| Service | Port |
+|---------|------|
+| RDS (PostgreSQL) | **5432** |
+| Neptune (Gremlin) | **8182** |
+
+S3, SQS, and public OpenSearch do **not** need VPC security groups.
+
+## Choose a mode
+
+Workbench → **Cloud** → your connection → **Security groups** tab:
+
+| Mode | Best for |
+|------|----------|
+| **Managed allowlist** | Public RDS, quick setup — Ductape creates `ductape-managed-*` SG and syncs your CIDR list |
+| **Customer-managed groups** | You own EC2 rules; register group IDs on the connection |
+| **VPC connector** | Private RDS/Neptune — deploy an outbound agent in your VPC |
+
+## Managed allowlist
+
+1. Add EC2 permissions to your customer `DuctapeAccess` role:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "ec2:DescribeVpcs", "ec2:DescribeSubnets", "ec2:DescribeSecurityGroups",
+      "ec2:CreateSecurityGroup", "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress", "ec2:CreateTags"
+    ],
+    "Resource": "*"
+  }]
+}
+```
+
+2. Configure the allowlist:
+
+```ts
+await ductape.cloud.connections.updateManagedNetworking('prod_aws', {
+  mode: 'managed',
+  include_ductape_proxy: true,
+  ductape_proxy_host: 'api.ductape.app',
+  allowed_sources: [
+    { cidr: '203.0.113.10/32', label: 'App server NAT' },
+  ],
+  region: 'us-east-1',
+});
+```
+
+`securityGroups` on provision or component envs are **optional** when managed networking is on — Ductape attaches the managed group automatically.
+
+**Local dev:** `resolveNetworkingHost('localhost')` cannot produce AWS-whitelistable IPs. Use customer-managed groups with your dev egress IP, or test from a deployed environment.
+
+## Customer-managed groups
+
+Create inbound rules in EC2, then register groups on the connection:
+
+```ts
+await ductape.cloud.connections.updateSecurityGroups('prod_aws', {
+  security_groups: [{
+    tag: 'prod-rds',
+    groupId: 'sg-your-preconfigured-group',
+    resourceTypes: ['rds', 'neptune'],
+  }],
+});
+
+await ductape.cloud.resources.provision({
+  cloud: 'prod_aws',
+  service: 'rds',
+  securityGroups: ['prod-rds'],
+  instance: 'my-app-db',
+  region: 'us-east-1',
+  type: 'databases',
+  product: 'my-product',
+  component: 'app-db',
+  env: 'prd',
+});
+```
+
+## VPC connector
+
+For private RDS or Neptune without public IP allowlists:
+
+1. Workbench → **VPC connector** → pick VPC + subnets → **Provision connector networking**
+2. Deploy the agent from `connectors/aws-vpc-agent` in those subnets
+3. Configure `DUCTAPE_INTEGRATIONS_URL`, `WORKSPACE_ID`, `CLOUD_TAG`, `ENROLLMENT_TOKEN`
+
+When `networking.mode` is `vpc_connector`, the SDK routes PostgreSQL TCP through the connector relay automatically.
+
+See `connectors/aws-vpc-agent/README.md` in the repo for ECS/Docker deployment.
+
+## RDS vs Neptune
+
+- **RDS** — provisioned publicly accessible by default. Managed allowlist works well.
+- **Neptune** — always VPC-scoped. Customer-managed groups or VPC connector are usually simpler.
+
+Provision or connect fails with a clear error if neither managed networking nor `securityGroups` tags are configured.

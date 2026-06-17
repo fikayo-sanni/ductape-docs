@@ -43,8 +43,6 @@ await ductape.product.notifications.actions.create({
 
 ```typescript
 const result = await ductape.processor.notification.send({
-  env: "dev",
-  product: "payments_service",
   notification: "email_notifications",
   event: "send_welcome_email",
   input: {

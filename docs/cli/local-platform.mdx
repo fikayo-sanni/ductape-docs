@@ -1,0 +1,29 @@
+---
+title: Local platform
+sidebar_position: 5
+---
+
+# Local platform
+
+```bash
+ductape install
+ductape start
+ductape start --build
+ductape start --backend-only
+ductape start --remote --build   # Workbench only → cloud API
+ductape stop
+ductape status
+```
+
+| Service | Default URL |
+|---------|-------------|
+| API gateway | http://localhost:4311/api/ |
+| Workbench | http://localhost:4310 |
+
+For a full local stack: `ductape profiles use local`, then `ductape login --profile local`.
+
+Set `DUCTAPE_PLATFORM_DIR` if `platform/` is not at `../platform` relative to the CLI package.
+
+| Variable | Purpose |
+|----------|---------|
+| `DUCTAPE_PLATFORM_DIR` | Path to `platform/` for `ductape start` |

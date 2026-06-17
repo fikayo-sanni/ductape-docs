@@ -33,8 +33,6 @@ await ductape.database.action.create({
 
 // Execute the action with different inputs
 const users = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-users-paginated',
   input: {
@@ -81,8 +79,6 @@ await ductape.database.action.create({
 
 // Execute
 const users = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-active-users',
   input: {
@@ -117,8 +113,6 @@ await ductape.database.action.create({
 
 // Execute
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'create-user',
   input: {
@@ -150,8 +144,6 @@ await ductape.database.action.create({
 
 // Execute
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'update-user-status',
   input: {
@@ -179,8 +171,6 @@ await ductape.database.action.create({
 
 // Execute
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'delete-old-sessions',
   input: {
@@ -214,8 +204,6 @@ await ductape.database.action.create({
 
 // Execute
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'upsert-user-prefs',
   input: {
@@ -253,8 +241,6 @@ await ductape.database.action.create({
 
 // Execute
 const result = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'user-statistics',
   input: {
@@ -322,8 +308,6 @@ await ductape.database.action.create({
 
 // Execute
 const report = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'complex-user-report',
   input: {
@@ -385,8 +369,6 @@ Provide defaults in input:
 
 ```ts
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-users',
   input: {
@@ -469,8 +451,6 @@ actions.forEach(action => {
 
 ```ts
 const result = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-users',
   input: {
@@ -491,8 +471,6 @@ interface User {
 }
 
 const users = await ductape.database.execute<User[]>({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-users',
   input: { status: 'active' },
@@ -509,8 +487,6 @@ users.forEach(user => {
 ```ts
 try {
   const users = await ductape.database.execute({
-    product: 'my-product',
-    env: 'prd',
     database: 'postgresdb',
     action: 'get-users',
     input: { status: 'active' },
@@ -557,8 +533,6 @@ async function getProductsPage(
   pageSize: number = 20
 ) {
   return ductape.database.execute({
-    product: 'my-product',
-    env: 'prd',
     database: 'postgresdb',
     action: 'get-products-paginated',
     input: {
@@ -608,8 +582,6 @@ await ductape.database.action.create({
 
 // Execute with array
 await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'bulk-create-orders',
   input: {
@@ -671,8 +643,6 @@ await ductape.database.action.create({
 
 // Execute
 const summary = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'sales-summary',
   input: {
@@ -735,8 +705,6 @@ function validateInput(input: any) {
 }
 
 const users = await ductape.database.execute({
-  product: 'my-product',
-  env: 'prd',
   database: 'postgresdb',
   action: 'get-users',
   input: validateInput(userInput),
@@ -805,8 +773,6 @@ template: {
 describe('get-users-paginated', () => {
   it('should fetch first page', async () => {
     const users = await ductape.database.execute({
-      product: 'test-product',
-      env: 'test',
       database: 'testdb',
       action: 'get-users-paginated',
       input: { limit: 10, offset: 0 },
@@ -817,8 +783,6 @@ describe('get-users-paginated', () => {
 
   it('should respect offset', async () => {
     const page2 = await ductape.database.execute({
-      product: 'test-product',
-      env: 'test',
       database: 'testdb',
       action: 'get-users-paginated',
       input: { limit: 10, offset: 10 },

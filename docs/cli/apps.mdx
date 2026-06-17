@@ -1,0 +1,98 @@
+---
+title: Apps
+sidebar_position: 7
+---
+
+# Apps
+
+Manage **integration apps** in the active workspace (Postman-style API definitions, actions, environments).
+
+Requires: `ductape login` and an active workspace.
+
+## Commands
+
+```bash
+ductape apps list
+ductape apps list --status active
+ductape apps get --id <app_id>
+ductape apps get --tag <app_tag>
+ductape apps create              # interactive prompts
+ductape apps create -f app.json
+ductape apps update --id <app_id> -f patch.json
+ductape apps update --tag <app_tag> --proxy -f patch.json
+ductape apps delete --id <app_id>
+
+# Import Postman v2.1 or OpenAPI 3.0
+ductape apps import ./stripe.json --type postman
+ductape apps import ./api.yaml --type openapi
+ductape apps import ./collection.json --type postman --app-tag my-workspace:stripe --update
+```
+
+## Import (Postman / OpenAPI)
+
+Imports use `POST /apps/v1/import` (same as the Workbench). Supported formats:
+
+| `--type` | Format |
+|----------|--------|
+| `postman` | Postman Collection **v2.1** (JSON) |
+| `openapi` | **OpenAPI 3.0** (JSON or YAML) |
+
+```bash
+# New app from collection (name taken from collection info / openapi title)
+ductape apps import ./postman-collection.json --type postman
+
+# OpenAPI spec
+ductape apps import ./openapi.yaml --type openapi
+
+# Update existing app (by tag or id)
+ductape apps import ./v2.json --type postman --app-tag acme:stripe --update
+ductape apps import ./v2.json --type postman --app-id 507f1f77bcf86cd799439011 --update
+```
+
+Options:
+
+- `--update` — merge into an existing app when the tag already exists
+- `--version` — app version tag (default `0.0.1`)
+- `--json` — print API response
+
+## How it works
+
+| Verb | API |
+|------|-----|
+| `list` | `GET /apps/v1/workspace/:workspace_id/:status` |
+| `get` | `GET /apps/v1/:id` or `GET /apps/v1/fetch/tag` |
+| `create` | `POST /apps/v1/create` |
+| `update` | `PUT /apps/v1/:id` or sdk-proxy `app.update` with `--proxy` |
+| `delete` | `DELETE /apps/v1/:id` |
+
+## Example: create app
+
+`app.json`:
+
+```json
+{
+  "app_name": "Stripe",
+  "description": "Stripe API integration",
+  "tag": "stripe",
+  "base_url": "https://api.stripe.com"
+}
+```
+
+```bash
+ductape apps create -f app.json
+```
+
+Defaults added by the CLI: `workspace_id`, `user_id`, `public_key`, `version`, `logo`, `envs`.
+
+## Connecting apps to products
+
+After creating an app and product:
+
+1. List apps on a product: `ductape products apps list --product <product_id>`
+2. Connect via Workbench or sdk-proxy `product.apps.connect` (see [Products](./products))
+
+## vs `resources app`
+
+Use `ductape apps` for workspace app CRUD. Use `ductape resources app …` only for sdk-proxy operations when a project is linked.
+
+`ductape apps list` is the correct way to list apps.

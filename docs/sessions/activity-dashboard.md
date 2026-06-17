@@ -15,13 +15,10 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd',
 });
 
 const dashboard = await ductape.sessions.fetchDashboard({
-  product: 'my-product',
   session: 'user-session',
-  env: 'prd',  // Optional
 });
 
 // User Metrics
@@ -76,14 +73,11 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd',
 });
 
 async function displaySessionDashboard() {
   const dashboard = await ductape.sessions.fetchDashboard({
-    product: 'my-product',
     session: 'user-session',
-    env: 'prd',
   });
 
   console.log('=== Session Dashboard ===');
@@ -93,9 +87,7 @@ async function displaySessionDashboard() {
   console.log(`Avg sessions per user: ${dashboard.averageSessionsPerUser}`);
 
   const users = await ductape.sessions.fetchUsers({
-    product: 'my-product',
     session: 'user-session',
-    env: 'prd',
     page: 1,
     limit: 10,
   });
@@ -108,10 +100,8 @@ async function displaySessionDashboard() {
   // Get specific user details
   if (users.users.length > 0) {
     const userDetails = await ductape.sessions.fetchUserDetails({
-      product: 'my-product',
       session: 'user-session',
       identifier: users.users[0].identifier,
-      env: 'prd',
     });
 
     console.log('\n=== User Details ===');
@@ -157,9 +147,7 @@ import { SessionError } from '@ductape/sdk';
 
 try {
   const dashboard = await ductape.sessions.fetchDashboard({
-    product: 'my-product',
     session: 'user-session',
-    env: 'prd',
   });
 } catch (error) {
   if (error instanceof SessionError) {

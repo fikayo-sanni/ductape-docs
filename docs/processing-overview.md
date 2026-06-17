@@ -19,7 +19,7 @@ const ductape = new Ductape({
 });
 
 // Run operations immediately
-await ductape.actions.run({ ... });
+await ductape.api.run({ ... });
 await ductape.features.run({ ... });
 await ductape.notifications.send({ ... });
 await ductape.storage.save({ ... });
@@ -27,7 +27,7 @@ await ductape.events.publish({ ... });
 await ductape.sessions.start({ ... });
 
 // Schedule operations as jobs (dispatch)
-await ductape.actions.dispatch({ ..., schedule: { start_at: Date.now() + 3600000 } });
+await ductape.api.dispatch({ ..., schedule: { start_at: Date.now() + 3600000 } });
 await ductape.features.dispatch({ ..., schedule: { cron: '0 9 * * *' } });
 
 // Database operations via DatabaseService
@@ -48,7 +48,7 @@ The SDK exposes methods for managing different types of product resources:
 
 | Namespace | Methods | Description |
 |-----------|---------|-------------|
-| `ductape.actions` | `run()`, `dispatch()` | Run or schedule product actions |
+| `ductape.api` | `run()`, `dispatch()` | Run or schedule product actions |
 | `ductape.features` | `run()`, `output()`, `replay()`, `resume()`, `dispatch()` | Run or schedule product features |
 | `ductape.notifications` | `send()`, `dispatch()` | Send or schedule notifications |
 | `ductape.storage` | `readFile()`, `save()`, `dispatch()` | Manage storage operations |
@@ -84,9 +84,7 @@ const ductape = new Ductape({
 });
 
 // Run a product action immediately
-const result = await ductape.actions.run({
-  env: 'prd',
-  product: 'my-app',
+const result = await ductape.api.run({
   app: 'email-service',
   event: 'send_welcome_email',
   input: {
@@ -104,9 +102,7 @@ console.log('Action result:', result);
 
 ```typescript
 // Schedule an action to run in 1 hour
-const job = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'my-app',
+const job = await ductape.api.dispatch({
   app: 'email-service',
   event: 'send_reminder_email',
   input: {
@@ -121,8 +117,6 @@ console.log('Job scheduled:', job.job_id);
 
 // Schedule a recurring job with cron
 const recurringJob = await ductape.features.dispatch({
-  env: 'prd',
-  product: 'my-app',
   tag: 'daily-report',
   input: {},
   schedule: {

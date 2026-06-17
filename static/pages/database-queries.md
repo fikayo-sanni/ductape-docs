@@ -46,8 +46,6 @@ await ductape.product.databases.actions.create({
 
 ```typescript
 const result = await ductape.processor.db.run({
-  env: "dev",
-  product: "payments_service",
   database: "main_db",
   event: "fetch_users",
   input: {}

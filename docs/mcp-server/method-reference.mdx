@@ -1,0 +1,470 @@
+---
+sidebar_position: 6
+sidebar_label: Method reference
+---
+
+# Method reference
+
+Complete parameter signatures for `ductape_execute`. All `params` values are passed as a **JSON array in positional order** matching the TypeScript SDK.
+
+Built from `sdk/ts/src/index.ts` (Ductape class public API). The MCP server embeds this reference in the `ductape_execute` tool schema so agents can discover signatures at runtime.
+
+---
+
+## `product`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[data: { name, description, tag?, envs?: [{slug, name}] }]` |
+| `fetch` | `[product_tag: string]` |
+| `update` | `[product_tag: string, data: { name?, description? }]` |
+| `init` | `[product_tag: string]` |
+| `environments.create` | `[product_tag, data: { slug, env_name, description, active? }]` |
+| `environments.update` | `[product_tag, slug, data: { env_name?, description?, active? }]` |
+| `environments.list` | `[product_tag]` |
+| `environments.fetch` | `[product_tag, slug]` |
+| `apps.connect` | `[product_tag, app_tag]` |
+| `apps.add` | `[product_tag, app: { access_tag, envs: [{ app_env_slug, product_env_slug, variables?, auth? }] }]` |
+| `apps.list` | `[product_tag]` |
+| `apps.fetch` | `[product_tag, access_tag]` |
+| `apps.update` | `[product_tag, access_tag, data: { version?, envs? }]` |
+
+---
+
+## `app`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[data: { app_name, description, unique? }]` |
+| `fetch` | `[app_tag]` |
+| `update` | `[app_tag, data: { app_name?, description?, logo?, colors?, require_whitelist?, aboutText?, aboutHTML?, request_type? }]` |
+| `init` | `[app_tag]` |
+
+---
+
+## `actions`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[app_tag, data: { tag, name, resource, method: "GET"\|"POST"\|"PUT"\|"PATCH"\|"DELETE", description?, body?, params?, query?, headers?, response? }]` |
+| `update` | `[app_tag, action_tag, data: { resource?, method?, description?, request_type?, body?, query?, params?, headers?, response? }]` |
+| `fetch` | `[app_tag, action_tag]` |
+| `list` | `[app_tag]` |
+| `run` | `[{ product, env, app, action, input: { "body:field": value, "headers:Authorization": "...", "params:id": "...", "query:limit": 10 } }]` |
+| `dispatch` | `[{ product, env, app, action, input, retries?, session?, cache?, schedule?: { start_at?, cron?, every?, limit?, tz? } }]` |
+
+Action `input` keys use the prefix convention: `body:`, `headers:`, `params:`, `query:`.
+
+---
+
+## `auths` (via `app` module in proxy)
+
+| Method | Params |
+|--------|--------|
+| `create` | `[app_tag, data: { tag, name, setup_type: "header"\|"bearer"\|"basic"\|"oauth2"\|"apikey", expiry, period, description, action_tag? }]` |
+| `update` | `[app_tag, auth_tag, data: { name?, setup_type?, expiry?, period?, description?, action_tag? }]` |
+| `fetch` | `[app_tag, auth_tag]` |
+| `list` | `[app_tag]` |
+
+---
+
+## `webhooks`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[app_tag, data: { tag, name, description, envs?: [{ slug, registration_url?, method?, sample? }] }]` |
+| `update` | `[app_tag, webhook_tag, data: { name?, description?, envs? }]` |
+| `fetch` | `[app_tag, webhook_tag]` |
+| `list` | `[app_tag]` |
+| `events.create` | `[app_tag, data: { tag, name, selector, description, sample }]` |
+| `events.update` | `[app_tag, event_tag, data: { name?, selector?, selectorValue?, description?, sample? }]` |
+| `events.fetch` | `[app_tag, event_tag]` |
+| `events.list` | `[app_tag, webhook_tag]` |
+
+---
+
+## `sessions`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name, description?, expiry, period, selector, schema: { fieldName: "string"\|"number"\|"boolean" } }]` |
+| `update` | `[product_tag, session_tag, data: { name?, description?, expiry?, period?, selector?, schema? }]` |
+| `fetch` | `[product_tag, session_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, session_tag]` |
+| `start` | `[{ product, env, tag, data: { key: value } }]` |
+| `verify` | `[{ product, env, tag, token }]` |
+| `refresh` | `[{ product, env, tag, refreshToken }]` |
+| `revoke` | `[{ product, env, tag, sessionId?, identifier? }]` |
+| `listActive` | `[{ product, env, tag, identifier?, page?, limit? }]` |
+| `fetchUsers` | `[{ product, session, env?, page?, limit? }]` |
+| `fetchUserDetails` | `[{ product, session, identifier, env? }]` |
+| `fetchDashboard` | `[{ product, session, env? }]` |
+
+---
+
+## `quotas`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name?, description?, input: { fieldName: { type, required?, description? } }, options: [{ provider?, app, type: "action", event, quota, uses?, input, output, retries, healthcheck?, check_interval? }] }]` |
+| `update` | `[product_tag, quota_tag, data: { name?, description?, options? }]` |
+| `fetch` | `[product_tag, quota_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, quota_tag]` |
+| `run` | `[{ product, env, tag, input: { fieldName: value }, session?, cache? }]` |
+| `dispatch` | `[{ product, env, tag, input, session?, cache?, schedule?: { cron?, delay?, at? } }]` |
+
+Quota `input` mapping uses `$Input{fieldName}` in option definitions.
+
+---
+
+## `fallback`
+
+Same shape as quotas (without `quota` limit field on options). Methods: `create`, `update`, `fetch`, `list`, `delete`, `run`, `dispatch`.
+
+---
+
+## `health`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name, description?, app?, event?, probe?, interval, retries, envs: [{ slug, input? }], onFailure? }]` |
+| `update` | `[product_tag, health_tag, data: { ... }]` |
+| `fetch` | `[product_tag, health_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, health_tag]` |
+| `status` | `[{ product, env, tag }]` |
+| `run` | `[{ product, env, tag }]` |
+| `check` | `[{ product, env, tag }]` |
+
+---
+
+## `notifications`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name, type?: "email"\|"push"\|"sms"\|"callback" }]` |
+| `update` | `[product_tag, notif_tag, data: { name?, type? }]` |
+| `fetch` | `[product_tag, notif_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, notif_tag]` |
+| `messages.create` | `[product_tag, data: { tag, notification, subject?, body? }]` |
+| `messages.update` | `[product_tag, msg_tag, data: { subject?, body? }]` |
+| `messages.fetch` | `[product_tag, msg_tag]` |
+| `messages.list` | `[product_tag, notification_tag]` |
+| `send` | `[{ product, env, event, input: { email?, push_notification?, sms?, callback? } }]` |
+| `email.send` | `[{ product, env, notification, input: { recipients, subject, template }, session?, cache? }]` |
+| `push.send` | `[{ product, env, notification, input: { device_tokens, title, body, data }, session?, cache? }]` |
+| `sms.send` | `[{ product, env, notification, input: { recipients, body }, session?, cache? }]` |
+| `callback.send` | `[{ product, env, notification, input: { query, params, body, headers }, session?, cache? }]` |
+| `dispatch` | `[{ product, env, notification, event, input, retries?, session?, cache?, schedule? }]` |
+| `getMessages` | `[{ product_tag?, env?, notification_tag?, status?, type?, start_date?, end_date?, page?, limit? }]` |
+
+---
+
+## `messageBrokers`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, type: "kafka"\|"rabbitmq"\|"redis"\|"sqs", envs: [{ slug, connection_url }] }]` |
+| `update` | `[product_tag, broker_tag, data: { name?, description?, type?, envs? }]` |
+| `fetch` | `[product_tag, broker_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, broker_tag]` |
+| `topics.create` | `[product_tag, data: { tag, name, broker, type: "producer"\|"consumer"\|"both" }]` |
+| `topics.update` | `[product_tag, topic_tag, data: { name?, type? }]` |
+| `topics.fetch` | `[product_tag, topic_tag]` |
+| `topics.list` | `[product_tag, broker_tag]` |
+| `produce` | `[{ product, env, event: "broker_tag:topic_tag", message: { key: value }, session?, cache? }]` |
+| `consume` | `[{ product, env, event: "broker_tag:topic_tag", callback: "function_ref" }]` |
+| `dispatch` | `[{ product, env, broker, event, input: { message }, retries?, session?, cache?, schedule? }]` |
+| `messages.query` | `[{ product, env, brokerTag, topicTag?, producerTag?, consumerTag?, status?, startDate?, endDate?, page?, limit? }]` |
+| `messages.getProducers` | `[{ product, env, brokerTag, topicTag?, page?, limit? }]` |
+| `messages.getConsumers` | `[{ product, env, brokerTag, topicTag?, page?, limit? }]` |
+| `messages.getDeadLetters` | `[{ product, env, brokerTag, topicTag?, consumerTag?, startDate?, endDate?, page?, limit? }]` |
+| `messages.getStats` | `[{ product, env, brokerTag }]` |
+| `messages.getDashboard` | `[{ product, env, brokerTag }]` |
+
+---
+
+## `storage`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, envs: [{ slug, type: "aws"\|"azure"\|"gcp", config: { bucket?, region?, accessKeyId?, secretAccessKey?, ... } }] }]` |
+| `update` | `[product_tag, storage_tag, data: { name?, description?, envs? }]` |
+| `fetch` | `[product_tag, storage_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, storage_tag]` |
+| `upload` | `[{ product, env, storage, fileName, buffer: string\|Buffer, mimeType? }]` |
+| `download` | `[{ product, env, storage, fileName }]` |
+| `remove` | `[{ product, env, storage, fileName }]` |
+| `listFiles` | `[{ product, env, storage, prefix?, limit?, continuationToken? }]` |
+| `getSignedUrl` | `[{ product, env, storage, fileName, expiresIn?, action?: "read"\|"write" }]` |
+| `stats` | `[{ product, env, storage, prefix?, session?, cache? }]` |
+| `testConnection` | `[{ product, env, storage }]` |
+| `files.upload` | Same as `upload` |
+| `files.download` | Same as `download` |
+| `files.delete` | Same as `remove` |
+| `files.list` | Same as `listFiles` |
+| `files.getSignedUrl` | Same as `getSignedUrl` |
+| `dispatch` | `[{ product, env, storage, operation, input, retries?, session?, cache?, schedule? }]` |
+
+---
+
+## `databases`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, type: "mongodb"\|"postgresql"\|"mysql"\|"sqlite", envs: [{slug, connection_url}] }]` |
+| `register` | `[product_tag, data: IProductDatabase]` |
+| `list` | `[product_tag]` |
+| `fetch` | `[product_tag, database_tag]` |
+| `updateDatabase` | `[product_tag, database_tag, data: { name?, description?, type?, envs? }]` |
+| `connect` | `[{ product, env, database }]` |
+| `testConnection` | `[{ product, env, database }]` |
+| `disconnect` | `[]` |
+| `query` | `[{ product, env, database, entity, where?: {field: {$eq\|$gt\|$lt\|$in: value}}, select?, orderBy?, limit?, offset? }]` |
+| `insert` | `[{ product, env, database, entity, data: object\|object[], returning? }]` |
+| `update` | `[{ product, env, database, entity, data, where, returning? }]` |
+| `delete` | `[{ product, env, database, entity, where, returning? }]` |
+| `upsert` | `[{ product, env, database, entity, data, conflictKeys, returning? }]` |
+| `count` | `[{ product, env, database, entity, where? }]` |
+| `sum` / `avg` / `min` / `max` | `[{ product, env, database, entity, field, where? }]` |
+| `aggregate` | `[{ product, env, database, entity, aggregations: [{type, field?, alias}], where?, groupBy? }]` |
+| `schema.create` | `[collection_name, definition, options?]` |
+| `schema.drop` | `[collection_name, options?]` |
+| `schema.addField` | `[collection, fieldName, definition]` |
+| `schema.dropField` | `[collection, fieldName]` |
+| `schema.renameField` | `[collection, oldName, newName]` |
+| `schema.modifyField` | `[collection, fieldName, changes]` |
+| `schema.createIndex` | `[collection, fields, options?]` |
+| `schema.dropIndex` | `[collection, indexName]` |
+| `schema.list` | `[schemaName?]` |
+| `schema.describe` | `[collection_name]` |
+| `schema.indexes` | `[collection_name]` |
+| `migration.create` | `[{ product, database, data: { name, tag, description?, value: { up, down } } }]` |
+| `migration.update` | `[{ product, tag, data }]` |
+| `migration.fetch` | `[{ product, tag }]` |
+| `migration.list` | `[{ product, database }]` |
+| `migration.delete` | `[{ product, tag }]` |
+| `migration.run` | `[migrations, options?]` |
+| `migration.rollback` | `[migrations, count?]` |
+| `migration.history` | `[]` |
+| `migration.status` | `[migrations]` |
+| `action.create` | `[{ product, database, data: { tag, name, description?, type: "sql"\|"nosql", query } }]` |
+| `action.update` | `[{ product, tag, data }]` |
+| `action.fetch` | `[action_tag]` |
+| `action.list` | `[database_tag]` |
+| `action.delete` | `[action_tag]` |
+| `action.dispatch` | `[{ product, env, database, action, input, schedule? }]` |
+| `dispatch` | `[{ product, env, database, action, input, schedule? }]` |
+
+---
+
+## `graph`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, type: "neo4j"\|"nebula"\|"arangodb", envs: [{slug, connection_url, username?, password?}] }]` |
+| `fetch` | `[product_tag, graph_tag]` |
+| `list` | `[product_tag?]` |
+| `update` | `[product_tag, graph_tag, data: { name?, description?, type?, envs? }]` |
+| `delete` | `[graph_tag, product_tag?]` |
+| `connect` | `[{ product, env, graph }]` |
+| `testConnection` | `[config]` |
+| `createNode` | `[{ labels, properties }, transaction?]` |
+| `findNodes` | `[{ labels?, where?, limit?, skip? }, transaction?]` |
+| `findNodeById` | `[id, transaction?]` |
+| `updateNode` | `[{ id, properties }, transaction?]` |
+| `deleteNode` | `[{ id, detach? }, transaction?]` |
+| `mergeNode` | `[{ labels, matchProps, setProps? }, transaction?]` |
+| `addLabels` / `removeLabels` / `setLabels` | `[{ id, labels }, transaction?]` |
+| `createRelationship` | `[{ fromId, toId, type, properties? }, transaction?]` |
+| `findRelationships` | `[{ type?, where?, limit? }, transaction?]` |
+| `findRelationshipById` | `[id, transaction?]` |
+| `updateRelationship` | `[{ id, properties }, transaction?]` |
+| `deleteRelationship` | `[{ id }, transaction?]` |
+| `mergeRelationship` | `[{ fromId, toId, type, matchProps?, setProps? }, transaction?]` |
+| `traverse` | `[{ startId, direction?, relationshipTypes?, maxDepth?, where? }, transaction?]` |
+| `shortestPath` | `[{ fromId, toId, relationshipType?, maxDepth? }, transaction?]` |
+| `allPaths` | `[{ fromId, toId, relationshipType?, maxDepth? }, transaction?]` |
+| `getNeighborhood` | `[{ id, depth?, relationshipTypes? }, transaction?]` |
+| `findConnectedComponents` | `[{ labels? }, transaction?]` |
+| `query` | `[cypher_query, params?, transaction?]` |
+| `getStatistics` | `[transaction?]` |
+| `countNodes` | `[labels?, where?, transaction?]` |
+| `countRelationships` | `[types?, where?, transaction?]` |
+| `fullTextSearch` | `[{ index, query, limit? }, transaction?]` |
+| `vectorSearch` | `[{ index, vector, topK? }, transaction?]` |
+| `createNodeIndex` | `[{ label, field, type?: "btree"\|"fulltext"\|"vector" }]` |
+| `createNodeConstraint` | `[{ label, field, type: "unique"\|"exists" }]` |
+| `createRelationshipIndex` | `[{ type, field }]` |
+| `listIndexes` / `listConstraints` / `listLabels` / `listRelationshipTypes` | `[]` |
+| `dropIndex` / `dropConstraint` | `[name]` |
+| `createAction` | `[{ graphTag, tag, name, query, params? }, productTag?]` |
+| `listActions` | `[graphTag?, productTag?]` |
+| `getAction` | `[actionTag, graphTag?, productTag?]` |
+| `updateAction` | `[actionTag, updates, graphTag?, productTag?]` |
+| `deleteAction` | `[actionTag, graphTag?, productTag?]` |
+| `beginTransaction` | `[options?]` |
+| `commitTransaction` | `[transaction]` |
+| `rollbackTransaction` | `[transaction]` |
+| `dispatch` | `[data]` |
+
+---
+
+## `vector`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, provider: "pinecone"\|"qdrant"\|"weaviate", dimensions, metric?, envs: [{slug, api_key, environment?}] }]` |
+| `update` | `[{ product, tag, data: { name?, description?, type?, dimensions?, metric?, envs? } }]` |
+| `fetch` | `[{ product, tag }]` |
+| `list` | `[{ product }]` |
+| `delete` | `[{ product, tag }]` |
+| `connect` | `[{ product, env, vector }]` |
+| `disconnect` | `[{ product, env, vector }]` |
+| `query` | `[{ product, env, tag, vector: number[], topK?, filter?, namespace?, includeValues?, includeMetadata? }]` |
+| `upsert` | `[{ product, env, tag, vectors: [{id, values, metadata?}], namespace? }]` |
+| `fetchVectors` | `[{ product, env, vector, ids, namespace? }]` |
+| `deleteVectors` | `[{ product, env, tag, ids, namespace?, deleteAll? }]` |
+| `findSimilar` | `[{ product, env, vector, values: number[], topK?, filter?, namespace?, includeValues?, includeMetadata? }]` |
+| `upsertOne` | `[{ product, env, tag, id, values, metadata?, namespace?, session? }]` |
+| `fetchOne` | `[{ product, env, vector, id, namespace? }]` |
+| `updateVector` | `[{ product, env, vector, id, values?, setMetadata?, mergeMetadata?, namespace? }]` |
+| `updateMetadata` | `[{ product, env, vector, id, metadata, merge?, namespace? }]` |
+| `deleteByIds` | `[{ product, env, vector, ids, namespace? }]` |
+| `deleteAll` | `[{ product, env, vector, namespace? }]` |
+| `listVectors` | `[{ product, env, vector, namespace?, prefix?, limit?, cursor? }]` |
+| `listAllVectors` | `[{ product, env, vector, namespace?, prefix? }]` |
+| `listNamespaces` | `[{ product, env, vector }]` |
+| `deleteNamespace` | `[{ product, env, vector, namespace }]` |
+| `describeIndex` | `[{ product, env, vector }]` |
+| `getStats` | `[{ product, env, vector }]` |
+| `createIndex` | `[{ product, env, vector, name, dimensions, metric?, replicas?, shards? }]` |
+| `deleteIndex` | `[{ product, env, vector, name }]` |
+| `listIndexes` | `[{ product, env, vector }]` |
+| `count` | `[{ product, env, vector, namespace? }]` |
+
+---
+
+## `workflow`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name, description?, input?, output?, envs?, steps: [{ tag, name?, type, app?, event?, database?, graph?, notification?, storage?, broker?, workflow?, input?, condition?, dependsOn?, options? }] }]` |
+| `update` | `[product_tag, workflow_tag, data: { name?, description?, steps?, envs? }]` |
+| `fetch` | `[product_tag, workflow_tag]` |
+| `fetchAll` | `[product_tag]` |
+| `delete` | `[product_tag, workflow_tag]` |
+| `define` | `[{ product?, tag, name, description?, input?, output?, signals?, queries?, options?, envs?, recordInput?, recordScenarios?, branchOverrides?, handler }]` |
+| `execute` | `[{ product, env, tag, input, session?, idempotency_key?, cache?, retries?, timeout? }]` |
+| `dispatch` | `[{ product, env, workflow, input, schedule?, session?, cache?, retries? }]` |
+| `signal` | `[{ product, env, workflow_id, signal, payload? }]` |
+| `query` | `[{ product, env, workflow_id, query, params? }]` |
+| `status` | `[executionId]` |
+| `cancel` | `[executionId, reason?]` |
+| `replay` | `[executionId, options?]` |
+| `restart` | `[executionId]` |
+| `resume` | `[executionId]` |
+| `replayFromStep` | `[executionId, stepTag]` |
+| `history` | `[executionId]` |
+| `stepDetail` | `[executionId, stepTag]` |
+| `relatedExecutions` | `[executionId]` |
+| `compare` | `[executionId1, executionId2]` |
+
+Step types: `action`, `database`, `graph`, `notification`, `storage`, `publish`, `workflow`, `sleep`, `wait_signal`.
+
+---
+
+## `caches`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ product, tag, name, description?, type: "redis"\|"memcached"\|"in-memory", envs: [{slug, connection_url}] }]` |
+| `update` | `[product_tag, cache_tag, data: { name?, description?, expiry? }]` |
+| `fetch` | `[product_tag, cache_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, cache_tag]` |
+| `get` | `[{ key }]` |
+| `set` | `[{ product, cache, key, value: string, componentTag?, componentType?, expiry?: Date }]` |
+| `clear` | `[{ key }]` |
+| `clearAll` | `[{ product, cache, env? }]` |
+| `fetchValues` | `[{ product, cache, env?, page?, limit?, expiryFilter?: "all"\|"expiring"\|"permanent"\|"expired" }]` |
+| `fetchDashboard` | `[{ product, cache, env? }]` |
+
+---
+
+## `jobs`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[product_tag, data: { tag, name, description?, type: "action"\|"notification"\|"storage"\|"database"\|"publish", app?, event?, executions?, intervals?, start_at? }]` |
+| `update` | `[product_tag, job_tag, data: { ... }]` |
+| `fetch` | `[product_tag, job_tag]` |
+| `list` | `[product_tag]` |
+| `delete` | `[product_tag, job_tag]` |
+| `get` | `[jobId]` |
+| `listJobs` | `[{ product?, status?, limit?, page? }]` |
+| `cancel` | `[jobId, { reason? }?]` |
+| `cancelMany` | `[{ product?, status? }]` |
+| `pause` | `[jobId]` |
+| `pauseMany` | `[{ product?, recurring? }]` |
+| `resume` | `[jobId]` |
+| `resumeMany` | `[{ product?, status? }]` |
+| `retry` | `[jobId, { delay? }?]` |
+| `retryMany` | `[{ status?, from? }]` |
+| `reschedule` | `[jobId, { start_at?, cron?, every? }]` |
+| `getHistory` | `[jobId, { limit? }?]` |
+| `getStats` | `[{ product?, env?, from?, to? }?]` |
+
+---
+
+## `secrets`
+
+| Method | Params |
+|--------|--------|
+| `create` | `[{ key, value, description?, token_type?: "api"\|"password"\|"certificate", scope?, envs?, expires_at? }]` |
+| `update` | `[key, { value?, description?, scope?, envs?, expires_at? }]` |
+| `fetch` | `[key]` |
+| `list` | `[]` |
+| `delete` | `[key]` |
+| `revoke` | `[key]` |
+| `exists` | `[key]` |
+| `resolve` | `[value, { env?, app? }?]` |
+| `validate` | `[value]` |
+
+---
+
+## `logs`
+
+| Method | Params |
+|--------|--------|
+| `init` | `[product_tag?, app_tag?]` (at least one required) |
+| `fetch` | `[{ product_id?, app_id?, env?, level?: "info"\|"warn"\|"error"\|"debug", start_date?, end_date?, page?, limit? }]` |
+
+---
+
+## Runtime context objects
+
+Many runtime methods share a common shape:
+
+```json
+{
+  "product": "ductape:my-product",
+  "env": "prd"
+}
+```
+
+Optional cross-cutting fields:
+
+| Field | Used by |
+|-------|---------|
+| `session` | Actions, quotas, fallbacks, notifications, storage, messageBrokers — format: `"session_tag:jwt_token"` |
+| `cache` | Same modules — cache tag for response caching |
+| `schedule` | `dispatch` methods — `{ cron?, every?, start_at?, limit?, tz?, delay?, at? }` |
+| `retries` | Dispatch and action calls |
+
+See [SDK runtime defaults](/sdk/runtime-defaults) for how `product` and `env` defaults work in application code.

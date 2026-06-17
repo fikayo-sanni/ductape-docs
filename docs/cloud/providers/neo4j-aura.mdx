@@ -1,0 +1,54 @@
+---
+title: Neo4j Aura
+sidebar_position: 5
+---
+
+# Neo4j Aura cloud connection
+
+Aura connections use **OAuth API credentials** (client ID + client secret) from the Aura console.
+
+## Setup checklist
+
+1. [Neo4j Aura console](https://console.neo4j.io/) → **Account** → **API Credentials**.
+2. Create credentials → copy **client ID** and **client secret** (secret shown once).
+3. Workbench → **Cloud** → Add Aura connection with tag e.g. `prod_aura`.
+4. Under **Private access**, whitelist Ductape proxy IPs for Aura instance access.
+
+## SDK lifecycle
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'neo4j_aura',
+  name: 'prod_aura',
+  scopes: ['graph'],
+});
+
+await ductape.cloud.connections.complete('prod_aura', {
+  aura_client_id: 'your-client-id',
+  aura_client_secret: 'your-client-secret',
+});
+
+await ductape.cloud.connections.validate('prod_aura');
+```
+
+Optionally pass `aura_instance_id` when completing if you target a specific instance.
+
+## Linked services
+
+| `service` | Component type |
+|-----------|----------------|
+| `aura-instance` | Graphs (Neo4j) |
+
+Import an Aura instance:
+
+```ts
+const result = await ductape.cloud.resources.import({
+  cloud: 'prod_aura',
+  service: 'aura-instance',
+  type: 'graphs',
+  product: 'my-product',
+  component: 'graph-neo4j',
+  env: 'prd',
+  resource: 'instance-id',
+});
+```

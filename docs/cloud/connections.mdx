@@ -1,0 +1,71 @@
+---
+title: Cloud connections
+sidebar_position: 1
+---
+
+# Cloud connections
+
+A **cloud connection** links your Ductape workspace to an external provider. Each connection has a stable **tag** (for example `prod_aws`) that you pass as `cloud: '<tag>'` when [linking components](./cloud-linked-components).
+
+See [Cloud overview](./overview) for the full connect → link → run flow.
+
+## Lifecycle
+
+| Step | Method |
+|------|--------|
+| Create | `connections.create({ provider, name, scopes })` |
+| **Complete** | **`connections.complete(cloudTag, input)`** — save provider credentials |
+| Validate | `connections.validate(cloudTag)` — test and activate |
+| Read | `connections.fetch(cloudTag)` / `connections.list()` |
+| Update | `connections.update(cloudTag, { display_name, description, scopes })` |
+| Delete | `connections.delete(cloudTag)` |
+
+Always use the connection **tag** in `complete`, `validate`, `fetch`, `update`, and `delete` — not an internal ID.
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'aws',
+  name: 'prod_aws',
+  scopes: ['storage', 'database'],
+});
+
+await ductape.cloud.connections.complete('prod_aws', {
+  role_arn: 'arn:aws:iam::123456789012:role/DuctapeAccess',
+});
+
+await ductape.cloud.connections.validate('prod_aws');
+```
+
+## Providers
+
+| Provider | `provider` value | Complete input | Guide |
+|----------|------------------|----------------|-------|
+| AWS | `aws` | `role_arn` | [AWS setup](./providers/aws) |
+| GCP | `gcp` | `project_id`, `service_account_json` | [GCP setup](./providers/gcp) |
+| Azure | `azure` | `tenant_id`, `subscription_id`, `client_id`, `client_secret` | [Azure setup](./providers/azure) |
+| MongoDB Atlas | `mongodb_atlas` | `project_id`, `atlas_public_key`, `atlas_private_key` | [Atlas setup](./providers/mongodb-atlas) |
+| Neo4j Aura | `neo4j_aura` | `aura_client_id`, `aura_client_secret` | [Aura setup](./providers/neo4j-aura) |
+
+## Workbench
+
+| Action | Where |
+|--------|--------|
+| Create | Cloud sidebar → **Add connection** |
+| Complete credentials | **Setup** tab (pending) or **Settings** → **Credentials** (active) |
+| Re-validate | Connection header → **Re-validate** |
+| Delete | **Remove** in the connection header |
+
+The connection **tag** is fixed after creation. You can change display name and description anytime. Leave secret fields blank on credential updates to keep the stored value.
+
+## SDK parity
+
+| Language | Complete |
+|----------|----------|
+| TypeScript | `ductape.cloud.connections.complete(cloudTag, input)` |
+| Go | `client.Cloud.Connections.Complete(ctx, cloudTag, input)` |
+| Java | `cloudService().completeConnection(cloudTag, input)` |
+| .NET | `ductape.Cloud.CompleteConnectionAsync(cloudTag, input)` |
+
+## Next
+
+[Link your first component](./cloud-linked-components)

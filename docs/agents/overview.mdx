@@ -36,7 +36,6 @@ const ductape = new Ductape({
 
 // Define the agent
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'support-agent',
   name: 'Customer Support Agent',
   model: {
@@ -89,8 +88,6 @@ Always be polite and helpful.`,
 
 // Run the agent
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'support-agent',
   input: 'Can you check the status of order ORD-12345?',
 });
@@ -277,7 +274,6 @@ Create an agent definition:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'my-agent',
   name: 'My Agent',
   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
@@ -300,8 +296,6 @@ Execute the agent:
 
 ```typescript
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-agent',
   input: 'User message',
   sessionId: 'session-123',  // For memory continuity

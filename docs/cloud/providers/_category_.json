@@ -1,0 +1,8 @@
+{
+  "label": "Providers",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Per-provider setup and connections.complete examples for AWS, GCP, Azure, MongoDB Atlas, and Neo4j Aura."
+  }
+}

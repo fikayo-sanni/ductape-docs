@@ -1,0 +1,163 @@
+---
+sidebar_position: 2
+title: Getting started
+---
+
+# Getting started with @ductape/nestjs
+
+This guide sets up a minimal NestJS integration app: module configuration, a service with `@Api` and `@Database`, and an inbound webhook consumer.
+
+## 1. Configure `DuctapeModule`
+
+```typescript title="app.module.ts"
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  DuctapeModule,
+  DuctapeDatabaseModule,
+  DuctapeStorageModule,
+} from '@ductape/nestjs';
+import { OrdersModule } from './orders/orders.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    DuctapeModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        accessKey: config.getOrThrow('DUCTAPE_ACCESS_KEY'),
+        product: 'shop-api',
+        env: config.get('NODE_ENV') === 'production' ? 'prd' : 'dev',
+        local: config.get('DUCTAPE_LOCAL') === 'true',
+      }),
+    }),
+    DuctapeDatabaseModule.register({ tags: ['orders-db'] }),
+    DuctapeStorageModule.register({ tags: ['receipts'] }),
+    OrdersModule,
+  ],
+})
+export class AppModule {}
+```
+
+`forRootAsync` is equivalent to `forIntegration` with async factory options. See [Module setup](./module-setup) for `forIntegration` / `forWorkspace` details.
+
+## 2. Use decorators in a service
+
+```typescript title="orders/orders.service.ts"
+import { Injectable } from '@nestjs/common';
+import {
+  Api,
+  ApiConfig,
+  Database,
+  Env,
+  InjectContext,
+  Product,
+  Storage,
+  type DatabaseHandle,
+  type StorageHandle,
+  type DuctapeContext,
+} from '@ductape/nestjs';
+
+@Injectable()
+@Product('shop-api')
+@Env('prd')
+@ApiConfig({
+  product: 'shop-api',
+  app: 'stripe',
+  env: 'prd',
+  credentials: {
+    'headers:Authorization': '$Secret{STRIPE_API_KEY}',
+  },
+})
+export class OrdersService {
+  constructor(
+    @InjectContext() private readonly ductape: DuctapeContext,
+    @Database('orders-db') private readonly ordersDb: DatabaseHandle,
+    @Storage('receipts') private readonly receipts: StorageHandle,
+  ) {}
+
+  /** Interceptor calls ductape.api.run — return value is the action result */
+  @Api({ app: 'stripe', action: 'create-charge' })
+  async charge(input: { amount: number; currency: string }) {
+    return input;
+  }
+
+  async saveOrder(row: Record<string, unknown>) {
+    return this.ordersDb.insert({ table: 'orders', data: row });
+  }
+
+  async uploadReceipt(fileName: string, buffer: Buffer) {
+    return this.receipts.upload({ fileName, buffer, mimeType: 'application/pdf' });
+  }
+}
+```
+
+The method body of `@Api` handlers returns the **action input**. The interceptor replaces the return value with the SDK result.
+
+## 3. Register and consume webhooks
+
+```typescript title="webhooks/webhooks.controller.ts"
+import { Body, Controller, Post } from '@nestjs/common';
+import {
+  AccessTag,
+  Webhook,
+  WebhookBodyFromRequest,
+} from '@ductape/nestjs';
+
+@Controller('hooks')
+@AccessTag('shop-admin')
+export class WebhooksController {
+  @Post('orders')
+  @Webhook.Consumer({ webhook: 'order_events', event: 'order_created' })
+  handleOrder(@WebhookBodyFromRequest() body: unknown) {
+    return { ok: true, received: body };
+  }
+}
+```
+
+```typescript title="webhooks/webhook-setup.service.ts"
+import { Injectable } from '@nestjs/common';
+import { AccessTag, Webhook } from '@ductape/nestjs';
+
+@Injectable()
+@AccessTag('shop-admin')
+export class WebhookSetupService {
+  @Webhook.Register({
+    webhook: 'order_events',
+    env: 'prd',
+    url: 'https://api.example.com/hooks/orders',
+    method: 'POST',
+  })
+  async registerProduction(): Promise<string> {
+    return '' as unknown as string; // interceptor returns proxy URL
+  }
+}
+```
+
+Call `registerProduction()` at deploy time (or from an admin endpoint) to obtain the Ductape proxy URL.
+
+## Context precedence
+
+Product and environment resolve in this order:
+
+1. Per-decorator options (`product`, `env`, `accessTag` on `@Api`, `@Database`, …)
+2. Method-level `@Product` / `@Env`
+3. Class-level `@Product` / `@Env`
+4. `DuctapeModule` defaults from `forIntegration` / `forRootAsync`
+
+See [Context & handles](./context-and-handles) for `@AccessTag`, background jobs, and multi-tenant patterns.
+
+## Examples in the repo
+
+Full examples live under `sdk/nestjs/examples/`:
+
+- `integration-app.example.ts` — Api, Database, Storage, Webhook
+- `phase2-integration.example.ts` — messaging, cache, graph, vector, workflow, jobs
+- `phase3-integration.example.ts` — agents, warehouse, sessions, health, quota, fallback
+
+## Related docs
+
+- [SDK runtime defaults](/sdk/runtime-defaults) — how `@ductape/sdk` inherits `product` / `env` on the constructor
+- [Run actions](/actions/run-actions) — action execution concepts
+- [Product webhooks](/products/webhooks) — webhook registration model

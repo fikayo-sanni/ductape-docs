@@ -1,0 +1,18 @@
+---
+title: Troubleshooting
+sidebar_position: 14
+---
+
+# Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Not logged in | `ductape login` |
+| No active workspace | `ductape workspaces use` |
+| No linked project | `ductape link` (for `resources`, `db`, `graph`) |
+| Proxy 401 | Re-login; `ductape whoami` |
+| Local API down | `ductape start` + `ductape profiles use local` |
+| `local_proxy_health` 502 | `docker compose logs proxy` in `platform/` |
+| Login HTML / JSON error | `cloud` → `https://api.ductape.app`, `local` → `http://localhost:4311/api` |
+| `products list` empty | Check workspace: `ductape workspaces current` |
+| `resources product list` fails | Use `ductape products list` instead |

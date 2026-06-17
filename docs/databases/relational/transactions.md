@@ -10,8 +10,6 @@ Transactions ensure that multiple database operations execute atomically - eithe
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   // Create order
@@ -72,8 +70,6 @@ The callback API automatically handles commit and rollback:
 
 ```ts
 const result = await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   // Your database operations here
@@ -111,8 +107,6 @@ For more control, manage the transaction lifecycle manually:
 
 ```ts
 const transaction = await ductape.database.beginTransaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   isolationLevel: 'REPEATABLE_READ',
 });
@@ -155,8 +149,6 @@ Savepoints allow partial rollback within a transaction. If a risky operation fai
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   // First operation - will be kept
@@ -211,8 +203,6 @@ Control how transactions interact with concurrent operations:
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   isolationLevel: 'SERIALIZABLE',
 }, async (transaction) => {
@@ -269,8 +259,6 @@ Mark transactions as read-only for optimization:
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   readOnly: true, // Optimization hint
 }, async (transaction) => {
@@ -300,8 +288,6 @@ Set a maximum duration for transactions:
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   timeout: 30000, // 30 seconds
 }, async (transaction) => {
@@ -316,8 +302,6 @@ await ductape.database.transaction({
 
 ```ts
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   try {
@@ -345,8 +329,6 @@ await ductape.database.transaction({
 
 ```ts
 const transaction = await ductape.database.beginTransaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 
@@ -392,8 +374,6 @@ await ductape.database.transaction({
 ```ts
 // MongoDB transaction
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'mongo-db',
 }, async (transaction) => {
   // Savepoint would throw error here
@@ -417,8 +397,6 @@ await ductape.database.transaction({
 ```ts
 // DynamoDB transaction (max 100 items)
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'dynamo-db',
 }, async (transaction) => {
   // Each insert/update/delete counts toward 100 item limit

@@ -14,6 +14,8 @@ Ductape offers three complementary packages for frontend development:
 ### [@ductape/client](./client/getting-started)
 The core client library that works with any JavaScript framework or vanilla JavaScript. Provides a simple, type-safe interface for all Ductape services.
 
+Each topic page includes **tabs** for `@ductape/client`, **React**, and **Vue 3** code samples — pick your stack on the same page.
+
 **Use when:**
 - Building with vanilla JavaScript/TypeScript
 - Using frameworks not yet supported (Angular, Svelte, etc.)
@@ -27,7 +29,7 @@ const ductape = new Ductape({
 });
 ```
 
-### [@ductape/react](./react/getting-started)
+### [@ductape/react](./client/getting-started?client-sdk=react)
 React hooks and components built on top of @ductape/client, providing a React-idiomatic way to work with Ductape.
 
 **Use when:**
@@ -48,7 +50,7 @@ function UsersList() {
 }
 ```
 
-### [@ductape/vue](./vue/getting-started)
+### [@ductape/vue](./client/getting-started?client-sdk=vue)
 Vue 3 composables and plugin built on top of @ductape/client for Vue applications.
 
 **Use when:**
@@ -173,11 +175,11 @@ mutate({ table: 'todos', data: newTodo, session: sessionToken });
 
 ## Getting Started
 
-Choose your framework and jump right in:
+Choose a topic and switch tabs for your framework:
 
-- [Vanilla JavaScript/TypeScript →](./client/getting-started)
-- [React →](./react/getting-started)
-- [Vue 3 →](./vue/getting-started)
+- [Getting started →](./client/getting-started) — use the **@ductape/client**, **React**, or **Vue 3** tab
+- [Database operations →](./client/databases)
+- [Product analytics →](./client/analytics)
 
 ## Architecture
 

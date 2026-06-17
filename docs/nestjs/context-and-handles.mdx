@@ -1,0 +1,138 @@
+---
+sidebar_position: 4
+title: Context & handles
+---
+
+# Context & handles
+
+NestJS integration adds a **context layer** on top of [`@ductape/sdk`](/sdk/runtime-defaults) constructor defaults. Module options and class/method decorators determine which product, environment, and access tag apply to each request.
+
+## Context sources
+
+| Source | Description |
+|--------|-------------|
+| `DuctapeModule.forIntegration({ product, env })` | App-wide defaults |
+| `@Product('shop-api')` | Class or method product override |
+| `@Env('prd')` | Class or method environment override |
+| `@AccessTag('admin')` | Product-app connection (`access_tag`) on class or method |
+| `@InjectContext()` | Inject the active `DuctapeContext` |
+| Per-decorator options | Override `product`, `env`, or `accessTag` on individual decorators |
+
+### Precedence
+
+1. Per-decorator options (`@Api({ product: 'other' })`, `@Database('db', { env: 'stg' })`, …)
+2. Method-level `@Product` / `@Env`
+3. Class-level `@Product` / `@Env`
+4. `DuctapeModule` defaults
+
+`@AccessTag` merges similarly: decorator option → method → class → module default.
+
+## `@InjectContext()` and `DuctapeContext`
+
+```typescript
+import { InjectContext, type DuctapeContext } from '@ductape/nestjs';
+
+@Injectable()
+export class MyService {
+  constructor(@InjectContext() private readonly ctx: DuctapeContext) {}
+
+  async runCustom() {
+    // APIs not wrapped by decorators
+    return this.ctx.sdk.logs.info({ message: 'hello' });
+  }
+}
+```
+
+```typescript
+interface DuctapeContext {
+  readonly mode: 'integration' | 'workspace';
+  readonly sdk: Ductape;
+  readonly product?: string;
+  readonly env?: string;
+  readonly accessTag?: string;
+
+  withContext(overrides): DuctapeContext;
+  ensureProductInitialized(product?): Promise<void>;
+  ensureSecretsInitialized(): Promise<void>;
+  database(tag, overrides?): Promise<DatabaseHandle>;
+  storage(tag, overrides?): Promise<StorageHandle>;
+  cache(tag, overrides?): Promise<CacheHandle>;
+  graph(tag, overrides?): Promise<GraphHandle>;
+  vector(tag, overrides?): Promise<VectorHandle>;
+  agent(tag, overrides?): Promise<AgentHandle>;
+  warehouse(overrides?): Promise<WarehouseHandle>;
+  runJob(options): Promise<unknown>;
+}
+```
+
+Use **`ctx.sdk`** for namespaces without dedicated Nest decorators (logs, cloud, …).
+
+Use **`withContext({ product, env, accessTag })`** to fork context for a tenant or sub-operation without changing module defaults.
+
+## Injectable handles
+
+After registering a feature module, inject typed handles:
+
+```typescript
+@Injectable()
+export class OrdersService {
+  constructor(
+    @Database('orders-db') private readonly db: DatabaseHandle,
+    @Storage('receipts') private readonly storage: StorageHandle,
+  ) {}
+
+  async create(row: Record<string, unknown>) {
+    return this.db.insert({ table: 'orders', data: row });
+  }
+}
+```
+
+Handles connect lazily using the **resolved context** for the current HTTP request (when `@Product` / `@Env` are set on the controller or service class).
+
+Common handle methods:
+
+| Handle | Runtime methods | Admin / raw |
+|--------|-------------------|-------------|
+| `DatabaseHandle` | `query`, `insert`, `update`, `delete` | `raw()` → full SDK namespace |
+| `StorageHandle` | `upload`, `download`, `list`, `delete` | `raw()` |
+| `CacheHandle` | `get`, `set`, `delete`, … | `raw()` |
+| `GraphHandle` | graph query helpers | `raw()` |
+| `VectorHandle` | vector search helpers | `raw()` |
+| `SecretHandle` | resolved secret value | — |
+| `AgentHandle` | `run()`, `dispatch()` | — |
+| `WarehouseHandle` | `query()`, `select()`, … | — |
+
+## HTTP vs background jobs
+
+`@Product` and `@Env` apply through **`DuctapeContextInterceptor`** on the HTTP pipeline. Injected handles on request-scoped controllers/services pick up those overrides automatically.
+
+For **cron jobs, queue workers, or CLI scripts** that bypass HTTP:
+
+- Set **`product` / `env` on `DuctapeModule`**, or
+- Call **`ctx.withContext({ product, env })`** before using handles or `ctx.sdk`
+
+## Multi-tenant SaaS
+
+```typescript
+import { Injectable, Scope } from '@nestjs/common';
+import { InjectContext, type DuctapeContext } from '@ductape/nestjs';
+
+@Injectable({ scope: Scope.REQUEST })
+export class TenantDuctapeService {
+  constructor(@InjectContext() private readonly base: DuctapeContext) {}
+
+  forTenant(tenant: { product: string; env: string }) {
+    return this.base.withContext({
+      product: tenant.product,
+      env: tenant.env,
+    });
+  }
+}
+```
+
+Alternatively, annotate controllers with per-tenant `@Product` / `@Env` when routing already identifies the tenant.
+
+## Related
+
+- [Core decorators](./decorators-core) — `@Api`, `@Database`, `@Storage`, `@Webhook`
+- [SDK runtime defaults](/sdk/runtime-defaults) — underlying SDK constructor behavior

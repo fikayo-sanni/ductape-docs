@@ -21,8 +21,6 @@ Schedule a series of onboarding emails for new users:
 async function scheduleWelcomeEmailSeries(userId: string, email: string) {
   // Email 1: Welcome (immediate)
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'onboarding',
     notification: 'user-emails',
     event: 'welcome',
     input: {
@@ -36,8 +34,6 @@ async function scheduleWelcomeEmailSeries(userId: string, email: string) {
 
   // Email 2: Getting started (24 hours)
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'onboarding',
     notification: 'user-emails',
     event: 'getting_started',
     input: {
@@ -54,8 +50,6 @@ async function scheduleWelcomeEmailSeries(userId: string, email: string) {
 
   // Email 3: Tips & tricks (3 days)
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'onboarding',
     notification: 'user-emails',
     event: 'tips_and_tricks',
     input: {
@@ -72,8 +66,6 @@ async function scheduleWelcomeEmailSeries(userId: string, email: string) {
 
   // Email 4: Feature highlights (7 days)
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'onboarding',
     notification: 'user-emails',
     event: 'feature_highlights',
     input: {
@@ -97,8 +89,6 @@ Send daily digest at user's preferred time:
 ```ts
 async function scheduleDailyDigest(userId: string, email: string, preferredHour: number, timezone: string) {
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'notifications',
     notification: 'digest-emails',
     event: 'daily_digest',
     input: {
@@ -127,8 +117,6 @@ Send reminders before an event:
 async function scheduleEventReminders(eventId: string, eventTime: number, userId: string, deviceToken: string) {
   // 24 hour reminder
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'events',
     notification: 'push-notifications',
     event: 'event_reminder',
     input: {
@@ -147,8 +135,6 @@ async function scheduleEventReminders(eventId: string, eventTime: number, userId
 
   // 1 hour reminder
   await ductape.notifications.dispatch({
-    env: 'prd',
-    product: 'events',
     notification: 'push-notifications',
     event: 'event_reminder',
     input: {
@@ -176,8 +162,6 @@ Generate reports every business day:
 ```ts
 // Generate sales report at 6 AM on weekdays
 const salesReport = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'analytics',
   workflow: 'generate_sales_report',
   input: {
     reportType: 'daily',
@@ -198,8 +182,6 @@ Generate weekly summary every Monday:
 
 ```ts
 const weeklyAnalytics = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'analytics',
   workflow: 'generate_weekly_summary',
   input: {
     reportType: 'weekly',
@@ -220,8 +202,6 @@ Schedule nightly data export:
 
 ```ts
 const dataExport = await ductape.database.dispatch({
-  env: 'prd',
-  product: 'data-platform',
   database: 'analytics-db',
   operation: 'insert',
   input: {
@@ -248,8 +228,6 @@ Clean up expired sessions hourly:
 
 ```ts
 const sessionCleanup = await ductape.database.dispatch({
-  env: 'prd',
-  product: 'auth',
   database: 'sessions-db',
   operation: 'delete',
   input: {
@@ -271,8 +249,6 @@ Archive old logs monthly:
 
 ```ts
 const logRotation = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'infrastructure',
   workflow: 'rotate_logs',
   input: {
     olderThanDays: 30,
@@ -293,8 +269,6 @@ Clean temporary files daily:
 
 ```ts
 const tempCleanup = await ductape.storage.dispatch({
-  env: 'prd',
-  product: 'my-app',
   storage: 'temp-storage',
   event: 'cleanup_temp',
   input: {
@@ -315,8 +289,6 @@ Run database optimization weekly:
 
 ```ts
 const dbOptimization = await ductape.database.dispatch({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   operation: 'insert',
   input: {
@@ -342,9 +314,7 @@ const dbOptimization = await ductape.database.dispatch({
 Sync inventory from suppliers every 6 hours:
 
 ```ts
-const inventorySync = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'inventory',
+const inventorySync = await ductape.api.dispatch({
   app: 'supplier-sync',
   event: 'sync_all_suppliers',
   input: {
@@ -368,9 +338,7 @@ const inventorySync = await ductape.actions.dispatch({
 Sync contacts with CRM nightly:
 
 ```ts
-const crmSync = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'integrations',
+const crmSync = await ductape.api.dispatch({
   app: 'salesforce-connector',
   event: 'sync_contacts',
   input: {
@@ -390,9 +358,7 @@ const crmSync = await ductape.actions.dispatch({
 Update product prices from feed every hour:
 
 ```ts
-const priceUpdate = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'catalog',
+const priceUpdate = await ductape.api.dispatch({
   app: 'price-service',
   event: 'update_prices_from_feed',
   input: {
@@ -413,9 +379,7 @@ const priceUpdate = await ductape.actions.dispatch({
 Process monthly subscriptions on the 1st:
 
 ```ts
-const monthlyBilling = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'billing',
+const monthlyBilling = await ductape.api.dispatch({
   app: 'subscription-service',
   event: 'process_monthly_renewals',
   input: {
@@ -439,8 +403,6 @@ Calculate usage metrics hourly:
 
 ```ts
 const usageMetering = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'billing',
   workflow: 'calculate_usage_metrics',
   input: {
     hourStart: '$DateAdd($Now(), -1, "hours")',
@@ -459,8 +421,6 @@ Check for expiring trials daily:
 
 ```ts
 const trialCheck = await ductape.database.dispatch({
-  env: 'prd',
-  product: 'billing',
   database: 'subscriptions-db',
   operation: 'query',
   input: {
@@ -486,9 +446,7 @@ const trialCheck = await ductape.database.dispatch({
 Run health checks every 5 minutes:
 
 ```ts
-const healthCheck = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'monitoring',
+const healthCheck = await ductape.api.dispatch({
   app: 'health-service',
   event: 'check_all_services',
   input: {
@@ -507,9 +465,7 @@ const healthCheck = await ductape.actions.dispatch({
 Collect performance metrics every minute:
 
 ```ts
-const perfMetrics = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'monitoring',
+const perfMetrics = await ductape.api.dispatch({
   app: 'metrics-collector',
   event: 'collect_metrics',
   input: {
@@ -529,8 +485,6 @@ Generate operational summary daily:
 
 ```ts
 const opsSummary = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'monitoring',
   workflow: 'generate_ops_summary',
   input: {
     period: 'daily',
@@ -555,8 +509,6 @@ Send reminders for abandoned carts:
 ```ts
 // Run every hour, find carts abandoned 1-24 hours ago
 const abandonedCartReminder = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'ecommerce',
   workflow: 'send_abandoned_cart_reminders',
   input: {
     abandonedAfterHours: 1,
@@ -577,9 +529,7 @@ Schedule flash sale start and end:
 ```ts
 async function scheduleFlashSale(saleId: string, startTime: number, endTime: number) {
   // Start the sale
-  await ductape.actions.dispatch({
-    env: 'prd',
-    product: 'ecommerce',
+  await ductape.api.dispatch({
     app: 'promotions-service',
     event: 'activate_sale',
     input: {
@@ -593,9 +543,7 @@ async function scheduleFlashSale(saleId: string, startTime: number, endTime: num
   });
 
   // End the sale
-  await ductape.actions.dispatch({
-    env: 'prd',
-    product: 'ecommerce',
+  await ductape.api.dispatch({
     app: 'promotions-service',
     event: 'deactivate_sale',
     input: {
@@ -616,8 +564,6 @@ Check inventory levels twice daily:
 
 ```ts
 const lowStockAlert = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'inventory',
   workflow: 'check_low_stock',
   input: {
     thresholds: {
@@ -642,8 +588,6 @@ Process message queue continuously:
 
 ```ts
 const queueProcessor = await ductape.events.dispatch({
-  env: 'prd',
-  product: 'messaging',
   broker: 'sqs-main',
   event: 'process_queue',
   input: {
@@ -666,8 +610,6 @@ Replay failed events daily:
 
 ```ts
 const eventReplay = await ductape.events.dispatch({
-  env: 'prd',
-  product: 'messaging',
   broker: 'kafka-main',
   event: 'replay_failed_events',
   input: {
@@ -693,8 +635,6 @@ Run promotion check until campaign ends:
 
 ```ts
 const campaignCheck = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'marketing',
   workflow: 'check_campaign_performance',
   input: {
     campaignId: 'summer_sale_2025'
@@ -713,8 +653,6 @@ Send max 4 weekly reminders:
 
 ```ts
 const weeklyReminder = await ductape.notifications.dispatch({
-  env: 'prd',
-  product: 'engagement',
   notification: 'user-emails',
   event: 'weekly_inactive_reminder',
   input: {

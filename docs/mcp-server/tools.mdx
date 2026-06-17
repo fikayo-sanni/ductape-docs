@@ -1,0 +1,240 @@
+---
+sidebar_position: 4
+sidebar_label: Tools reference
+---
+
+# Tools reference
+
+The Ductape MCP server exposes **three tools**. All responses are JSON text in MCP content blocks. Errors return `isError: true` with a message string.
+
+---
+
+## `ductape_execute`
+
+Execute any allowed Ductape SDK operation via the backend proxy at `POST /proxy/v1/sdk-proxy/execute`.
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `publishable_key` | string | Yes | Workspace publishable key for authentication |
+| `module` | enum | Yes | SDK module name (see [Modules & methods](./modules-and-methods)) |
+| `method` | string | Yes | Method name; use dot notation for nested methods (e.g. `schema.create`, `messages.query`) |
+| `params` | array | No | Positional arguments matching the SDK signature. Defaults to `[]`. |
+
+### Response
+
+Returns the SDK method result as formatted JSON. On failure, returns `Error: <message>`.
+
+### Examples
+
+**Fetch a product:**
+
+```json
+{
+  "publishable_key": "pk_...",
+  "module": "product",
+  "method": "fetch",
+  "params": ["ductape:my-product"]
+}
+```
+
+**Query a database:**
+
+```json
+{
+  "publishable_key": "pk_...",
+  "module": "databases",
+  "method": "query",
+  "params": [{
+    "product": "ductape:my-product",
+    "env": "prd",
+    "database": "main-db",
+    "entity": "users",
+    "where": { "status": { "$eq": "active" } },
+    "limit": 10
+  }]
+}
+```
+
+**Run an app action:**
+
+```json
+{
+  "publishable_key": "pk_...",
+  "module": "actions",
+  "method": "run",
+  "params": [{
+    "product": "ductape:my-product",
+    "env": "prd",
+    "app": "stripe",
+    "action": "create-customer",
+    "input": {
+      "body:email": "user@example.com",
+      "body:name": "Jane Doe"
+    }
+  }]
+}
+```
+
+**Vector similarity search:**
+
+```json
+{
+  "publishable_key": "pk_...",
+  "module": "vector",
+  "method": "findSimilar",
+  "params": [{
+    "product": "ductape:my-product",
+    "env": "prd",
+    "vector": "embeddings-index",
+    "values": [0.1, 0.2, 0.3],
+    "topK": 5
+  }]
+}
+```
+
+**Nested method — list product environments:**
+
+```json
+{
+  "publishable_key": "pk_...",
+  "module": "product",
+  "method": "environments.list",
+  "params": ["ductape:my-product"]
+}
+```
+
+### Parameter order
+
+`params` is a **JSON array** of positional arguments in the same order as the TypeScript SDK. For example, `databases.update` expects:
+
+```json
+"params": [{
+  "product": "...",
+  "env": "...",
+  "database": "...",
+  "entity": "...",
+  "data": { "name": "Updated" },
+  "where": { "id": { "$eq": "123" } }
+}]
+```
+
+See [Method reference](./method-reference) for every signature.
+
+---
+
+## `ductape_generate_payload`
+
+Generate canonical executable payload templates from `POST /integrations/v1/payloads/generate`. Use this when an agent needs structured payload context before writing SDK code.
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `workspace_id` | string | Yes | Workspace ID |
+| `user_id` | string | Yes | User ID |
+| `public_key` | string | Yes | Workspace public key (sent as `x-access-key`) |
+| `product_tag` | string | Yes | Product tag (e.g. `ductape:my-product`) |
+| `env_slug` | string | Yes | Environment slug (`prd`, `stg`, etc.) |
+| `operation_family` | string | Yes | Executable family (see [Code generation](./code-generation#operation-families)) |
+| `method` | string | Yes | Execution method (`run`, `dispatch`, `query`, etc.) |
+| `targets` | object | No | Component targeting (database tag, action tag, etc.) |
+| `schema_mode` | enum | No | `strict` or `best_effort` (default: `best_effort`) |
+| `include_session` | boolean | No | Include session tags/context (default: `true`) |
+| `include_cache` | boolean | No | Include cache tags/context (default: `true`) |
+| `input_hint` | object | No | Optional schema/input hint for payload generation |
+
+### Response
+
+```json
+{
+  "payload": { /* canonical executable payload template */ },
+  "meta": { /* schema context, validation info, warnings, inferred tags */ }
+}
+```
+
+### Example
+
+```json
+{
+  "workspace_id": "ws_abc123",
+  "user_id": "usr_xyz789",
+  "public_key": "pk_...",
+  "product_tag": "ductape:my-product",
+  "env_slug": "prd",
+  "operation_family": "database",
+  "method": "query",
+  "targets": { "database": "main-db" },
+  "input_hint": { "entity": "orders", "limit": 10 }
+}
+```
+
+---
+
+## `ductape_generate_snippet`
+
+Builds on payload generation and returns both the backend payload response and a ready-to-copy SDK code snippet.
+
+### Arguments
+
+Same as `ductape_generate_payload`, plus:
+
+| Argument | Type | Required | Description |
+|----------|------|----------|-------------|
+| `language` | enum | No | `typescript` (default) or `python` |
+
+### Response
+
+```json
+{
+  "payload": {
+    "payload": { /* template */ },
+    "meta": { /* metadata */ }
+  },
+  "snippet": "// TypeScript or Python source code string"
+}
+```
+
+### Example
+
+```json
+{
+  "workspace_id": "ws_abc123",
+  "user_id": "usr_xyz789",
+  "public_key": "pk_...",
+  "product_tag": "ductape:my-product",
+  "env_slug": "prd",
+  "operation_family": "action",
+  "method": "run",
+  "targets": { "app": "stripe", "action": "create-customer" },
+  "language": "typescript"
+}
+```
+
+### Supported snippet operations
+
+Not every SDK method has snippet support. The server validates against an allowlist before generation. See [Code generation — Supported snippet operations](./code-generation#supported-snippet-operations).
+
+---
+
+## Tool selection guide
+
+| Goal | Tool |
+|------|------|
+| Run a live operation now | `ductape_execute` |
+| Understand payload shape before coding | `ductape_generate_payload` |
+| Hand an engineer copy-paste SDK code | `ductape_generate_snippet` |
+| Agent explores data / mutates platform state | `ductape_execute` |
+| Copilot scaffolds integration boilerplate | `ductape_generate_snippet` |
+
+## Error handling
+
+All tools catch exceptions and return text content with `isError: true`. Common errors:
+
+| Error | Cause |
+|-------|-------|
+| `Not authenticated. Please provide the publishable_key...` | Missing `publishable_key` on execute |
+| `Proxy request failed: 4xx` | Invalid module/method or params rejected by proxy |
+| `Unsupported snippet operation "family.method"` | Snippet tool called with unsupported operation family/method pair |
+| `Payload generation request failed` | Invalid workspace credentials or backend validation error |

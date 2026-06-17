@@ -1,0 +1,82 @@
+---
+sidebar_position: 9
+title: Product Analytics
+---
+
+import ClientSdkTabs from '@site/src/components/ClientSdkTabs';
+import TabItem from '@theme/TabItem';
+import ClientContent from '@site/docs/frontend/_fragments/client/analytics.mdx';
+import ReactContent from '@site/docs/frontend/_fragments/react/analytics.mdx';
+import VueContent from '@site/docs/frontend/_fragments/vue/analytics.mdx';
+
+# Product Analytics
+
+Capture how people use your product in the browser — page views, UI interactions, and custom business events — without shipping a separate analytics vendor.
+
+Events land in your Ductape workspace and are visible in **Workbench → Logs** (filter by **Frontend**). You can track **anonymous visitors** before login and **authenticated users** after your backend issues a session JWT.
+
+<ClientSdkTabs>
+<TabItem value="client" label="@ductape/client" default>
+
+<ClientContent />
+
+</TabItem>
+<TabItem value="react" label="React">
+
+<ReactContent />
+
+</TabItem>
+<TabItem value="vue" label="Vue 3">
+
+<VueContent />
+
+</TabItem>
+</ClientSdkTabs>
+
+## What you can measure
+
+| Category | Examples |
+|----------|----------|
+| **Navigation** | Page views, SPA route changes, referrer |
+| **Engagement** | Button clicks, CTA taps, `[data-track]` elements |
+| **Product flows** | `signup_started`, `onboarding_step_2`, `checkout_started` |
+| **Feature adoption** | `export_csv`, `invite_teammate`, `dark_mode_enabled` |
+| **Conversion** | `trial_started`, `plan_selected`, `payment_submitted` |
+
+Use **custom event names** for anything specific to your product. Built-in helpers emit `$pageview` and `$click` when auto-capture is enabled.
+
+## Requirements
+
+- **`publishableKey`** on the client (browser SDK only)
+- **`product`** tag (from client config or per-call override)
+- Optional **`env`** (defaults to `prd`)
+- Optional **`session`** JWT from your backend after login — see [Sessions](./sessions)
+
+## Viewing events in Workbench
+
+Open **Logs** for your product and filter by type **Frontend**. Each row represents one analytics event:
+
+| Field | Meaning |
+|-------|---------|
+| `child_tag` | Event name (`$pageview`, `checkout_started`, …) |
+| `visitor_id` | Stable anonymous id (pre-login) |
+| `session_id` / `session_user_id` | Present after `identify()` |
+| `data` | JSON payload: `properties`, `context` (URL, path, screen, referrer) |
+
+**Query tips:**
+
+- **Anonymous funnel** — filter `visitor_id` to follow one browser before sign-in
+- **Signed-in user** — filter `session_user_id` or `session_id`
+- **Full journey** — after `identify()`, events include both `visitor_id` and session fields
+
+## Privacy
+
+- Auto-capture is **off by default** — enable explicitly with `enableAutoCapture()`.
+- Click text is truncated to 80 characters; use `maskTextSelectors` for sensitive UI.
+- Do not put passwords, tokens, or PII in `properties` without user consent.
+- Prefer semantic event names (`pricing_cta_click`) over raw DOM text when tracking sensitive flows.
+
+## See also
+
+- [Sessions](./sessions) — how your backend issues session tokens for `identify()`
+- [Frontend access key strategies](/docs/FRONTEND_ACCESS_KEY_STRATEGIES.md)

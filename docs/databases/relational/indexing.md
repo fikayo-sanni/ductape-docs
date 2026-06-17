@@ -12,7 +12,7 @@ Learn how to create and manage database indexes to dramatically improve query pe
 import { DatabaseService } from '@ductape/sdk';
 
 const db = new DatabaseService();
-await db.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+await db.connect({ database: 'main-db' });
 
 // Create an index
 await db.schema.createIndex('users', ['email'], {

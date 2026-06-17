@@ -52,8 +52,6 @@ All your product's databases, graphs, and vectors are automatically available:
 ```ts
 // Query from a database
 const result = await ductape.warehouse.query({
-  product: 'my-app',
-  env: 'production',
   query: {
     operation: 'select',
     from: {
@@ -78,8 +76,6 @@ Join data from different sources seamlessly:
 
 ```ts
 const result = await ductape.warehouse.query({
-  product: 'my-app',
-  env: 'production',
   query: {
     operation: 'select',
     from: {
@@ -172,8 +168,6 @@ For simple operations, use the convenience methods:
 ```ts
 // Select with options
 const users = await ductape.warehouse.select({
-  product: 'my-app',
-  env: 'production',
   source: { type: 'database', tag: 'users-postgres', entity: 'users', alias: 'u' },
   fields: ['id', 'name'],
   where: { status: { $eq: 'active' } },
@@ -183,16 +177,12 @@ const users = await ductape.warehouse.select({
 
 // Insert
 await ductape.warehouse.insert({
-  product: 'my-app',
-  env: 'production',
   source: { type: 'database', tag: 'users-postgres', entity: 'users' },
   data: { name: 'John', email: 'john@example.com' }
 });
 
 // Update
 await ductape.warehouse.update({
-  product: 'my-app',
-  env: 'production',
   source: { type: 'database', tag: 'users-postgres', entity: 'users' },
   data: { status: 'inactive' },
   where: { id: { $eq: 123 } }
@@ -200,16 +190,12 @@ await ductape.warehouse.update({
 
 // Delete
 await ductape.warehouse.delete({
-  product: 'my-app',
-  env: 'production',
   source: { type: 'database', tag: 'users-postgres', entity: 'users' },
   where: { status: { $eq: 'deleted' } }
 });
 
 // Upsert
 await ductape.warehouse.upsert({
-  product: 'my-app',
-  env: 'production',
   source: { type: 'database', tag: 'users-postgres', entity: 'users' },
   data: { id: 123, name: 'John', email: 'john@example.com' }
 });

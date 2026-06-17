@@ -1,0 +1,456 @@
+
+The `@ductape/client` provides a comprehensive API for working with databases including querying, inserting, updating, deleting, and subscribing to real-time changes.
+
+## Connecting to a Database
+
+Before performing database operations, connect to your database. When using a publishable key, include `session` in every request:
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+await ductape.databases.connect({
+  database: 'main', // Your database name
+  session: sessionToken,
+});
+```
+
+## Querying Data
+
+### Basic Query
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'users',
+  limit: 10,
+  session: sessionToken,
+});
+
+console.log('Users:', result.rows);
+console.log('Total count:', result.count);
+```
+
+### Query with Filters
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'products',
+  where: {
+    category: 'electronics',
+    price: { $lt: 1000 },
+    inStock: true
+  },
+  limit: 20,
+  session: sessionToken,
+});
+```
+
+### Query Operators
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'orders',
+  session: sessionToken,
+  where: {
+    // Greater than
+    total: { $gt: 100 },
+
+    // Less than or equal
+    discount: { $lte: 20 },
+
+    // Not equal
+    status: { $ne: 'cancelled' },
+
+    // In array
+    category: { $in: ['electronics', 'books'] },
+
+    // Not in array
+    region: { $nin: ['blocked'] },
+
+    // Contains (for strings)
+    name: { $contains: 'phone' },
+
+    // Starts with
+    email: { $startsWith: 'admin@' }
+  }
+});
+```
+
+### Sorting and Pagination
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'posts',
+  where: { published: true },
+  orderBy: [
+    { column: 'createdAt', order: 'desc' },
+    { column: 'title', order: 'asc' }
+  ],
+  limit: 20,
+  offset: 0,
+  session: sessionToken,
+});
+```
+
+### Including Related Data
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'posts',
+  include: [
+    { relation: 'author' },
+    { relation: 'comments', limit: 5 }
+  ],
+  session: sessionToken,
+});
+
+// Access related data
+result.rows.forEach(post => {
+  console.log(post.title);
+  console.log('Author:', post.author.name);
+  console.log('Comments:', post.comments);
+});
+```
+
+### Select Specific Fields
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.query({
+  table: 'users',
+  select: ['id', 'name', 'email'],
+  limit: 10,
+  session: sessionToken,
+});
+```
+
+## Inserting Data
+
+### Insert Single Record
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.insert({
+  table: 'users',
+  data: {
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    role: 'user'
+  },
+  session: sessionToken,
+});
+
+console.log('Created user:', result.rows[0]);
+```
+
+### Insert Multiple Records
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.insert({
+  table: 'products',
+  data: [
+    { name: 'Product 1', price: 29.99 },
+    { name: 'Product 2', price: 39.99 },
+    { name: 'Product 3', price: 49.99 }
+  ],
+  session: sessionToken,
+});
+
+console.log(`Inserted ${result.rows.length} products`);
+```
+
+## Updating Data
+
+### Update with Filter
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.update({
+  table: 'users',
+  where: { id: 'user-123' },
+  data: {
+    name: 'Alice Smith',
+    updatedAt: new Date()
+  },
+  session: sessionToken,
+});
+
+console.log('Updated:', result.rows[0]);
+```
+
+### Update Multiple Records
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.update({
+  table: 'orders',
+  where: {
+    status: 'pending',
+    createdAt: { $lt: new Date('2024-01-01') }
+  },
+  data: {
+    status: 'expired'
+  },
+  session: sessionToken,
+});
+
+console.log(`Updated ${result.count} orders`);
+```
+
+## Deleting Data
+
+### Delete with Filter
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.delete({
+  table: 'sessions',
+  where: { userId: 'user-123' },
+  session: sessionToken,
+});
+
+console.log(`Deleted ${result.count} sessions`);
+```
+
+### Delete Single Record
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.delete({
+  table: 'posts',
+  where: { id: 'post-456' },
+  session: sessionToken,
+});
+```
+
+## Upsert (Insert or Update)
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.upsert({
+  table: 'users',
+  where: { email: 'alice@example.com' },
+  data: {
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    lastLogin: new Date()
+  },
+  session: sessionToken,
+});
+
+// If user exists, updates it; otherwise inserts new record
+```
+
+## Aggregations
+
+### Count
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.aggregate({
+  table: 'orders',
+  operation: 'count',
+  where: { status: 'completed' },
+  session: sessionToken,
+});
+
+console.log('Completed orders:', result.value);
+```
+
+### Sum
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+const result = await ductape.databases.aggregate({
+  table: 'orders',
+  operation: 'sum',
+  column: 'total',
+  where: { status: 'completed' },
+  session: sessionToken,
+});
+
+console.log('Total revenue:', result.value);
+```
+
+### Average, Min, Max
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+
+// Average
+const avg = await ductape.databases.aggregate({
+  table: 'products',
+  operation: 'avg',
+  column: 'price',
+  session: sessionToken,
+});
+
+// Minimum
+const min = await ductape.databases.aggregate({
+  table: 'products',
+  operation: 'min',
+  column: 'price',
+  session: sessionToken,
+});
+
+// Maximum
+const max = await ductape.databases.aggregate({
+  table: 'products',
+  operation: 'max',
+  column: 'price',
+  session: sessionToken,
+});
+```
+
+## Real-time Subscriptions
+
+Subscribe to database changes in real-time:
+
+```typescript
+// First, connect to WebSocket
+await ductape.connect();
+
+// Subscribe to table changes (include session when using publishable key)
+const sessionToken = getSessionFromYourBackend();
+const subscription = ductape.databases.subscribe({
+  table: 'messages',
+  where: { channel: 'general' },
+  session: sessionToken,
+  onChange: (event) => {
+    console.log('Change type:', event.type); // 'insert', 'update', 'delete'
+
+    if (event.type === 'insert') {
+      console.log('New record:', event.data.new);
+    } else if (event.type === 'update') {
+      console.log('Before:', event.data.old);
+      console.log('After:', event.data.new);
+    } else if (event.type === 'delete') {
+      console.log('Deleted:', event.data.old);
+    }
+  }
+});
+
+// Later: unsubscribe
+subscription.unsubscribe();
+```
+
+### Subscribe with Filters
+
+```typescript
+const sessionToken = getSessionFromYourBackend();
+const subscription = ductape.databases.subscribe({
+  table: 'notifications',
+  where: { userId: currentUserId, read: false },
+  session: sessionToken,
+  onChange: (event) => {
+    if (event.type === 'insert') {
+      showNotification(event.data.new);
+    }
+  }
+});
+```
+
+## Transactions
+
+Execute multiple operations atomically:
+
+```typescript
+const result = await ductape.databases.transaction(async (tx) => {
+  // Deduct from sender
+  await tx.update({
+    table: 'accounts',
+    where: { id: senderId },
+    data: { balance: { $decrement: amount } }
+  });
+
+  // Add to receiver
+  await tx.update({
+    table: 'accounts',
+    where: { id: receiverId },
+    data: { balance: { $increment: amount } }
+  });
+
+  // Record transaction
+  await tx.insert({
+    table: 'transactions',
+    data: {
+      from: senderId,
+      to: receiverId,
+      amount: amount,
+      timestamp: new Date()
+    }
+  });
+
+  return { success: true };
+});
+```
+
+## TypeScript Support
+
+Use TypeScript for type-safe database operations:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: Date;
+}
+
+// Query with types
+const result = await ductape.databases.query<User>({
+  table: 'users',
+  where: { role: 'admin' }
+});
+
+// result.rows is typed as User[]
+const firstUser: User = result.rows[0];
+
+// Insert with types
+const sessionToken = getSessionFromYourBackend();
+const newUser = await ductape.databases.insert<User>({
+  table: 'users',
+  data: {
+    name: 'Bob',
+    email: 'bob@example.com',
+    role: 'user'
+  },
+  session: sessionToken,
+});
+```
+
+## Best Practices
+
+1. **Always handle errors**: Wrap database operations in try-catch blocks
+2. **Use indexes**: Ensure frequently queried fields are indexed in your database schema
+3. **Limit results**: Always use `limit` to prevent fetching too much data
+4. **Use subscriptions wisely**: Unsubscribe when components unmount to prevent memory leaks
+5. **Batch operations**: Use bulk inserts instead of multiple single inserts
+6. **Optimize queries**: Select only the fields you need with the `select` option
+
+## Next Steps
+
+- [Storage Operations](./storage)
+- [Real-time Subscriptions](./subscriptions)
+- [Sessions & Authentication](./sessions)

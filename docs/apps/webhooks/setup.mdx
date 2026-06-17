@@ -33,7 +33,6 @@ Use the `enable` method to register a webhook for multiple environments at once.
 ### Example
 ```typescript
 await ductape.products.webhooks.enable({
-  product: "my-product",
   access_tag: "admin",
   webhook_tag: "order_created",
   envs: [
@@ -83,10 +82,8 @@ Use the `generateLink` method when your provider requires you to manually input 
 ### Example
 ```typescript
 const link = await ductape.products.webhooks.generateLink({
-  product: "my-product",
   access_tag: "admin",
   webhook_tag: "order_created",
-  env: "prd",
   url: "https://api.example.com/webhooks/orders",
   method: HttpMethods.POST
 });

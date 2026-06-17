@@ -4,8 +4,6 @@
  * Design Goal: 99/100
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
-
 /* ===== CSS VARIABLES - LIGHT MODE ===== */
 :root {
   /* Primary Brand Colors - Matching Workbench */
@@ -54,9 +52,9 @@
   --ifm-toc-border-color: var(--ductape-border);
   --ifm-hr-border-color: var(--ductape-border);
 
-  /* Typography - Matching Workbench */
-  --ifm-font-family-base: 'Raleway', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  /* Typography — system stack (no custom web fonts) */
+  --ifm-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --ifm-font-family-monospace: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   --ifm-code-font-size: 0.875rem;
   --ifm-font-size-base: 16px;
   --ifm-line-height-base: 1.7;
@@ -1688,6 +1686,75 @@ li::marker {
   color: var(--ifm-color-primary);
   border-bottom-color: var(--ifm-color-primary);
   font-weight: 600;
+}
+
+.sdk-lang-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1;
+}
+
+.sdk-lang-tab-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sdk-lang-tab-icon-box svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  display: block;
+}
+
+.sdk-lang-tab-icon-box--typescript {
+  background: #3178c6;
+}
+
+.sdk-lang-tab-icon-box--go {
+  background: #00add8;
+}
+
+.sdk-lang-tab-icon-box--dotnet {
+  background: #512bd4;
+}
+
+.sdk-lang-tab-icon-box--java {
+  background: transparent;
+  color: var(--ductape-text-secondary);
+}
+
+.sdk-lang-tab-icon-box--java svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tabs__item:not(.tabs__item--active) .sdk-lang-tab-icon-box--typescript,
+.tabs__item:not(.tabs__item--active) .sdk-lang-tab-icon-box--go,
+.tabs__item:not(.tabs__item--active) .sdk-lang-tab-icon-box--dotnet {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.tabs__item--active .sdk-lang-tab-icon-box--typescript,
+.tabs__item--active .sdk-lang-tab-icon-box--go,
+.tabs__item--active .sdk-lang-tab-icon-box--dotnet {
+  opacity: 1;
+  filter: none;
+}
+
+.tabs__item:not(.tabs__item--active) .sdk-lang-tab-icon-box--java {
+  opacity: 0.5;
+}
+
+.tabs__item--active .sdk-lang-tab-icon-box--java {
+  color: #e76f00;
+  opacity: 1;
 }
 
 /* ===== DETAILS/ACCORDION ===== */

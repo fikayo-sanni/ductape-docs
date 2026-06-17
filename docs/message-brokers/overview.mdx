@@ -26,16 +26,12 @@ const { messaging } = ductape;
 
 // Publish a message
 await messaging.produce({
-  product: 'my-product',
-  env: 'prd',
   event: 'order-events:order-created',
   message: { orderId: '123', amount: 99.99 },
 });
 
 // Subscribe to messages (consumer)
 await messaging.consume({
-  product: 'my-product',
-  env: 'prd',
   event: 'order-events:order-created',
   callback: async (message) => {
     console.log('Received:', message);
@@ -61,6 +57,7 @@ await messaging.consume({
 | **RabbitMQ** | `RABBITMQ` | Flexible routing, reliable delivery |
 | **Redis** | `REDIS` | Simple pub/sub, low latency |
 | **AWS SQS** | `AWS_SQS` | Serverless managed queues |
+| **Azure Service Bus** | `AZURE_SERVICEBUS` | Azure managed queues and topics |
 | **Google Pub/Sub** | `GOOGLE_PUBSUB` | Google Cloud integration |
 | **NATS** | `NATS` | Lightweight, high-performance messaging |
 
@@ -72,8 +69,6 @@ Send messages to a topic with `messaging.produce()`. The event must be `brokerTa
 
 ```ts
 const result = await ductape.messaging.produce({
-  product: 'my-product',
-  env: 'prd',
   event: 'order-events:order-created',
   message: {
     orderId: '12345',
@@ -92,15 +87,11 @@ You can pass a session token (e.g. from `sessions.start()`) so the message is as
 
 ```ts
 const session = await ductape.sessions.start({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   data: { userId: 'u1', email: 'user@example.com' },
 });
 
 await ductape.messaging.produce({
-  product: 'my-product',
-  env: 'prd',
   event: 'order-events:order-created',
   message: { orderId: '123', total: 99.99 },
   session: `${session.sessionId}:${session.token}`, // or tag:token format
@@ -115,8 +106,6 @@ Subscribe to a topic with `messaging.consume()`. Your callback runs for each mes
 
 ```ts
 await ductape.messaging.consume({
-  product: 'my-product',
-  env: 'prd',
   event: 'order-events:order-created',
   callback: async (message) => {
     console.log('Received order:', message);
@@ -183,7 +172,6 @@ Create a broker with environment-specific configurations. Pass `product` in the 
 import { MessageBrokerTypes } from '@ductape/sdk';
 
 await ductape.messaging.create({
-  product: 'my-product',
   name: 'Order Events',
   tag: 'order-events',
   description: 'Handles all order-related messages',
@@ -354,8 +342,6 @@ You can query produced/consumed messages and dashboard stats via `ductape.messag
 ```ts
 // Query messages with filters
 const { messages, total, page, hasMore } = await ductape.messaging.messages.query({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
   topicTag: 'order-created',
   page: 1,
@@ -364,33 +350,23 @@ const { messages, total, page, hasMore } = await ductape.messaging.messages.quer
 
 // Producers / consumers
 const { producers } = await ductape.messaging.messages.getProducers({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 
 const { consumers } = await ductape.messaging.messages.getConsumers({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 
 // Dead letters and stats
 const { deadLetters } = await ductape.messaging.messages.getDeadLetters({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 
 const stats = await ductape.messaging.messages.getStats({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 
 const dashboard = await ductape.messaging.messages.getDashboard({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 ```
@@ -429,14 +405,10 @@ const brokers = new BrokersService({
 });
 
 const stats = await brokers.getEventStats({
-  product: 'my-product',
-  env: 'prd',
   brokerTag: 'order-events',
 });
 
 const result = await brokers.replayEvent({
-  product: 'my-product',
-  env: 'prd',
   eventId: 'event-123',
   force: true,
 });
@@ -450,7 +422,7 @@ const result = await brokers.replayEvent({
 import { BrokerError } from '@ductape/sdk';
 
 try {
-  await ductape.messaging.produce({ product: '...', env: 'prd', event: '...', message: {} });
+  await ductape.messaging.produce({ event: '...', message: {} });
 } catch (error) {
   if (error instanceof BrokerError) {
     console.log('Code:', error.code);
@@ -460,6 +432,40 @@ try {
 ```
 
 Common codes: `BROKER_NOT_FOUND`, `BROKER_ENV_NOT_FOUND`, `TOPIC_NOT_FOUND`, `PUBLISH_FAILED`, `SUBSCRIBE_FAILED`, `SESSION_INVALID`, and others.
+
+---
+
+## Cloud-linked brokers
+
+Provision or import queues/topics from a workspace cloud connection (`cloud: '<tag>'`). Supported on AWS, GCP, and Azure:
+
+```ts
+// AWS SQS
+await ductape.messaging.create({
+  product: 'my-product', tag: 'order-events', name: 'Order Events',
+  envs: [{ slug: 'prd', type: 'aws_sqs', config: {
+    cloud: 'prod_aws', queueName: 'order-events', region: 'us-east-1',
+  }}],
+});
+
+// GCP Pub/Sub
+await ductape.messaging.create({
+  product: 'my-product', tag: 'order-events', name: 'Order Events',
+  envs: [{ slug: 'prd', type: 'google_pubsub', config: {
+    cloud: 'gcp_prod', topicName: 'order-events', region: 'us-central1',
+  }}],
+});
+
+// Azure Service Bus
+await ductape.messaging.create({
+  product: 'my-product', tag: 'order-events', name: 'Order Events',
+  envs: [{ slug: 'prd', type: 'azure_servicebus', config: {
+    cloud: 'prod_azure', queueName: 'order-events', region: 'eastus',
+  }}],
+});
+```
+
+See [Cloud-linked components](../cloud/cloud-linked-components) for databases, graphs, vectors, and direct `cloud.resources.provision` / `.import` APIs.
 
 ---
 
@@ -475,5 +481,6 @@ Common codes: `BROKER_NOT_FOUND`, `BROKER_ENV_NOT_FOUND`, `TOPIC_NOT_FOUND`, `PU
 
 ## See also
 
+- [Cloud-linked components](../cloud/cloud-linked-components) – Provision or link AWS SQS, GCP Pub/Sub, or Azure Service Bus from a cloud connection tag
 - [Workflows](../workflows/overview) – Use message brokers in workflow steps
 - [Jobs](../jobs/scheduling-jobs) – Schedule recurring produce operations

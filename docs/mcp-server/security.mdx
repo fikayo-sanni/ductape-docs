@@ -1,0 +1,159 @@
+---
+sidebar_position: 9
+sidebar_label: Security
+---
+
+# Security
+
+The Ductape MCP server is designed for safe multi-tenant use in AI agent environments where credentials must not leak between users or sessions.
+
+---
+
+## Stateless architecture
+
+The MCP server process:
+
+- Holds **no workspace credentials** in memory between requests
+- Loads **no SDK** locally — all execution happens on the Ductape backend
+- Requires **no environment variables** at startup
+- Stores **no database or filesystem state**
+
+Each tool invocation is independent. Restarting the server loses nothing because there is nothing to lose.
+
+---
+
+## Per-request authentication
+
+### `ductape_execute`
+
+Every call requires a `publishable_key` argument:
+
+```json
+{
+  "publishable_key": "pk_your_workspace_key",
+  "module": "databases",
+  "method": "query",
+  "params": [...]
+}
+```
+
+If `publishable_key` is missing or empty, the server returns:
+
+```
+Not authenticated. Please provide the `publishable_key` in your tool invocation arguments.
+```
+
+The key is forwarded to `POST /proxy/v1/sdk-proxy/execute` and validated by the backend. The MCP server never caches or logs keys.
+
+### Payload and snippet tools
+
+`ductape_generate_payload` and `ductape_generate_snippet` require:
+
+- `public_key` — sent as `x-access-key` header
+- `workspace_id`
+- `user_id`
+
+These authenticate against `POST /integrations/v1/payloads/generate`.
+
+---
+
+## Why credentials are not in MCP config
+
+MCP client config files (e.g. `~/.cursor/mcp.json`) are often:
+
+- Committed to project repos (project-scoped config)
+- Shared across team members
+- Visible in IDE settings UI
+
+Storing publishable keys in server config would mean:
+
+1. **All agent sessions share one workspace identity** — no per-user isolation
+2. **Keys appear in config files** — higher exposure risk
+3. **Multi-tenant SSE deployments would leak** — one server thread serving multiple users could not distinguish tenants
+
+The per-request model lets the **AI agent or orchestration layer** supply the correct key for the current user context.
+
+---
+
+## Multi-tenant safety
+
+This architecture supports deployments where a single MCP server instance multiplexes connections (e.g. SSE-based MCP hosts):
+
+```
+User A → MCP Server → ductape_execute(publishable_key: A's key) → Proxy → User A's workspace
+User B → MCP Server → ductape_execute(publishable_key: B's key) → Proxy → User B's workspace
+```
+
+Because keys travel with each request, there is no cross-tenant state in the server process.
+
+---
+
+## Proxy allowlist
+
+Even with a valid publishable key, the backend proxy rejects:
+
+- Unknown module names
+- Method names not in the allowlist
+- Malformed parameter payloads
+
+This limits blast radius if an agent hallucinates an invalid SDK call. See [Modules & methods](./modules-and-methods).
+
+The allowlist is enforced server-side in `backend/proxy/src/validators/sdk-proxy.validators.ts` — the MCP server cannot bypass it.
+
+---
+
+## Publishable key vs public key
+
+| Key | Used by | Scope |
+|-----|---------|-------|
+| **Publishable Key** | `ductape_execute` | Runtime SDK operations via proxy |
+| **Public Key** | Payload/snippet generation | Schema and template generation API |
+
+Both are workspace-scoped credentials. Treat them as secrets:
+
+- Do not commit keys to version control
+- Do not embed keys in MCP server config
+- Rotate keys if exposed
+- Use environment-specific keys where possible
+
+---
+
+## Agent prompt considerations
+
+When using MCP with AI agents, be aware that:
+
+1. **Agents may include keys in conversation context** — the LLM sees tool arguments including `publishable_key`
+2. **Tool results may contain sensitive data** — database queries, secret metadata, session tokens
+3. **Agents can call any allowed method** — an agent with your publishable key can mutate platform state
+
+Mitigations:
+
+- Use **read-only exploration** prompts when testing ("list databases" not "delete all records")
+- Scope keys to **least-privilege workspaces** for agent experimentation
+- Use **separate workspaces** for production vs development
+- Review agent tool calls in MCP client logs before approving sensitive operations (where your client supports approval gates)
+
+---
+
+## Network security
+
+All backend communication uses HTTPS to `https://api.ductape.app`:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/proxy/v1/sdk-proxy/execute` | SDK execution |
+| `/integrations/v1/payloads/generate` | Payload/snippet generation |
+
+The MCP server makes outbound HTTPS requests only. It does not listen on any network port.
+
+---
+
+## Local development
+
+When running against a local Ductape stack, the API base URL is hardcoded in `mcp-server/src/proxy-client.ts` as `https://api.ductape.app`. For local backend development, you would need to modify this constant or add environment-based URL override (not currently supported out of the box).
+
+---
+
+## Reporting issues
+
+If you discover a security issue with the MCP server or proxy allowlist, report it through your organization's security channel rather than filing a public issue with credential details.

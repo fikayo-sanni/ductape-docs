@@ -5,10 +5,12 @@ sidebar_position: 1
 
 This guide will walk you through your first Ductape project, step by step. By the end, you'll have created a product, added an app, set up environments, and run your first action.
 
+Use the **TypeScript**, **Java**, **Go**, or **.NET** tabs in each code block for your SDK.
+
 ## Step 1: Install the SDK
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@0.1.8
 ```
 
 ## Step 2: Create a Product
@@ -101,9 +103,7 @@ const cache = await ductape.cache.create({
 To use the cache when running an action, include the `cache` field in your `IActionProcessorInput`:
 
 ```typescript
-const result = await ductape.actions.run({
-  env: "dev",
-  product: "payments_service",
+const result = await ductape.api.run({
   app: "email_app",
   event: "send_email",
   cache: "main_cache", // Enable caching for this action
@@ -123,13 +123,13 @@ const result = await ductape.actions.run({
 
 ## Step 5: Run an Action
 
-To run an action, use the `ductape.actions.run` method. This method requires an `IActionProcessorInput` object, which specifies the environment, product, app, event (action tag), and input data.
+To run an action, use the `ductape.api.run` method. Set **product** and **env** on the `Ductape` constructor; each call then needs **app**, **event** (action tag), and **input**.
 
 ### IActionProcessorInput
 | Field   | Type   | Required | Default | Description | Example |
 |---------|--------|----------|---------|-------------|---------|
-| env     | string | Yes      |         | Environment slug (e.g., 'dev', 'prd') | dev |
-| product | string | Yes      |         | Product tag or ID | payments_service |
+| product | string | No*      | constructor | Product tag (inherits from `new Ductape({ product, env })`) | payments_service |
+| env     | string | No*      | constructor | Environment slug (inherits from constructor) | dev |
 | app     | string | Yes      |         | App access tag | email_app |
 | event   | string | Yes      |         | Action tag (as defined in the app) | send_email |
 | input   | object | Yes      |         | Action input (see below) | `{"body": {"to": "user@example.com"}}` |
@@ -148,9 +148,7 @@ To run an action, use the `ductape.actions.run` method. This method requires an 
 
 **Example:**
 ```typescript
-const result = await ductape.actions.run({
-  env: "dev",
-  product: "payments_service",
+const result = await ductape.api.run({
   app: "email_app",
   event: "send_email",
   input: {
@@ -163,7 +161,7 @@ const result = await ductape.actions.run({
 });
 ```
 
-This will execute the `send_email` action for the specified app in the given environment and product, passing the provided input to the action.
+This executes `send_email` for the configured app, using the product and environment from the constructor.
 
 ## Next Steps
 - [Products](../features/overview.md)

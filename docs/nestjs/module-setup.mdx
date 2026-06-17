@@ -1,0 +1,114 @@
+---
+sidebar_position: 3
+title: Module setup
+---
+
+# Module setup
+
+`@ductape/nestjs` centers on **`DuctapeModule`** plus optional feature modules that register injectable handles.
+
+## `DuctapeModule.forIntegration(options)`
+
+Use in customer-facing integration apps (access key auth).
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `accessKey` | yes | Product access key |
+| `product` | no | Default product tag for decorators and handles |
+| `env` | no | Default environment slug (`dev`, `prd`, …) |
+| `local` | no | Route SDK to a local Ductape stack |
+| `redisUrl` | no | Redis URL for SDK caching / monitor |
+| `registerGlobalInterceptors` | no | Default `true` — enables `@Api`, `@Webhook.*`, and extended runtime decorators |
+
+```typescript
+DuctapeModule.forIntegration({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'shop-api',
+  env: 'dev',
+});
+```
+
+## `DuctapeModule.forWorkspace(options)`
+
+Use for admin/platform tools that call builder APIs (`ductape.webhooks.*`, `ductape.app.*`, models, agents).
+
+Same options as **`forIntegration`** — only **`accessKey`** is required for authentication. The SDK resolves workspace user context (token, workspace, and related fields) from the access key when builder APIs run.
+
+```typescript
+DuctapeModule.forWorkspace({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env: 'dev',
+});
+```
+
+Workspace mode additionally registers **`DuctapeBuilderInterceptor`** for `@WebhookBuilder`, `@ModelBuilder`, and `@AgentBuilder` decorators.
+
+## `DuctapeModule.forRootAsync({ imports, inject, useFactory })`
+
+Load credentials from `ConfigService`, a secrets manager, or any Nest async provider:
+
+```typescript
+DuctapeModule.forRootAsync({
+  imports: [ConfigModule],
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => ({
+    accessKey: config.getOrThrow('DUCTAPE_ACCESS_KEY'),
+    product: config.get('DUCTAPE_PRODUCT', 'my-product'),
+    env: config.get('NODE_ENV') === 'production' ? 'prd' : 'dev',
+  }),
+});
+```
+
+`forRootAsync` uses integration mode by default. For workspace/admin apps, use `DuctapeModule.forWorkspace()` or `forRootAsync` with a factory that returns `{ mode: 'workspace', accessKey, ... }`.
+
+## Feature modules
+
+Register tags once in `AppModule`, then inject handles in services:
+
+| Module | Register | Inject |
+|--------|----------|--------|
+| `DuctapeDatabaseModule` | `{ tags: ['users-db'] }` | `@Database('users-db')` |
+| `DuctapeStorageModule` | `{ tags: ['uploads'] }` | `@Storage('uploads')` |
+| `DuctapeCacheModule` | `{ tags: ['user-cache'] }` | `@Cache('user-cache')` |
+| `DuctapeGraphModule` | `{ tags: ['social'] }` | `@Graph('social')` |
+| `DuctapeVectorModule` | `{ tags: ['embeddings'] }` | `@Vector('embeddings')` |
+| `DuctapeSecretsModule` | `{ keys: ['API_KEY'] }` | `@Secret('API_KEY')` |
+| `DuctapeAgentModule` | `{ tags: ['support'] }` | `@Agent('support')` |
+| `DuctapeWarehouseModule` | `register()` | `@Warehouse()` |
+
+Example:
+
+```typescript
+@Module({
+  imports: [
+    DuctapeModule.forIntegration({ accessKey: '...', product: 'shop-api', env: 'dev' }),
+    DuctapeDatabaseModule.register({ tags: ['orders-db', 'catalog-db'] }),
+    DuctapeCacheModule.register({ tags: ['session-cache'] }),
+  ],
+})
+export class AppModule {}
+```
+
+Handles require resolved **product** and **env** (module defaults or `@Product` / `@Env` on the class). See [Context & handles](./context-and-handles).
+
+## Global interceptors
+
+By default, `DuctapeModule` registers:
+
+- **`DuctapeContextInterceptor`** — applies `@Product`, `@Env`, `@AccessTag` per request
+- **`DuctapeMethodInterceptor`** — runs `@Api`, webhooks, and extended runtime decorators
+- **`DuctapeBuilderInterceptor`** — runs builder decorators in workspace mode
+
+Disable globals and apply interceptors per controller: [Interceptors](./interceptors).
+
+## Development (monorepo)
+
+```bash
+cd sdk/nestjs
+npm install
+npm run build
+npm test
+```
+
+Local SDK link: `"@ductape/sdk": "file:../ts"` in `sdk/nestjs/package.json`.

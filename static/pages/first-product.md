@@ -54,8 +54,6 @@ await ductape.product.environments.create({
 
 ```typescript
 const result = await ductape.processor.action.run({
-  env: "dev",
-  product: "payments_service",
   app: "email_service",
   event: "send_email",
   input: {

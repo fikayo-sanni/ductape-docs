@@ -24,13 +24,10 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd', // optional
 });
 
 // Start a session (creates tokens)
 const result = await ductape.sessions.start({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   data: { userId: '123', email: 'user@example.com' },
 });
@@ -49,8 +46,6 @@ Start a new session to get tokens. The session **tag** must match a session conf
 
 ```ts
 const result = await ductape.sessions.start({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   data: {
     userId: 'user_123',
@@ -71,8 +66,6 @@ Verify a session token and read the stored data:
 
 ```ts
 const verifyResult = await ductape.sessions.verify({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   token: result.token, // or 'tag:jwt' string
 });
@@ -94,8 +87,6 @@ Renew an expired session using the refresh token:
 
 ```ts
 const refreshResult = await ductape.sessions.refresh({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   refreshToken: result.refreshToken,
 });
@@ -115,16 +106,12 @@ Invalidate a session by session ID or user identifier:
 ```ts
 // Revoke by session ID
 await ductape.sessions.revoke({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   sessionId: 'session-uuid',
 });
 
 // Or revoke by user identifier (from session selector)
 await ductape.sessions.revoke({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   identifier: 'user_123',
 });
@@ -138,8 +125,6 @@ Get a paginated list of active (runtime) sessions:
 
 ```ts
 const result = await ductape.sessions.listActive({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   identifier: 'user_123',  // Optional: filter by user
   page: 1,

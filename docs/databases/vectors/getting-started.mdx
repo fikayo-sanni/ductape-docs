@@ -36,6 +36,8 @@ const ductape = new Ductape({
 });
 ```
 
+Set `product` and `env` on the constructor only — see [SDK runtime defaults](/sdk/runtime-defaults).
+
 ## Step 3: Create a Vector Database Configuration
 
 Register your vector database with environment-specific settings:
@@ -44,7 +46,6 @@ Register your vector database with environment-specific settings:
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Product Embeddings',
   tag: 'product-vectors',
   type: VectorDBType.PINECONE,
@@ -69,6 +70,54 @@ await ductape.vector.create({
 });
 ```
 
+**Cloud-linked vectors** — provision or import from AWS OpenSearch, GCP Vertex AI Vector Search, or Azure AI Search:
+
+```typescript
+// AWS OpenSearch
+await ductape.vector.create({
+  name: 'Product Embeddings',
+  tag: 'product-vectors',
+  type: 'opensearch',
+  dimensions: 1536,
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_aws',
+    instance: 'my-opensearch-domain',
+    region: 'us-east-1',
+  }],
+});
+
+// GCP Vertex AI Vector Search
+await ductape.vector.create({
+  name: 'Product Embeddings',
+  tag: 'product-vectors',
+  type: 'vertex-vector-search',
+  dimensions: 1536,
+  envs: [{
+    slug: 'prd',
+    cloud: 'gcp_prod',
+    instance: 'my-vector-endpoint',
+    region: 'us-central1',
+  }],
+});
+
+// Azure AI Search
+await ductape.vector.create({
+  name: 'Product Embeddings',
+  tag: 'product-vectors',
+  type: 'azure-search',
+  dimensions: 1536,
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_azure',
+    instance: 'my-search-service',
+    region: 'eastus',
+  }],
+});
+```
+
+See [Cloud-linked components](../../cloud/cloud-linked-components).
+
 ### Configuration Fields
 
 | Field | Type | Required | Description |
@@ -88,6 +137,8 @@ await ductape.vector.create({
 | `slug` | string | Yes | Environment identifier (e.g., `dev`, `staging`, `prd`) |
 | `endpoint` | string | Yes* | Vector database endpoint URL |
 | `apiKey` | string | Yes* | API key for authentication |
+| `cloud` | string | No | Workspace cloud connection tag (imports/provisions OpenSearch or Azure AI Search) |
+| `instance` | string | No | Cloud resource name when using `cloud` |
 | `region` | string | No | Cloud region (for some providers) |
 | `index` | string | Yes* | Index/collection name |
 | `namespace` | string | No | Namespace for data isolation |
@@ -100,11 +151,7 @@ await ductape.vector.create({
 Before performing operations, connect to the vector database:
 
 ```typescript
-await ductape.vector.connect({
-  product: 'my-product',
-  env: 'dev',
-  tag: 'product-vectors',
-});
+await ductape.vector.connect({ tag: 'product-vectors' });
 ```
 
 ## Step 5: Store Your First Vectors
@@ -113,8 +160,6 @@ Insert vectors with metadata:
 
 ```typescript
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'product-vectors',
   vectors: [
     {
@@ -145,8 +190,6 @@ Find vectors similar to a query:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'product-vectors',
   vector: generateEmbedding('audio equipment'),
   topK: 5,
@@ -166,14 +209,11 @@ import Ductape, { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 async function main() {
   const ductape = new Ductape({
-    user_id: 'your-user-id',
-    workspace_id: 'your-workspace-id',
-    private_key: 'your-private-key',
+    accessKey: 'your-access-key',
   });
 
   // 1. Create vector configuration
   await ductape.vector.create({
-    product: 'my-product',
     name: 'FAQ Embeddings',
     tag: 'faq-vectors',
     type: VectorDBType.QDRANT,
@@ -189,16 +229,10 @@ async function main() {
   });
 
   // 2. Connect to the vector database
-  await ductape.vector.connect({
-    product: 'my-product',
-    env: 'dev',
-    tag: 'faq-vectors',
-  });
+  await ductape.vector.connect({ tag: 'faq-vectors' });
 
   // 3. Store FAQs
   await ductape.vector.upsert({
-    product: 'my-product',
-    env: 'dev',
     tag: 'faq-vectors',
     vectors: [
       {
@@ -225,8 +259,6 @@ async function main() {
   // 4. Search for relevant FAQs
   const userQuestion = 'I forgot my login credentials';
   const results = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'faq-vectors',
     vector: await getEmbedding(userQuestion),
     topK: 3,
@@ -256,7 +288,6 @@ main().catch(console.error);
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Pinecone Vectors',
   tag: 'pinecone-db',
   type: VectorDBType.PINECONE,
@@ -280,7 +311,6 @@ await ductape.vector.create({
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Qdrant Vectors',
   tag: 'qdrant-db',
   type: VectorDBType.QDRANT,
@@ -308,7 +338,6 @@ await ductape.vector.create({
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Weaviate Vectors',
   tag: 'weaviate-db',
   type: VectorDBType.WEAVIATE,
@@ -331,7 +360,6 @@ await ductape.vector.create({
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Memory Vectors',
   tag: 'memory-db',
   type: VectorDBType.MEMORY,

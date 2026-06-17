@@ -10,8 +10,6 @@ Extend session validity by refreshing tokens using `ductape.sessions.refresh()`.
 
 ```ts
 const newTokens = await ductape.sessions.refresh({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   refreshToken: 'your-refresh-token',
 });
@@ -30,8 +28,6 @@ Use the refresh token (received when creating or refreshing a session) to get ne
 
 ```ts
 const result = await ductape.sessions.refresh({
-  product: 'ecommerce',
-  env: 'prd',
   tag: 'checkout-session',
   refreshToken: 'eueywuwjwmwmw:zyx456cba321...'
 });
@@ -47,8 +43,6 @@ async function refreshAuth() {
   const storedRefreshToken = localStorage.getItem('refreshToken');
 
   const result = await ductape.sessions.refresh({
-    product: 'my-app',
-    env: 'prd',
     tag: 'user-session',
     refreshToken: storedRefreshToken
   });

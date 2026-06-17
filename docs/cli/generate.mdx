@@ -1,0 +1,23 @@
+---
+title: Generate
+sidebar_position: 13
+---
+
+# Generate
+
+Payload templates and code snippets via `POST /integrations/v1/payloads/generate` (same as Workbench / MCP).
+
+```bash
+ductape generate payload storage upload -f targets.json
+ductape generate snippet action run -l typescript --out example.ts
+ductape generate snippet database query -l python
+```
+
+Languages: `typescript`, `python`, `go`, `dotnet`.
+
+## Shell completions
+
+```bash
+ductape completion bash >> ~/.bashrc
+ductape completion zsh >> ~/.zshrc
+```

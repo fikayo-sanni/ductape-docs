@@ -1,732 +1,160 @@
 ---
-sidebar_position: 5
+sidebar_position: 2
 title: Sessions & Authentication
 ---
 
+import ClientSdkTabs from '@site/src/components/ClientSdkTabs';
+import TabItem from '@theme/TabItem';
+import ClientContent from '@site/docs/frontend/_fragments/client/sessions.mdx';
+import ReactContent from '@site/docs/frontend/_fragments/react/session-hooks.mdx';
+import VueContent from '@site/docs/frontend/_fragments/vue/session-composables.mdx';
+
 # Sessions & Authentication
 
-Sessions provide secure user authentication and authorization for your Ductape application. Create JWT-based sessions with encrypted data, verify tokens, and handle authentication flows.
+Ductape sessions are JWT-based tokens that identify a user across product operations. **Starting, verifying, refreshing, and revoking sessions is backend-only** — use `@ductape/sdk` with an **access key** on your API or BFF.
 
-:::warning When using a publishable key (frontend)
-If your client is configured with a **publishable key** (browser/frontend), **session methods are not available**—calling `sessions.start`, `sessions.verify`, `sessions.refresh`, `sessions.revoke`, etc. will throw. Sessions can only be started and managed **on your backend** (e.g. BFF or API with an access key). Your backend issues a session token and returns it to the frontend; the frontend must then include that token as the **`session`** property in **every** Ductape request (e.g. `databases.query({ table: 'x', session: token })`). The proxy rejects requests that omit `session`. The examples on this page apply when using an **access key** (e.g. server-side or backend-only client).
+The browser uses a **publishable key** and never calls session lifecycle APIs. After login, your backend returns a session token; the frontend passes it as **`session`** on every Ductape request.
+
+## How it works
+
+1. User signs in through **your** auth (email/password, OAuth, etc.).
+2. Your **backend** validates credentials and calls `ductape.sessions.start()` with `@ductape/sdk`.
+3. Your API returns `token` (format `tag:jwt`) and optionally `refreshToken` to the client.
+4. The frontend stores the token and includes **`session: token`** on databases, storage, actions, and other calls.
+5. Refresh and revoke stay on the backend — expose your own `/auth/refresh` and `/auth/logout` routes that call the SDK.
+
+## Starting a session (backend only)
+
+:::info Backend only — `@ductape/sdk`
+Session lifecycle methods (`sessions.start`, `sessions.verify`, `sessions.refresh`, `sessions.revoke`, etc.) require an **access key** and must run on your server. They are **not** available from `@ductape/client`, `@ductape/react`, or `@ductape/vue` when using a publishable key.
 :::
 
-## Starting a Session
-
-### Basic Session Start
-
 ```typescript
-import { Ductape } from '@ductape/client';
+import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
-  accessKey: 'your-access-key',
-  product: 'your-product',
-  env: 'prd'
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env: 'prd',
 });
 
-const session = await ductape.sessions.start({
+// After your own auth validates the user
+const result = await ductape.sessions.start({
   tag: 'user-session',
   data: {
-    userId: 'user-123',
-    email: 'user@example.com',
-    role: 'user'
-  }
+    userId: 'user_123',
+    details: {
+      email: 'user@example.com',
+      role: 'user',
+    },
+  },
 });
 
-console.log('Session token:', session.token);
-console.log('Refresh token:', session.refreshToken);
-
-// Store tokens securely
-localStorage.setItem('ductape_token', session.token);
-localStorage.setItem('ductape_refresh', session.refreshToken);
+// Return to the browser via your login API
+res.json({
+  sessionToken: result.token,
+  refreshToken: result.refreshToken,
+  expiresAt: result.expiresAt,
+});
 ```
 
-### Session with Custom Duration
+### Custom duration and session types
 
 ```typescript
-const session = await ductape.sessions.start({
+// Longer-lived admin session
+const adminSession = await ductape.sessions.start({
   tag: 'admin-session',
   data: {
-    userId: 'admin-456',
-    email: 'admin@example.com',
-    role: 'admin',
-    permissions: ['read', 'write', 'delete']
+    userId: 'admin_456',
+    details: { email: 'admin@company.com', role: 'admin' },
   },
-  expiresIn: 86400 // 24 hours in seconds
+  expiresIn: 86400, // 24 hours
 });
-```
 
-### Different Session Types
-
-Use different tags for different authentication flows:
-
-```typescript
-// Checkout flow session
+// Short-lived checkout flow
 const checkoutSession = await ductape.sessions.start({
   tag: 'checkout-session',
   data: {
-    userId: 'user-123',
-    cartId: 'cart-789',
-    shippingAddress: '123 Main St'
+    userId: 'user_123',
+    details: { cartId: 'cart_789' },
   },
-  expiresIn: 1800 // 30 minutes
-});
-
-// Support chat session
-const supportSession = await ductape.sessions.start({
-  tag: 'support-chat',
-  data: {
-    userId: 'user-123',
-    ticketId: 'ticket-456',
-    agent: 'agent-789'
-  }
+  expiresIn: 1800, // 30 minutes
 });
 ```
 
-## Verifying Sessions
+## Verifying and refreshing (backend only)
 
-### Verify Token
-
-```typescript
-const token = localStorage.getItem('ductape_token');
-
-try {
-  const result = await ductape.sessions.verify({
-    tag: 'user-session',
-    token: token
-  });
-
-  console.log('Session valid');
-  console.log('Decrypted data:', result.data);
-  // Access encrypted session data
-  console.log('User ID:', result.data.userId);
-  console.log('Email:', result.data.email);
-  console.log('Role:', result.data.role);
-} catch (error) {
-  console.log('Session invalid or expired');
-  // Redirect to login
-  window.location.href = '/login';
-}
-```
-
-### Auto-verify on App Load
+Verify a token when your API needs to read encrypted session data or check expiry:
 
 ```typescript
-async function initializeAuth() {
-  const token = localStorage.getItem('ductape_token');
-
-  if (!token) {
-    // No token, show login
-    showLoginPage();
-    return;
-  }
-
-  try {
-    const result = await ductape.sessions.verify({
-      tag: 'user-session',
-      token
-    });
-
-    // Token valid, load app with decrypted session data
-    loadApp(result.data);
-  } catch (error) {
-    // Token invalid, clear and show login
-    localStorage.removeItem('ductape_token');
-    localStorage.removeItem('ductape_refresh');
-    showLoginPage();
-  }
-}
-
-// Call on app load
-initializeAuth();
-```
-
-## Refreshing Sessions
-
-### Manual Refresh
-
-```typescript
-const refreshToken = localStorage.getItem('ductape_refresh');
-
-const refreshed = await ductape.sessions.refresh({
-  tag: 'user-session',
-  refreshToken: refreshToken
-});
-
-// Update stored tokens
-localStorage.setItem('ductape_token', refreshed.token);
-localStorage.setItem('ductape_refresh', refreshed.refreshToken);
-console.log('Session refreshed');
-```
-
-### Auto-refresh with Interceptor
-
-```typescript
-class SessionManager {
-  private token: string | null = null;
-  private refreshToken: string | null = null;
-  private refreshTimer: number | null = null;
-  private sessionTag: string = 'user-session';
-
-  async login(userData: { userId: string; email: string; role: string }) {
-    const session = await ductape.sessions.start({
-      tag: this.sessionTag,
-      data: userData,
-      expiresIn: 3600 // 1 hour
-    });
-
-    this.token = session.token;
-    this.refreshToken = session.refreshToken;
-    localStorage.setItem('ductape_token', session.token);
-    localStorage.setItem('ductape_refresh', session.refreshToken);
-
-    // Schedule refresh 5 minutes before expiry
-    this.scheduleRefresh(3600 - 300); // 55 minutes
-  }
-
-  private scheduleRefresh(delaySeconds: number) {
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-    }
-
-    this.refreshTimer = setTimeout(() => {
-      this.refreshSession();
-    }, delaySeconds * 1000);
-  }
-
-  private async refreshSession() {
-    try {
-      const refreshed = await ductape.sessions.refresh({
-        tag: this.sessionTag,
-        refreshToken: this.refreshToken!
-      });
-
-      this.token = refreshed.token;
-      this.refreshToken = refreshed.refreshToken;
-      localStorage.setItem('ductape_token', refreshed.token);
-      localStorage.setItem('ductape_refresh', refreshed.refreshToken);
-
-      // Schedule next refresh
-      this.scheduleRefresh(3600 - 300);
-
-      console.log('Session refreshed automatically');
-    } catch (error) {
-      console.error('Failed to refresh session:', error);
-      this.logout();
-    }
-  }
-
-  async logout() {
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-    }
-
-    if (this.token) {
-      try {
-        const verified = await ductape.sessions.verify({
-          tag: this.sessionTag,
-          token: this.token
-        });
-
-        await ductape.sessions.revoke({
-          tag: this.sessionTag,
-          sessionId: verified.sessionId
-        });
-      } catch (error) {
-        console.error('Failed to revoke session:', error);
-      }
-    }
-
-    this.token = null;
-    this.refreshToken = null;
-    localStorage.removeItem('ductape_token');
-    localStorage.removeItem('ductape_refresh');
-
-    // Redirect to login
-    window.location.href = '/login';
-  }
-}
-
-// Usage
-const sessionManager = new SessionManager();
-await sessionManager.login({
-  userId: 'user-123',
-  email: 'user@example.com',
-  role: 'user'
-});
-```
-
-## Revoking Sessions
-
-### Revoke Current Session (Logout)
-
-```typescript
-const token = localStorage.getItem('ductape_token');
-
-// First verify to get session ID
 const verified = await ductape.sessions.verify({
   tag: 'user-session',
-  token
+  token: sessionTokenFromClient,
 });
 
-// Then revoke
+console.log(verified.data.userId);
+console.log(verified.expiresAt);
+```
+
+Refresh before expiry — call from a backend route, not from the browser SDK:
+
+```typescript
+const renewed = await ductape.sessions.refresh({
+  tag: 'user-session',
+  refreshToken: refreshTokenFromClient,
+});
+
+// Return new tokens to the client
+res.json({ sessionToken: renewed.token, refreshToken: renewed.refreshToken });
+```
+
+## Revoking sessions (backend only)
+
+```typescript
+// Logout — revoke the current session
+const verified = await ductape.sessions.verify({
+  tag: 'user-session',
+  token: sessionToken,
+});
+
 await ductape.sessions.revoke({
   tag: 'user-session',
-  sessionId: verified.sessionId
+  sessionId: verified.sessionId,
 });
 
-localStorage.removeItem('ductape_token');
-localStorage.removeItem('ductape_refresh');
-
-// Redirect to login
-window.location.href = '/login';
-```
-
-### Revoke All Sessions
-
-```typescript
+// Log out all devices for a user
 await ductape.sessions.revokeAll({
   tag: 'user-session',
-  identifier: 'user-123'
-});
-
-// User will be logged out from all devices
-```
-
-### Revoke All Except Current
-
-```typescript
-const token = localStorage.getItem('ductape_token');
-
-const currentSession = await ductape.sessions.verify({
-  tag: 'user-session',
-  token
-});
-
-await ductape.sessions.revokeAll({
-  tag: 'user-session',
-  identifier: currentSession.data.userId,
-  excludeCurrentSession: currentSession.sessionId
-});
-
-alert('All other sessions have been revoked');
-```
-
-## Listing Active Sessions
-
-```typescript
-const result = await ductape.sessions.list({
-  tag: 'user-session',
-  identifier: 'user-123'
-});
-
-console.log(`User has ${result.count} active sessions`);
-
-result.sessions.forEach(session => {
-  console.log(`- Session ${session.sessionId}`);
-  console.log(`  Created: ${session.createdAt}`);
-  console.log(`  Expires: ${session.expiresAt}`);
+  identifier: 'user_123',
 });
 ```
 
-## Complete Authentication Example
+## Using session tokens on the frontend
 
-```typescript
-import { Ductape } from '@ductape/client';
+Once your backend returns a session token, pass it on **every** Ductape call. With a publishable key, requests without `session` are rejected.
 
-class AuthService {
-  private ductape: Ductape;
-  private currentUser: any = null;
-  private sessionTag = 'user-session';
+<ClientSdkTabs>
+<TabItem value="client" label="@ductape/client" default>
 
-  constructor(ductape: Ductape) {
-    this.ductape = ductape;
-  }
+<ClientContent />
 
-  async login(email: string, password: string) {
-    try {
-      // 1. Verify credentials with your backend
-      const user = await this.verifyCredentials(email, password);
+</TabItem>
+<TabItem value="react" label="React">
 
-      // 2. Create Ductape session with encrypted data
-      const session = await this.ductape.sessions.start({
-        tag: this.sessionTag,
-        data: {
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          // Any other data you want encrypted
-          accountType: user.accountType
-        },
-        expiresIn: 86400 // 24 hours
-      });
+<ReactContent />
 
-      // 3. Store tokens
-      localStorage.setItem('ductape_token', session.token);
-      localStorage.setItem('ductape_refresh', session.refreshToken);
-      this.currentUser = user;
+</TabItem>
+<TabItem value="vue" label="Vue 3">
 
-      // 4. Return user info
-      return user;
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    }
-  }
+<VueContent />
 
-  async logout() {
-    const token = localStorage.getItem('ductape_token');
+</TabItem>
+</ClientSdkTabs>
 
-    if (token) {
-      try {
-        // Verify to get session ID
-        const verified = await this.ductape.sessions.verify({
-          tag: this.sessionTag,
-          token
-        });
+## See also
 
-        // Revoke session
-        await this.ductape.sessions.revoke({
-          tag: this.sessionTag,
-          sessionId: verified.sessionId
-        });
-      } catch (error) {
-        console.error('Failed to revoke session:', error);
-      }
-    }
+- [Generating session tokens](/sessions/use) — full backend reference
+- [Refreshing session tokens](/sessions/refreshing)
+- [Sessions overview](/sessions/overview)
+- [Product Analytics](./analytics) — `identify(sessionToken)` for frontend events
 
-    localStorage.removeItem('ductape_token');
-    localStorage.removeItem('ductape_refresh');
-    this.currentUser = null;
-
-    // Redirect to login
-    window.location.href = '/login';
-  }
-
-  async checkAuth(): Promise<boolean> {
-    const token = localStorage.getItem('ductape_token');
-
-    if (!token) {
-      return false;
-    }
-
-    try {
-      const result = await this.ductape.sessions.verify({
-        tag: this.sessionTag,
-        token
-      });
-
-      // Extract user data from decrypted session
-      this.currentUser = {
-        id: result.data.userId,
-        email: result.data.email,
-        role: result.data.role,
-        name: result.data.name
-      };
-
-      return true;
-    } catch (error) {
-      localStorage.removeItem('ductape_token');
-      localStorage.removeItem('ductape_refresh');
-      return false;
-    }
-  }
-
-  getCurrentUser() {
-    return this.currentUser;
-  }
-
-  isAuthenticated(): boolean {
-    return this.currentUser !== null;
-  }
-
-  hasRole(role: string): boolean {
-    return this.currentUser?.role === role;
-  }
-
-  private async verifyCredentials(email: string, password: string) {
-    // Implement your credential verification
-    // This could call your backend API
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (!response.ok) {
-      throw new Error('Invalid credentials');
-    }
-
-    return await response.json();
-  }
-}
-
-// Usage
-const ductape = new Ductape({
-  accessKey: 'your-access-key',
-  product: 'your-product',
-  env: 'prd'
-});
-
-const auth = new AuthService(ductape);
-
-// Login
-try {
-  const user = await auth.login('user@example.com', 'password123');
-  console.log('Logged in as:', user.name);
-} catch (error) {
-  alert('Login failed');
-}
-
-// Check auth on page load
-if (await auth.checkAuth()) {
-  console.log('User is authenticated');
-} else {
-  window.location.href = '/login';
-}
-
-// Logout
-await auth.logout();
-```
-
-## Session Data Encryption
-
-All data passed in the `data` field is automatically encrypted:
-
-```typescript
-// Data is encrypted in the JWT
-const session = await ductape.sessions.start({
-  tag: 'user-session',
-  data: {
-    userId: 'user-123',
-    email: 'user@example.com',
-    // Sensitive data is encrypted
-    creditCardLast4: '4242',
-    subscriptionTier: 'premium'
-  }
-});
-
-// Data is decrypted when verifying
-const verified = await ductape.sessions.verify({
-  tag: 'user-session',
-  token: session.token
-});
-
-// Access decrypted data
-console.log(verified.data.creditCardLast4); // "4242"
-console.log(verified.data.subscriptionTier); // "premium"
-```
-
-## Role-Based Access Control
-
-```typescript
-class PermissionGuard {
-  private auth: AuthService;
-
-  constructor(auth: AuthService) {
-    this.auth = auth;
-  }
-
-  requireAuth() {
-    if (!this.auth.isAuthenticated()) {
-      window.location.href = '/login';
-      throw new Error('Not authenticated');
-    }
-  }
-
-  requireRole(role: string) {
-    this.requireAuth();
-
-    if (!this.auth.hasRole(role)) {
-      window.location.href = '/forbidden';
-      throw new Error('Insufficient permissions');
-    }
-  }
-
-  requireAnyRole(roles: string[]) {
-    this.requireAuth();
-
-    const user = this.auth.getCurrentUser();
-    if (!roles.includes(user.role)) {
-      window.location.href = '/forbidden';
-      throw new Error('Insufficient permissions');
-    }
-  }
-}
-
-// Usage
-const guard = new PermissionGuard(auth);
-
-// Protect a function
-async function deleteUser(userId: string) {
-  guard.requireRole('admin');
-
-  await ductape.databases.delete({
-    table: 'users',
-    where: { id: userId }
-  });
-}
-
-// Protect a page
-function loadAdminPage() {
-  guard.requireRole('admin');
-
-  // Load admin page content
-}
-```
-
-## Session Activity Dashboard
-
-```typescript
-class SessionDashboard {
-  private ductape: Ductape;
-  private sessionTag = 'user-session';
-
-  constructor(ductape: Ductape) {
-    this.ductape = ductape;
-  }
-
-  async loadSessions(identifier: string) {
-    const result = await this.ductape.sessions.list({
-      tag: this.sessionTag,
-      identifier
-    });
-
-    this.renderSessions(result.sessions);
-  }
-
-  async revokeSession(sessionId: string) {
-    if (!confirm('Revoke this session?')) {
-      return;
-    }
-
-    await this.ductape.sessions.revoke({
-      tag: this.sessionTag,
-      sessionId
-    });
-
-    // Reload sessions
-    const token = localStorage.getItem('ductape_token');
-    const verified = await this.ductape.sessions.verify({
-      tag: this.sessionTag,
-      token
-    });
-
-    await this.loadSessions(verified.data.userId);
-  }
-
-  async revokeAllOthers(identifier: string) {
-    if (!confirm('Revoke all other sessions? This will log you out from all other devices.')) {
-      return;
-    }
-
-    const currentToken = localStorage.getItem('ductape_token');
-    const currentSession = await this.ductape.sessions.verify({
-      tag: this.sessionTag,
-      token: currentToken
-    });
-
-    await this.ductape.sessions.revokeAll({
-      tag: this.sessionTag,
-      identifier,
-      excludeCurrentSession: currentSession.sessionId
-    });
-
-    alert('All other sessions revoked');
-    await this.loadSessions(identifier);
-  }
-
-  private renderSessions(sessions: any[]) {
-    const container = document.getElementById('sessions-list');
-    container.innerHTML = '';
-
-    sessions.forEach(session => {
-      const item = document.createElement('div');
-      item.className = 'session-item';
-
-      const isCurrentSession = this.isCurrentSession(session);
-
-      item.innerHTML = `
-        <div class="session-info">
-          <strong>${isCurrentSession ? 'Current Session' : 'Session'}</strong>
-          <span>Created: ${new Date(session.createdAt).toLocaleString()}</span>
-          <span>Expires: ${new Date(session.expiresAt).toLocaleString()}</span>
-        </div>
-        ${!isCurrentSession ? `
-          <button onclick="dashboard.revokeSession('${session.sessionId}')">
-            Revoke
-          </button>
-        ` : ''}
-      `;
-
-      container.appendChild(item);
-    });
-  }
-
-  private isCurrentSession(session: any): boolean {
-    const currentToken = localStorage.getItem('ductape_token');
-    // You'd need to decode the JWT to check if it matches
-    return false; // Simplified for example
-  }
-}
-
-// Usage
-const dashboard = new SessionDashboard(ductape);
-await dashboard.loadSessions('user-123');
-```
-
-## Best Practices
-
-1. **Always use the `tag` field**: Different session types should have different tags
-2. **Store tokens securely**: Use httpOnly cookies in production when possible
-3. **Encrypt sensitive data**: All data in the `data` field is automatically encrypted
-4. **Implement auto-refresh**: Refresh tokens before they expire
-5. **Handle token expiry**: Gracefully handle expired tokens
-6. **Use HTTPS**: Always use HTTPS in production
-7. **Implement CSRF protection**: Protect against cross-site request forgery
-8. **Limit session duration**: Use reasonable expiry times
-9. **Revoke on logout**: Always revoke sessions on logout
-10. **Monitor active sessions**: Allow users to view and revoke sessions
-
-## API Reference
-
-### Session Start Input
-
-```typescript
-interface ISessionStartInput {
-  /** Session tag (required) */
-  tag: string;
-  /** Encrypted session data */
-  data: Record<string, unknown>;
-  /** User identifier for listing/revoking */
-  identifier?: string;
-  /** Session expiration in seconds */
-  expiresIn?: number;
-  /** Product tag (optional, uses default) */
-  product?: string;
-  /** Environment (optional, uses default) */
-  env?: string;
-}
-```
-
-### Session Verify Input
-
-```typescript
-interface ISessionVerifyInput {
-  /** Session tag (required) */
-  tag: string;
-  /** Session token to verify */
-  token: string;
-  /** Product tag (optional, uses default) */
-  product?: string;
-  /** Environment (optional, uses default) */
-  env?: string;
-}
-```
-
-## Next Steps
-
-- [React Session Hooks](../react/session-hooks)
-- [Vue Session Composables](../vue/session-composables)
-- [Real-time Subscriptions](./subscriptions)

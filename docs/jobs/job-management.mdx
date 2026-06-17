@@ -62,8 +62,6 @@ const scheduledJobs = await ductape.jobs.list({
 
 // List jobs by product
 const productJobs = await ductape.jobs.list({
-  product: 'my-app',
-  env: 'prd'
 });
 
 // List recurring jobs only
@@ -163,7 +161,6 @@ console.log('Status:', cancelledJob.status);  // 'cancelled'
 ```ts
 // Cancel all scheduled jobs for a product
 const cancelled = await ductape.jobs.cancelMany({
-  product: 'my-app',
   status: 'scheduled'
 });
 
@@ -206,13 +203,11 @@ console.log('Next run:', new Date(job.next_run_at));
 ```ts
 // Pause all recurring jobs for maintenance
 await ductape.jobs.pauseMany({
-  product: 'my-app',
   recurring: true
 });
 
 // Resume after maintenance
 await ductape.jobs.resumeMany({
-  product: 'my-app',
   status: 'paused'
 });
 ```
@@ -291,8 +286,6 @@ interface IJobExecution {
 ```ts
 // Get statistics for all jobs in a product
 const stats = await ductape.jobs.getStats({
-  product: 'my-app',
-  env: 'prd'
 });
 
 console.log('Total jobs:', stats.total);
@@ -393,7 +386,7 @@ interface IJobWebhookPayload {
 When retrieving the job ID from dispatch, store it with context:
 
 ```ts
-const job = await ductape.actions.dispatch({ ... });
+const job = await ductape.api.dispatch({ ... });
 
 // Store job reference with context
 await saveJobReference({
@@ -437,13 +430,12 @@ Pause jobs during system maintenance:
 
 ```ts
 // Before maintenance
-await ductape.jobs.pauseMany({ product: 'my-app' });
+await ductape.jobs.pauseMany({});
 
 // ... perform maintenance ...
 
 // After maintenance
 await ductape.jobs.resumeMany({
-  product: 'my-app',
   status: 'paused'
 });
 ```

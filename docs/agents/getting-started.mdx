@@ -43,7 +43,6 @@ Before creating an agent, set up a model configuration. This keeps API keys secu
 ```typescript
 // Create a model configuration (do this once)
 await ductape.model.create({
-  product: 'my-product',
   tag: 'claude-sonnet',
   name: 'Claude Sonnet',
   provider: 'anthropic',
@@ -64,7 +63,6 @@ Create a simple assistant agent that references the model by tag:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'simple-assistant',
   name: 'Simple Assistant',
   model: 'claude-sonnet',  // Reference the model tag
@@ -81,7 +79,6 @@ You can also define the model inline (useful for development):
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'simple-assistant',
   name: 'Simple Assistant',
   model: {
@@ -99,8 +96,6 @@ const agent = await ductape.agents.define({
 
 ```typescript
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'simple-assistant',
   input: 'What is the capital of France?',
 });
@@ -115,7 +110,6 @@ Make your agent more capable with tools:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'calculator-agent',
   name: 'Calculator Agent',
   model: {
@@ -150,8 +144,6 @@ Use the calculator tool when you need to compute mathematical expressions.`,
 
 // Test it
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'calculator-agent',
   input: 'What is 15% of 250?',
 });
@@ -168,7 +160,6 @@ Access databases, APIs, and other resources:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'data-agent',
   name: 'Data Agent',
   model: {
@@ -240,7 +231,6 @@ async function main() {
 
   // Define a customer support agent
   const agent = await ductape.agents.define({
-    product: 'my-product',
     tag: 'support-agent',
     name: 'Customer Support Agent',
     model: {
@@ -387,8 +377,6 @@ If you can't help with something, explain why and suggest alternatives.`,
 
   // Run the agent
   const result = await ductape.agents.run({
-    product: 'my-product',
-    env: 'dev',
     tag: 'support-agent',
     input: 'Hi, I need to check on my order ORD-12345. When will it arrive?',
     sessionId: 'customer-session-abc',
@@ -409,7 +397,6 @@ Configure different models per environment:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'configurable-agent',
   name: 'Configurable Agent',
   model: {
@@ -447,8 +434,6 @@ Get real-time updates as the agent works:
 
 ```typescript
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'support-agent',
   input: 'Check order ORD-12345',
   streaming: {

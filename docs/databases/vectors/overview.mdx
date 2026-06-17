@@ -48,7 +48,6 @@ const ductape = new Ductape({
 
 // Create a vector database configuration
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Document Embeddings',
   tag: 'doc-embeddings',
   type: VectorDBType.PINECONE,
@@ -74,15 +73,11 @@ await ductape.vector.create({
 
 // Connect to the vector database
 await ductape.vector.connect({
-  product: 'my-product',
-  env: 'dev',
   tag: 'doc-embeddings',
 });
 
 // Insert vectors
 await ductape.vector.upsert({
-  product: 'my-product',
-  env: 'dev',
   tag: 'doc-embeddings',
   vectors: [
     {
@@ -100,8 +95,6 @@ await ductape.vector.upsert({
 
 // Query for similar vectors
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'doc-embeddings',
   vector: [0.15, 0.25, 0.35, /* ... query vector */],
   topK: 5,

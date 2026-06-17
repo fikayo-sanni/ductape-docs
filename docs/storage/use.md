@@ -11,8 +11,6 @@ Upload files to your configured storage providers using `ductape.storage.upload(
 ```ts
 // Upload a file
 const result = await ductape.storage.upload({
-  product: 'my-app',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
   buffer: fileBuffer,
@@ -41,8 +39,6 @@ import { readFileSync } from 'fs';
 const fileBuffer = readFileSync('invoice.pdf');
 
 const result = await ductape.storage.upload({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: 'invoices/invoice-001.pdf',
   buffer: fileBuffer,
@@ -56,8 +52,6 @@ console.log('Uploaded to:', result.url);
 
 ```ts
 const result = await ductape.storage.download({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: 'invoices/invoice-001.pdf',
 });
@@ -73,8 +67,6 @@ Use `storage.remove()` to delete a file:
 
 ```ts
 const result = await ductape.storage.remove({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: 'invoices/old-invoice.pdf',
 });
@@ -88,8 +80,6 @@ Use `storage.listFiles()` for paginated listing:
 
 ```ts
 const result = await ductape.storage.listFiles({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   prefix: 'invoices/',
   limit: 100,
@@ -107,8 +97,6 @@ For large storage buckets, use pagination to fetch files in batches:
 ```ts
 // First page
 const firstPage = await ductape.storage.listFiles({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   prefix: 'invoices/',
   limit: 25,
@@ -120,8 +108,6 @@ console.log(`Has more: ${firstPage.hasMore}`);
 // Load next page if available
 if (firstPage.hasMore && firstPage.nextToken) {
   const secondPage = await ductape.storage.listFiles({
-    product: 'billing',
-    env: 'prd',
     storage: 'invoices-storage',
     prefix: 'invoices/',
     limit: 25,
@@ -138,8 +124,6 @@ Get comprehensive file counts and sizes without loading all files:
 
 ```ts
 const stats = await ductape.storage.stats({
-  product: 'media',
-  env: 'prd',
   storage: 'media-storage',
 });
 
@@ -160,8 +144,6 @@ You can also filter stats by prefix:
 ```ts
 // Get stats for only a specific folder
 const userStats = await ductape.storage.stats({
-  product: 'media',
-  env: 'prd',
   storage: 'media-storage',
   prefix: 'users/123/',
 });
@@ -174,8 +156,6 @@ console.log(`User has ${userStats.totalFiles} files`);
 ```ts
 // For downloads (read access)
 const readUrl = await ductape.storage.getSignedUrl({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: 'invoices/invoice-001.pdf',
   expiresIn: 3600, // 1 hour
@@ -184,8 +164,6 @@ const readUrl = await ductape.storage.getSignedUrl({
 
 // For uploads (write access)
 const writeUrl = await ductape.storage.getSignedUrl({
-  product: 'billing',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: 'uploads/new-file.pdf',
   expiresIn: 600, // 10 minutes
@@ -197,8 +175,6 @@ const writeUrl = await ductape.storage.getSignedUrl({
 
 ```ts
 const result = await ductape.storage.dispatch({
-  product: 'reports',
-  env: 'prd',
   storage: 'reports-storage',
   operation: 'upload',
   input: {
@@ -238,8 +214,6 @@ fileName: 'users/123/documents/invoice.pdf'
 ```ts
 const userId = 'user_12345';
 await ductape.storage.upload({
-  product: 'profiles',
-  env: 'prd',
   storage: 'avatars-storage',
   fileName: `users/${userId}/avatar.jpg`,
   buffer: imageBuffer,
@@ -255,8 +229,6 @@ const month = String(now.getMonth() + 1).padStart(2, '0');
 const day = String(now.getDate()).padStart(2, '0');
 
 await ductape.storage.upload({
-  product: 'documents',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: `invoices/${year}/${month}/${day}/invoice-${invoiceId}.pdf`,
   buffer: pdfBuffer,
@@ -268,8 +240,6 @@ await ductape.storage.upload({
 ```ts
 const fileType = mimeType.startsWith('image/') ? 'images' : 'documents';
 await ductape.storage.upload({
-  product: 'media',
-  env: 'prd',
   storage: 'media-storage',
   fileName: `${fileType}/${category}/${originalFileName}`,
   buffer: fileBuffer,

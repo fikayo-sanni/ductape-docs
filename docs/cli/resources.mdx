@@ -1,0 +1,43 @@
+---
+title: Resources (components)
+sidebar_position: 8
+---
+
+# Resources (components)
+
+CRUD for **product-scoped components** (storage, databases, actions, etc.) via encrypted **sdk-proxy**.
+
+Requires a **linked project** (`ductape link`) with `product_tag` and `env_slug`.
+
+```bash
+ductape resources types
+ductape resources storage list
+ductape resources storage get --tag uploads
+ductape resources storage create -f storage.json
+ductape resources storage update --tag uploads -f patch.json
+ductape resources storage delete --tag uploads
+ductape resources databases connect -f '{"tag":"main"}'
+```
+
+## Resource types
+
+`storage`, `databases`, `graph`, `vector`, `caches`, `jobs`, `features`, `actions`, `notifications`, `message-brokers`, `sessions`, `secrets`, `quotas`, `health`, `fallback`
+
+For **products** and **apps** at the workspace level, use [`ductape products`](./products) and [`ductape apps`](./apps).
+
+## Verb mapping
+
+| CLI | Proxy `method` |
+|-----|----------------|
+| `create` | `create` |
+| `list` | `list` |
+| `get` | `fetch` |
+| `update` | `update` |
+| `delete` | `delete` |
+| `connect` | `connect` |
+
+Use `-f` for JSON body files, or omit `-f` in a terminal to get **interactive prompts** (enum fields use dropdowns). Pass `--no-interactive` to require `-f`.
+
+## Transport
+
+One route: `POST …/sdk-proxy/execute`. The body specifies `module` + `method` + `params`, encrypted like the Workbench.

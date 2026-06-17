@@ -1,0 +1,58 @@
+---
+title: AWS
+sidebar_position: 1
+---
+
+# AWS cloud connection
+
+AWS connections use **cross-account IAM role** assumption. Ductape's integrations service calls `sts:AssumeRole` on your customer role using credentials configured on the server.
+
+## Setup checklist
+
+1. Create IAM user credentials on the **Ductape integrations server** (not in client SDK scripts).
+2. Grant that user `sts:AssumeRole` on your customer role ARN.
+3. Create IAM role **`DuctapeAccess`** (name must match Workbench docs) with trust policy allowing Ductape's AWS account + your **external ID** (shown in Workbench after create).
+4. Attach managed policies for features you use: S3, SQS, RDS, Neptune, OpenSearch.
+5. Workbench → **Cloud** → Add AWS connection with tag e.g. `prod_aws`.
+
+## SDK lifecycle
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'aws',
+  name: 'prod_aws',
+  scopes: ['storage', 'database', 'broker'],
+});
+
+await ductape.cloud.connections.complete('prod_aws', {
+  role_arn: 'arn:aws:iam::480358138685:role/DuctapeAccess',
+});
+
+await ductape.cloud.connections.validate('prod_aws');
+```
+
+**Go**
+
+```go
+_, _ = client.Cloud.Connections.Create(ctx, map[string]any{
+  "provider": "aws", "name": "prod_aws", "scopes": []string{"storage", "database"},
+})
+_, _ = client.Cloud.Connections.Complete(ctx, "prod_aws", map[string]any{
+  "role_arn": "arn:aws:iam::480358138685:role/DuctapeAccess",
+})
+_, _ = client.Cloud.Connections.Validate(ctx, "prod_aws")
+```
+
+## Networking (RDS / Neptune)
+
+RDS and Neptune require VPC security group access. See [AWS networking](../aws-networking).
+
+## Linked services
+
+| `service` | Component type |
+|-----------|----------------|
+| `s3` | Storage |
+| `sqs` | Message brokers |
+| `rds` | Databases (PostgreSQL) |
+| `neptune` | Graphs |
+| `opensearch` | Vectors |

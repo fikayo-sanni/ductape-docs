@@ -14,8 +14,6 @@ Send via the push channel only (Firebase, Expo):
 
 ```ts
 const result = await ductape.notifications.push.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'alerts:welcome',
   input: {
     device_tokens: ['device-token-1', 'device-token-2'],
@@ -35,8 +33,6 @@ Send via the email channel only:
 
 ```ts
 const result = await ductape.notifications.email.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'emails:order-confirmation',
   input: {
     recipients: ['customer@example.com', 'admin@example.com'],
@@ -57,8 +53,6 @@ Send via the SMS channel only:
 
 ```ts
 const result = await ductape.notifications.sms.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'sms:verification',
   input: {
     recipients: ['+1234567890', '+0987654321'],
@@ -75,8 +69,6 @@ Send via the webhook/callback channel only:
 
 ```ts
 const result = await ductape.notifications.callback.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'webhooks:order-created',
   input: {
     body: {
@@ -99,8 +91,6 @@ Send to multiple channels at once using `notifications.send()` with an `input` o
 
 ```ts
 const result = await ductape.notifications.send({
-  product: 'my-app',
-  env: 'prd',
   event: 'alerts:order-shipped',
   input: {
     push_notification: {
@@ -134,8 +124,6 @@ Schedule notifications for later using `notifications.dispatch()`:
 
 ```ts
 const result = await ductape.notifications.dispatch({
-  product: 'my-app',
-  env: 'prd',
   notification: 'reminders',
   event: 'payment-due',
   input: {
@@ -172,8 +160,6 @@ Include session context for user-specific data. Pass `session` as a string in th
 
 ```ts
 await ductape.notifications.push.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'alerts:personalized',
   input: {
     device_tokens: ['token1'],
@@ -313,7 +299,6 @@ Use `notifications.getMessages()` to fetch send history with time filters. Resul
 ```ts
 const { items, total, hasMore } = await ductape.notifications.getMessages({
   product_tag: 'my-app',
-  env: 'prd',
   start_date: new Date(Date.now() - 7 * 864e5).toISOString(),
   end_date: new Date().toISOString(),
   status: 'failed',

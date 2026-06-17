@@ -1,0 +1,92 @@
+### Store the token after login
+
+Your login flow calls **your** backend; the backend starts the Ductape session and returns the token:
+
+```typescript
+// Your app's login handler (browser)
+const res = await fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, password }),
+});
+
+const { sessionToken, refreshToken } = await res.json();
+localStorage.setItem('ductape_session', sessionToken);
+localStorage.setItem('ductape_refresh', refreshToken);
+```
+
+### Pass `session` on every request
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  publishableKey: 'pk_…',
+  product: 'my-product',
+  env: 'prd',
+});
+
+function getSession(): string {
+  const token = localStorage.getItem('ductape_session');
+  if (!token) throw new Error('Not authenticated');
+  return token;
+}
+
+// Databases
+const users = await ductape.databases.query({
+  table: 'users',
+  session: getSession(),
+});
+
+// Storage
+await ductape.storage.upload({
+  bucket: 'avatars',
+  key: 'user-123.png',
+  file: blob,
+  session: getSession(),
+});
+
+// Actions
+await ductape.actions.run({
+  action: 'send-welcome-email',
+  session: getSession(),
+  input: { userId: 'user_123' },
+});
+```
+
+### Refresh and logout via your backend
+
+Do **not** call `ductape.sessions.refresh()` from the browser. Proxy through your API:
+
+```typescript
+async function refreshSession() {
+  const refreshToken = localStorage.getItem('ductape_refresh');
+  const res = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+  const { sessionToken, refreshToken: newRefresh } = await res.json();
+  localStorage.setItem('ductape_session', sessionToken);
+  localStorage.setItem('ductape_refresh', newRefresh);
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('ductape_session')}`,
+    },
+  });
+  localStorage.removeItem('ductape_session');
+  localStorage.removeItem('ductape_refresh');
+}
+```
+
+### Analytics
+
+After login, attach the session to product analytics events:
+
+```typescript
+ductape.analytics.identify(sessionToken);
+```

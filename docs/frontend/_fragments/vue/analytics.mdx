@@ -1,0 +1,33 @@
+Use the `useAnalytics` composable from `@ductape/vue` for the same analytics API in Vue 3.
+
+```vue
+<script setup>
+import { watch, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { useAnalytics } from '@ductape/vue';
+
+const route = useRoute();
+const { track, pageview, identify, enableAutoCapture } = useAnalytics();
+
+let stopCapture;
+onMounted(() => {
+  stopCapture = enableAutoCapture({ clicks: true, pageviews: true });
+});
+onUnmounted(() => stopCapture?.());
+
+watch(
+  () => route.fullPath,
+  (path) => pageview({ path, title: String(route.meta?.title ?? '') }),
+);
+</script>
+
+<template>
+  <button data-track="checkout-cta" @click="track({ event: 'checkout_click' })">
+    Checkout
+  </button>
+</template>
+```
+
+**Composable return value:** `track`, `pageview`, `identify`, `visitorId`, `enableAutoCapture`, `flush`.
+
+Call `identify(sessionToken)` after login so events include session fields. On logout, use `client.analytics.clearSession()` from `useDuctape()` if you need to stop attributing events to the signed-in user.

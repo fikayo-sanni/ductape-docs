@@ -1,0 +1,110 @@
+---
+sidebar_position: 6
+title: Runtime decorators
+---
+
+# Runtime decorators
+
+Beyond core `@Api`, `@Database`, `@Storage`, and `@Webhook`, `@ductape/nestjs` exposes decorators for messaging, workflows, agents, sessions, and resilience. All runtime decorators are executed by **`DuctapeMethodInterceptor`** in integration mode.
+
+The **first method argument** becomes SDK `input` / `message` (same convention as `@Api`).
+
+## Messaging, notifications, cache, graph, vector, workflow, jobs, secrets
+
+### Method decorators
+
+| Decorator | SDK call |
+|-----------|----------|
+| `@Messaging.Produce({ event, product?, env?, session?, cache? })` | `messaging.produce` |
+| `@Messaging.Dispatch({ broker, event, schedule?, … })` | `messaging.dispatch` |
+| `@Notification.Send({ notification, event?, channel?, … })` | `notifications.send` / channel helpers |
+| `@Notification.Dispatch({ notification, event, schedule?, … })` | `notifications.dispatch` |
+| `@Workflow.Execute({ tag, product?, env? })` | `workflow.execute` |
+| `@Workflow.Dispatch({ tag, schedule?, … })` | `workflow.dispatch` |
+| `@Job.Run({ event, retries?, start_at?, … })` | processor `processJob` |
+| `@Secret('KEY')` on constructor param | inject `SecretHandle` (via `DuctapeSecretsModule`) |
+
+### Injectable handles
+
+| Module | Decorator | Handle |
+|--------|-----------|--------|
+| `DuctapeCacheModule.register({ tags: ['user-cache'] })` | `@Cache('user-cache')` | `CacheHandle` |
+| `DuctapeGraphModule.register({ tags: ['social'] })` | `@Graph('social')` | `GraphHandle` |
+| `DuctapeVectorModule.register({ tags: ['embeddings'] })` | `@Vector('embeddings')` | `VectorHandle` |
+| `DuctapeSecretsModule.register({ keys: ['API_KEY'] })` | `@Secret('API_KEY')` | `SecretHandle` |
+
+Example:
+
+```typescript
+@Injectable()
+export class EventsService {
+  @Messaging.Produce({ event: 'order.created' })
+  emitOrder(payload: { orderId: string }) {
+    return payload;
+  }
+
+  @Workflow.Execute({ tag: 'fulfillment' })
+  runFulfillment(input: Record<string, unknown>) {
+    return input;
+  }
+}
+```
+
+Related platform docs: [Message brokers](/message-brokers/overview), [Notifications](/notifications/overview), [Jobs](/jobs/overview), [Graphs](/databases/graphs/overview), [Vectors](/databases/vectors/overview).
+
+## Agents, warehouse, sessions, health, quota, fallback
+
+### Method decorators
+
+| Decorator | SDK call |
+|-----------|----------|
+| `@Agent.Run({ tag, product?, env?, session?, cache? })` | `agents.getService().run()` |
+| `@Agent.Dispatch({ tag, schedule?, retries?, … })` | `agents.getService().dispatch()` |
+| `@Warehouse.Query({ product?, env? })` | `warehouse.query` — method arg is query object |
+| `@Session.Start({ tag, … })` | `sessions.start` |
+| `@Session.Verify({ tag, … })` | `sessions.verify` — body `{ token }` |
+| `@Session.Refresh({ tag, … })` | `sessions.refresh` — body `{ refreshToken }` |
+| `@Session.Revoke({ tag, … })` | `sessions.revoke` |
+| `@Health.Run({ tag, … })` | `health.run` |
+| `@Health.Status({ tag, … })` | `health.status` |
+| `@Quota.Run({ tag, … })` | `quota.run` |
+| `@Quota.Dispatch({ tag, schedule?, … })` | `quota.dispatch` |
+| `@Fallback.Run({ tag, … })` | `fallback.run` |
+| `@Fallback.Dispatch({ tag, schedule?, … })` | `fallback.dispatch` |
+
+### Injectable handles
+
+| Module | Decorator | Handle |
+|--------|-----------|--------|
+| `DuctapeAgentModule.register({ tags: ['support'] })` | `@Agent('support')` | `AgentHandle` (`.run()`, `.dispatch()`) |
+| `DuctapeWarehouseModule.register()` | `@Warehouse()` | `WarehouseHandle` (`.query()`, `.select()`, …) |
+
+Example:
+
+```typescript
+@Injectable()
+export class SupportService {
+  constructor(@Agent('support') private readonly agent: AgentHandle) {}
+
+  @Session.Start({ tag: 'user-session' })
+  startSession(credentials: { userId: string }) {
+    return credentials;
+  }
+
+  async ask(question: string) {
+    return this.agent.run({ input: { question } });
+  }
+}
+```
+
+Related platform docs: [Sessions](/sessions/overview), [Quotas](/quotas/overview), [Fallbacks](/fallbacks/overview), [Warehouse](/databases/warehouse/getting-started).
+
+## Unwrapped SDK APIs
+
+Use `@InjectContext()` and `ctx.sdk.*` for modules without Nest decorators yet (logs, cloud, operators, …).
+
+## Related
+
+- [Core decorators](./decorators-core)
+- [Module setup](./module-setup) — feature module registration
+- [Interceptors](./interceptors)

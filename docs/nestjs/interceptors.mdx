@@ -1,0 +1,78 @@
+---
+sidebar_position: 8
+title: Interceptors
+---
+
+# Interceptors
+
+`@ductape/nestjs` uses Nest interceptors to apply decorator metadata at runtime. By default they are registered **globally** when you import `DuctapeModule`.
+
+## Global interceptors
+
+| Interceptor | Role |
+|-------------|------|
+| **`DuctapeContextInterceptor`** | Sets request-scoped context (`AsyncLocalStorage`) when the handler or class has `@Product`, `@Env`, or `@AccessTag` |
+| **`DuctapeMethodInterceptor`** | Executes runtime decorators: `@Api`, `@Webhook.Register`, messaging, agents, sessions, and related decorators |
+| **`DuctapeBuilderInterceptor`** | Executes workspace builder decorators: `@WebhookBuilder.Define`, `@ModelBuilder.Define`, `@AgentBuilder.Define` |
+
+Methods **without** Ductape metadata pass through unchanged.
+
+### What `DuctapeMethodInterceptor` runs
+
+- `@Api` / `@ApiDispatch` → SDK call; **replaces** method return value
+- `@Webhook.Register` → returns Ductape proxy URL string
+- `@Webhook.List` → returns registered webhook list
+- `@Messaging.*`, `@Notification.*`, `@Workflow.*`, `@Job.Run`
+- `@Agent.*`, `@Warehouse.Query`, `@Session.*`, `@Health.*`, `@Quota.*`, `@Fallback.*`
+
+### What `DuctapeBuilderInterceptor` runs
+
+- `@WebhookBuilder.Define`
+- `@ModelBuilder.Define`
+- `@AgentBuilder.Define`
+
+Requires workspace mode and appropriate `@AppTag` metadata.
+
+## Disable global registration
+
+```typescript
+DuctapeModule.forIntegration({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  registerGlobalInterceptors: false,
+});
+```
+
+Then apply interceptors on controllers or globally via `APP_INTERCEPTOR`:
+
+```typescript
+import { Controller, UseInterceptors } from '@nestjs/common';
+import {
+  DuctapeContextInterceptor,
+  DuctapeMethodInterceptor,
+  DuctapeBuilderInterceptor,
+} from '@ductape/nestjs';
+
+@UseInterceptors(
+  DuctapeContextInterceptor,
+  DuctapeMethodInterceptor,
+  DuctapeBuilderInterceptor,
+)
+@Controller('orders')
+export class OrdersController {}
+```
+
+Include **`DuctapeContextInterceptor`** whenever you use `@Product`, `@Env`, or `@AccessTag` so injected handles resolve the correct context during HTTP requests.
+
+## Ordering
+
+When registering manually, use this order:
+
+1. `DuctapeContextInterceptor` — establish context first
+2. `DuctapeMethodInterceptor` or `DuctapeBuilderInterceptor` — run SDK calls
+
+Both method and builder interceptors can coexist on admin controllers that mix runtime and builder endpoints.
+
+## Related
+
+- [Context & handles](./context-and-handles) — how context interceptor affects handles
+- [Module setup](./module-setup) — `registerGlobalInterceptors` option

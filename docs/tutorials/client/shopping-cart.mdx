@@ -385,7 +385,7 @@ async function processPayment(orderId: string) {
   }
 
   // Create Stripe payment intent
-  const paymentIntent = await client.actions.execute({
+  const paymentIntent = await client.api.run({
     action: 'stripe.create-payment-intent',
     input: {
       amount: Math.round(order.row.total * 100), // Convert to cents

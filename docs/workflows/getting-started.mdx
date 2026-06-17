@@ -36,13 +36,14 @@ const ductape = new Ductape({
 });
 ```
 
+See [SDK runtime defaults](/sdk/runtime-defaults) — `product` and `env` belong on the constructor only.
+
 ## Step 3: Define Your First Workflow
 
 Use `ductape.workflows.define()` to create a workflow with a handler function:
 
 ```typescript
 const onboardingWorkflow = await ductape.workflows.define({
-  product: 'my-product',
   tag: 'user-onboarding',
   name: 'User Onboarding',
   description: 'Onboards new users with welcome email and audit log',
@@ -103,8 +104,6 @@ const onboardingWorkflow = await ductape.workflows.define({
 
 ```typescript
 const result = await ductape.workflows.execute({
-  product: 'my-product',
-  env: 'dev',
   tag: 'user-onboarding',
   input: {
     email: 'john@example.com',
@@ -137,7 +136,6 @@ async function main() {
 
   // Define the workflow
   await ductape.workflows.define({
-    product: 'my-product',
     tag: 'user-onboarding',
     name: 'User Onboarding',
 
@@ -175,8 +173,6 @@ async function main() {
 
   // Execute the workflow
   const result = await ductape.workflows.execute({
-    product: 'my-product',
-    env: 'dev',
     tag: 'user-onboarding',
     input: {
       email: 'jane@example.com',

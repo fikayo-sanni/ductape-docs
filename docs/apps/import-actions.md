@@ -17,7 +17,7 @@ import { ImportDocTypes } from "@ductape/sdk/types"
 
 const file: Buffer = "" // file buffer or blob here
 const app = "app"
-await ductape.actions.import({ file, type: ImportDocTypes.postmanV21, app });
+await ductape.api.import({ file, type: ImportDocTypes.postmanV21, app });
 ```
 
 ## Importing Actions and Creating a New App
@@ -26,7 +26,7 @@ await ductape.actions.import({ file, type: ImportDocTypes.postmanV21, app });
 import { ImportDocTypes } from "@ductape/sdk/types"
 
 const file: Buffer = "" // file buffer or blob here
-await ductape.actions.import({ file, type: ImportDocTypes.postmanV21 });
+await ductape.api.import({ file, type: ImportDocTypes.postmanV21 });
 ```
 
 ## See Also

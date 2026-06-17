@@ -22,8 +22,6 @@ List files in a storage bucket with pagination using `ductape.storage.listFiles(
 
 ```ts
 const result = await ductape.storage.listFiles({
-  product: 'my-product',
-  env: 'prd',
   storage: 'primary-storage',
   prefix: 'uploads/',
   limit: 20,
@@ -54,8 +52,6 @@ Use `continuationToken` and `nextToken` to fetch the next page:
 let token: string | undefined;
 do {
   const result = await ductape.storage.listFiles({
-    product: 'my-product',
-    env: 'prd',
     storage: 'primary-storage',
     limit: 100,
     continuationToken: token,

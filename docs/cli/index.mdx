@@ -1,0 +1,78 @@
+---
+title: CLI overview
+sidebar_position: 1
+---
+
+# Ductape CLI
+
+The Ductape CLI (`@ductape/cli`) is the terminal counterpart to the **Workbench**. It uses the same APIs:
+
+- **REST + Bearer token** for account, workspaces, products, and apps
+- **Encrypted proxy** (`x-access-token` + AES payload) for component CRUD and runtime DB/graph operations
+
+## Install
+
+```bash
+cd cli
+npm install && npm run build && npm link
+```
+
+## Quick reference
+
+| Area | Commands |
+|------|----------|
+| Auth | `login`, `logout`, `whoami` |
+| Workspaces | `workspaces list`, `workspaces use`, `workspaces current` |
+| Profiles | `profiles list`, `profiles use local\|cloud` |
+| Products | `products list\|get\|create\|update\|delete` |
+| Apps | `apps list\|get\|create\|update\|delete\|import` |
+| Project | `init`, `link`, `unlink` |
+| Local stack | `install`, `start`, `stop`, `status` |
+| Components | `resources <type> <verb>` |
+| Cloud | `cloud connections …`, `cloud resources …` |
+| DB runtime | `db connect`, `db query`, `db context` |
+| Graph runtime | `graph connect`, `graph query` |
+| Secrets | `secrets create\|list\|get\|update\|delete` |
+| Snippets | `generate payload`, `generate snippet` |
+| Shell | `completion bash\|zsh` |
+
+## SDK runtime defaults
+
+In app code (`@ductape/sdk`), set `product` and `env` on the **constructor only**. The CLI uses `.ductape/config.json` instead. See [SDK runtime defaults](/sdk/runtime-defaults).
+
+## Documentation map
+
+- [Authentication](./authentication) — login, OAuth, profiles
+- [Workspaces](./workspaces) — select and switch workspace at login
+- [Project linking](./linking) — `.ductape/config.json` and `link`
+- [Local platform](./local-platform) — `ductape start` / Docker stack
+- [Products](./products) — workspace product CRUD
+- [Apps](./apps) — integration app CRUD
+- [Resources](./resources) — component CRUD via sdk-proxy
+- [Cloud](./cloud) — connections and cloud resources
+- [Database runtime](./database) — db-proxy queries
+- [Graph runtime](./graph) — graph-proxy queries
+- [Secrets](./secrets) — workspace secrets
+- [Generate](./generate) — payloads and code snippets
+- [Troubleshooting](./troubleshooting) — common errors
+
+## API parity
+
+CLI REST commands use the same Nest routes as the Workbench (`/apps/v1`, `/integrations/v1`, etc.) via the API gateway. See [cli/API_PARITY.md](https://github.com/ductape/ductape/blob/main/cli/API_PARITY.md) in the repo.
+
+## CLI vs MCP server
+
+| | CLI | MCP server |
+|---|-----|------------|
+| Auth | User JWT + encryption | `publishable_key` per call |
+| Payload | AES encrypted | Plain JSON |
+| Use case | Developers, CI, local ops | AI agents with scoped keys |
+
+## Development
+
+```bash
+cd cli
+npm run build
+npm test
+npm run dev -- whoami
+```

@@ -1,0 +1,22 @@
+---
+title: Database runtime
+sidebar_position: 10
+---
+
+# Database runtime
+
+**Definitions** (schemas, tables): `ductape resources databases …`
+
+**Runtime queries**: `ductape db` via **db-proxy**
+
+Requires a [linked project](./linking) (or `ductape link`). The CLI uses `product_tag` and `env_slug` from `.ductape/config.json` — you do not pass them on every `db` command.
+
+```bash
+ductape db connect -f '{"database":"main-db","graph":"main-db"}'
+ductape db context
+ductape db query -f '{"sql":"SELECT 1"}'
+ductape db listTables -f '{}'
+ductape db schema.list -f '{"schema":"public"}'
+```
+
+Connection context is stored in `~/.ductape/runtime-context.json` (same idea as Workbench `databaseProxy`).

@@ -1,0 +1,128 @@
+---
+sidebar_position: 2
+---
+
+# Storage CRUD
+
+Create, list, fetch, update, and delete **storage configurations** for a product. File upload/download operations use a storage tag at runtime — see [Storage overview](./overview) and [Processing Storage](./use).
+
+## Quick Example
+
+```ts
+import Ductape, { StorageProviders } from '@ductape/sdk';
+
+const ductape = new Ductape({ accessKey: 'your-access-key' });
+
+await ductape.storage.create({
+  product: 'my-product',
+  name: 'App Storage',
+  tag: 'app-storage',
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.AWS,
+    config: {
+      cloud: 'prod_aws',
+      bucketName: 'my-prod-bucket',
+      region: 'us-east-1',
+    },
+  }],
+});
+```
+
+## Create
+
+```ts
+import { StorageProviders } from '@ductape/sdk/types';
+
+// Cloud-linked (recommended)
+await ductape.storage.create({
+  product: 'my-product',
+  name: 'App Storage',
+  tag: 'app-storage',
+  description: 'Production file storage',
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.AWS,
+    config: {
+      cloud: 'prod_aws',
+      bucketName: 'my-prod-bucket',
+      region: 'us-east-1',
+    },
+  }],
+});
+
+// Manual credentials
+await ductape.storage.create({
+  product: 'my-product',
+  name: 'App Storage',
+  tag: 'app-storage',
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.AWS,
+    config: {
+      bucketName: 'my-prod-bucket',
+      region: 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY,
+      secretAccessKey: process.env.AWS_SECRET_KEY,
+    },
+  }],
+});
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `product` | string | Product tag |
+| `name` | string | Display name |
+| `tag` | string | Unique storage identifier within the product |
+| `description` | string | Optional description |
+| `envs` | array | Per-environment provider configs |
+
+Each env config includes `slug`, `type` (`StorageProviders.AWS`, `GCP`, or `AZURE`), and a `config` object. For cloud-linked configs, set `cloud` to your [connection tag](../cloud/cloud-linked-components) instead of storing credentials.
+
+## List
+
+```ts
+const storages = await ductape.storage.list('my-product');
+// Returns array of storage configs
+```
+
+## Fetch
+
+```ts
+const storage = await ductape.storage.fetch('my-product', 'app-storage');
+```
+
+## Update
+
+```ts
+await ductape.storage.update('my-product', 'app-storage', {
+  name: 'Updated Storage Name',
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.GCP,
+    config: {
+      cloud: 'gcp_prod',
+      bucketName: 'my-dev-bucket',
+      location: 'US',
+    },
+  }],
+});
+```
+
+You can update `name`, `description`, and `envs`. When using a cloud connection, only pass `cloud`, bucket/container name, and region/location — credentials are resolved at runtime.
+
+## Delete
+
+```ts
+await ductape.storage.delete('my-product', 'app-storage');
+```
+
+Deleting a storage config does not delete files in the underlying bucket.
+
+## See Also
+
+* [Cloud-linked components](../cloud/cloud-linked-components)
+* [Storage overview](./overview)
+* [Processing Storage](./use)

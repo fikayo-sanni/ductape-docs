@@ -1,0 +1,199 @@
+## Overview
+
+`ductape.analytics` is the browser-side product analytics API. It batches events and sends them to Ductape over the analytics ingest endpoint (`/v1/analytics/track`). Use it to answer questions like:
+
+- Which pages do visitors land on before signing up?
+- Where do users drop off in onboarding?
+- Which features are used after launch?
+- What path did a specific user take before converting?
+
+## Anonymous and authenticated tracking
+
+**You can track users before they log in.**
+
+On first visit the client creates a stable **`visitor_id`** (UUID stored in `localStorage`). Every event includes this id until the user clears site data.
+
+After your backend returns a session JWT, call **`identify(sessionToken)`** so subsequent events also carry `session_id` and `session_user_id`. Events recorded after identify include **both** the visitor id and session fields — useful for stitching pre-login browsing to post-login activity.
+
+On logout, call **`clearSession()`** so new events are anonymous again (the same `visitor_id` is retained).
+
+```typescript
+// Logout handler
+ductape.analytics.clearSession();
+```
+
+## Quick start
+
+```typescript
+import { Ductape } from '@ductape/client';
+
+const ductape = new Ductape({
+  publishableKey: 'pk_…',
+  product: 'my-product',
+  env: 'prd',
+});
+
+// Anonymous — no session required
+await ductape.analytics.track({
+  event: 'pricing_viewed',
+  properties: { plan: 'pro' },
+});
+
+// After your backend returns a session JWT
+ductape.analytics.identify(sessionTokenFromBackend);
+
+await ductape.analytics.track({
+  event: 'checkout_started',
+  properties: { cartTotal: 99, itemCount: 3 },
+});
+
+// Standard pageview (manual)
+await ductape.analytics.pageview({ title: 'Checkout' });
+```
+
+## Event naming
+
+Use **lowercase snake_case** or **dot-separated** names that describe user intent:
+
+| Good | Avoid |
+|------|-------|
+| `signup_started` | `click1` |
+| `onboarding.step_completed` | `Button Click` |
+| `export_csv` | long free-form sentences |
+
+Reserved built-in names (used by helpers):
+
+- **`$pageview`** — emitted by `pageview()` and auto-capture
+- **`$click`** — emitted when click auto-capture is enabled
+
+## API reference
+
+### `analytics.track(options)`
+
+Send a custom event. Events are queued and flushed automatically (every 5 seconds or 20 events).
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `event` | Yes | Event name (max 128 characters) |
+| `properties` | No | Arbitrary JSON metadata (plan, step, error code, …) |
+| `session` | No | Session token (`tag:jwt`) — overrides `identify()` for this event only |
+| `product` / `env` | No | Override client defaults |
+| `context` | No | Override auto-collected page context (url, path, referrer, locale, screen) |
+
+**Auto-collected context** (browser only, merged into each event):
+
+- `url`, `path`, `referrer`
+- `locale` (`navigator.language`)
+- `screen` (`{ width, height }`)
+
+### `analytics.pageview(options?)`
+
+Sends a `$pageview` event with the current URL and path (or overrides you pass).
+
+| Field | Description |
+|-------|-------------|
+| `path` | Defaults to `window.location.pathname` |
+| `title` | Defaults to `document.title` |
+| `properties` | Extra metadata (e.g. `section: 'billing'`) |
+| `session` | Optional session override |
+
+### `analytics.identify(session)`
+
+Attach a session JWT to all subsequent events until `clearSession()` is called. Call this once after login succeeds.
+
+### `analytics.clearSession()`
+
+Remove the session from analytics only (does not revoke the JWT on the server). Call on logout.
+
+### `analytics.getVisitorId()`
+
+Returns the stable anonymous visitor id (creates one if missing).
+
+### `analytics.enableAutoCapture(options?)`
+
+Opt in to automatic DOM capture. **Disabled by default.**
+
+| Option | Default | Behavior |
+|--------|---------|----------|
+| `pageviews` | `true` | Initial `$pageview` + `$pageview` on `popstate` (browser back/forward) |
+| `clicks` | `false` | `$click` on `button`, `a`, `[role="button"]`, and `[data-track]` |
+| `session` | — | `() => string` resolver for session on auto-captured events |
+| `maskTextSelectors` | `['[data-private]', '.password']` | Replace click text with `[masked]` |
+
+Returns a **cleanup function** — call it to remove listeners (also available via `disableAutoCapture()`).
+
+```typescript
+const stopCapture = ductape.analytics.enableAutoCapture({
+  clicks: true,
+  pageviews: true,
+  session: () => getSessionFromApp(),
+  maskTextSelectors: ['.password', '[data-private]', '.card-number'],
+});
+
+// Later, e.g. on route leave or app teardown
+stopCapture();
+```
+
+Mark elements you care about explicitly:
+
+```html
+<button data-track="upgrade-cta">Upgrade to Pro</button>
+```
+
+Auto-captured clicks record `element` (from `data-track` or tag name), truncated `text`, and `id` when present.
+
+### `analytics.disableAutoCapture()`
+
+Tear down listeners registered by `enableAutoCapture()`.
+
+### `analytics.flush()`
+
+Send the queued batch immediately. Useful before page unload or after a critical conversion event.
+
+## Common patterns
+
+### SPA route changes
+
+`enableAutoCapture` listens to `popstate` only. For client-side routers (React Router, Vue Router), call `pageview()` in your navigation guard:
+
+```typescript
+router.afterEach((to) => {
+  ductape.analytics.pageview({ path: to.fullPath, title: String(to.meta.title ?? '') });
+});
+```
+
+### Funnel steps
+
+Emit one event per step with a shared `funnel` property:
+
+```typescript
+await ductape.analytics.track({
+  event: 'onboarding_step_completed',
+  properties: { funnel: 'signup', step: 2, stepName: 'workspace_name' },
+});
+```
+
+### Feature flags and experiments
+
+```typescript
+await ductape.analytics.track({
+  event: 'feature_used',
+  properties: { feature: 'bulk_export', variant: 'v2_layout' },
+});
+```
+
+### Per-event session (without `identify`)
+
+```typescript
+await ductape.analytics.track({
+  event: 'settings_saved',
+  session: tokenFromMemory,
+  properties: { section: 'notifications' },
+});
+```
+
+## Batching and delivery
+
+- Events queue in memory and flush every **5 seconds** or when the queue reaches **20** events.
+- The ingest endpoint accepts up to **50** events per HTTP request (client batches at 20).
+- Failed flushes are not retried automatically — call `flush()` again if you need a hard guarantee before navigation.

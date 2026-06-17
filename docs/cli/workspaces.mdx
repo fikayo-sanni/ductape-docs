@@ -1,0 +1,20 @@
+---
+title: Workspaces
+sidebar_position: 3
+---
+
+# Workspaces
+
+You do not need to copy workspace IDs manually. The CLI stores an **active workspace** at login and uses it for products, apps, and `ductape link`.
+
+```bash
+ductape workspaces list
+ductape workspaces current
+ductape workspaces use
+ductape workspaces use 1
+ductape workspaces use "My Team"
+ductape workspaces switch <selector>   # alias
+ductape workspaces refresh
+```
+
+Switching updates `~/.ductape/config.json` and, if present, patches `.ductape/config.json` in a linked project (`workspace_tag` / `workspace_id`; product and env stay the same).

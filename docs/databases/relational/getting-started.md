@@ -27,7 +27,7 @@ The SDK includes all database drivers (PostgreSQL, MySQL, MongoDB, DynamoDB) out
 
 ## Step 2: Initialize the SDK
 
-Set up the Ductape SDK with your credentials:
+Set up the Ductape SDK with your credentials. Set **product** and **env** on the constructor ([runtime defaults](/sdk/runtime-defaults)):
 
 ```ts
 import Ductape from '@ductape/sdk';
@@ -54,7 +54,7 @@ await ductape.databases.create({
       connection_url: 'postgresql://localhost:5432/myapp_dev',
     },
     {
-      slug: 'staging',
+      slug: 'stg',
       connection_url: 'postgresql://staging-host:5432/myapp_staging',
     },
     {
@@ -64,6 +64,61 @@ await ductape.databases.create({
   ],
 });
 ```
+
+You can also link a managed PostgreSQL instance from a workspace cloud account by tag — Ductape imports or provisions the instance and stores the connection URL as a secret.
+
+**AWS RDS:**
+
+```ts
+await ductape.databases.create({
+  product: 'my-app',
+  name: 'User Database',
+  tag: 'users-db',
+  type: 'postgresql',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_aws',
+    instance: 'my-rds-instance',
+    region: 'us-east-1',
+  }],
+});
+```
+
+**GCP Cloud SQL (PostgreSQL):**
+
+```ts
+await ductape.databases.create({
+  product: 'my-app',
+  name: 'User Database',
+  tag: 'users-db',
+  type: 'postgresql',
+  envs: [{
+    slug: 'prd',
+    cloud: 'gcp_prod',
+    instance: 'my-cloudsql-instance',
+    region: 'us-central1',
+  }],
+});
+```
+
+**Azure PostgreSQL Flexible Server:**
+
+```ts
+await ductape.databases.create({
+  product: 'my-app',
+  name: 'User Database',
+  tag: 'users-db',
+  type: 'postgresql',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_azure',
+    instance: 'my-pg-server',
+    region: 'eastus',
+  }],
+});
+```
+
+See [Cloud-linked components](../../cloud/cloud-linked-components) for the full AWS / GCP / Azure matrix and setup steps.
 
 ### Database Configuration Fields
 
@@ -90,17 +145,16 @@ Before running queries, establish a connection:
 
 ```ts
 const result = await ductape.databases.connect({
-  env: 'dev',
-  product: 'my-app',
   database: 'users-db',
 });
+```
 
 console.log('Connected:', result.connected);
 console.log('Database Version:', result.version);
 console.log('Latency:', result.latency, 'ms');
 ```
 
-Once connected, subsequent operations inherit the connection context. You no longer need to specify `env`, `product`, and `database` for every query.
+Once connected, subsequent operations inherit the connection context. You no longer need to specify `env`, `product`, or `database` on every query (constructor defaults apply before connect; connection context applies after).
 
 ## Step 5: Run Your First Query
 
@@ -165,8 +219,6 @@ async function main() {
 
   // Connect to database
   await ductape.databases.connect({
-    env: 'dev',
-    product: 'my-app',
     database: 'users-db',
   });
 
@@ -213,8 +265,6 @@ Use the `testConnection` method to verify connectivity without performing operat
 
 ```ts
 const result = await ductape.databases.testConnection({
-  env: 'dev',
-  product: 'my-app',
   database: 'users-db',
 });
 
@@ -257,22 +307,14 @@ await ductape.databases.create({
   envs: [{ slug: 'dev', connection_url: '...' }],
 });
 
-// Switch between databases by connecting to each
-await ductape.databases.connect({
-  env: 'dev',
-  product: 'my-app',
-  database: 'users-db',
-});
+// Switch between databases by connecting to each (product/env from constructor)
+await ductape.databases.connect({ database: 'users-db' });
 
 // Query users database
 const users = await ductape.databases.find({ table: 'users' });
 
 // Connect to a different database
-await ductape.databases.connect({
-  env: 'dev',
-  product: 'my-app',
-  database: 'analytics-db',
-});
+await ductape.databases.connect({ database: 'analytics-db' });
 
 // Query analytics database
 const events = await ductape.databases.find({ table: 'events' });

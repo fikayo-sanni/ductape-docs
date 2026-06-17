@@ -13,8 +13,6 @@ Use channel-specific APIs (`.email`, `.push`, `.sms`, `.callback`) with `.send()
 ```ts
 // Send a push notification
 await ductape.notifications.push.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'alerts:welcome',
   input: {
     device_tokens: ['device-token-1'],
@@ -25,8 +23,6 @@ await ductape.notifications.push.send({
 
 // Send an email
 await ductape.notifications.email.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'emails:order-confirmation',
   input: {
     recipients: ['john@example.com'],
@@ -37,8 +33,6 @@ await ductape.notifications.email.send({
 
 // Send an SMS
 await ductape.notifications.sms.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'sms:verification',
   input: {
     recipients: ['+1234567890'],
@@ -48,8 +42,6 @@ await ductape.notifications.sms.send({
 
 // Send a webhook callback
 await ductape.notifications.callback.send({
-  product: 'my-app',
-  env: 'prd',
   notification: 'webhooks:order-created',
   input: {
     body: { orderId: '12345', status: 'created' },
@@ -84,8 +76,6 @@ Send to multiple channels at once with `notifications.send()` (single `input` ob
 
 ```ts
 const result = await ductape.notifications.send({
-  product: 'my-app',
-  env: 'prd',
   event: 'alerts:order-placed',
   input: {
     push_notification: {
@@ -117,7 +107,6 @@ Every send is logged server-side with **status** (`pending`, `sent`, `failed`, `
 ```ts
 const { items, total, hasMore } = await ductape.notifications.getMessages({
   product_tag: 'my-app',
-  env: 'prd',
   start_date: new Date(Date.now() - 7 * 864e5).toISOString(),
   end_date: new Date().toISOString(),
   status: 'failed',

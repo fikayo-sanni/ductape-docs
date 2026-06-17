@@ -6,37 +6,43 @@ sidebar_position: 2
 
 This guide walks you through setting up Ductape in your project and making your first API call.
 
+Code examples below use tabs for **TypeScript**, **Java**, **Go**, and **.NET** where the raw `@ductape/sdk` applies. **NestJS** examples ([NestJS docs](/nestjs/overview)) are **TypeScript only**.
+
+## CLI
+
+For local development, login, linking a project, and managing resources from the terminal, see the **[Ductape CLI](./cli)** (`ductape login`, `ductape resources storage list`, `ductape start`).
+
 ## Installation
 
-Install the Ductape SDK:
+Install the Ductape SDK for your language:
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@0.1.8
 ```
 
 ## Initialize the SDK
 
-Create a Ductape instance with your workspace credentials:
+Create a Ductape instance with your workspace credentials. Set **product** and **env** on the constructor so you do not repeat them on every call (see [SDK runtime defaults](/sdk/runtime-defaults)):
 
 ```ts
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env: 'dev',
 });
 ```
 
-You can find your credentials in the Ductape dashboard under **Settings > API Keys**.
+You can find your access key in the Ductape dashboard under **Settings > API Keys**.
 
 ## Your First Action
 
 Once you've [added an app](/docs/apps/getting-started) and connected it to a [product](/docs/products/overview), you can run actions:
 
 ```ts
-const result = await ductape.actions.run({
-  product: 'my-product',
+const result = await ductape.api.run({
   app: 'stripe',
-  env: 'dev',
   action: 'create-charge',
   input: {
     amount: 1000,
@@ -56,27 +62,25 @@ For real applications, initialize Ductape once and share the instance across you
 ```ts title="src/lib/ductape.ts"
 import Ductape from '@ductape/sdk';
 
-// Create a single instance
-export const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-});
-
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
 
-// Configure credentials once at startup
-ductape.actions.config({
+// Create a single instance — product/env defaults live on the constructor only
+export const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
   product: 'my-product',
-  app: 'stripe',
   env,
+});
+
+// Configure action credentials once at startup
+ductape.api.config({
+  app: 'stripe',
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
   }
 });
 
-ductape.actions.config({
-  product: 'my-product',
+ductape.api.config({
   app: 'twilio',
-  env,
   credentials: {
     'headers:Authorization': '$Secret{TWILIO_AUTH_TOKEN}',
   }
@@ -91,10 +95,8 @@ Import the shared instance in any file:
 import { ductape } from '../lib/ductape';
 
 export async function createCharge(amount: number, currency: string) {
-  return ductape.actions.run({
-    product: 'my-product',
+  return ductape.api.run({
     app: 'stripe',
-    env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
     action: 'create-charge',
     input: { amount, currency }
   });
@@ -105,10 +107,8 @@ export async function createCharge(amount: number, currency: string) {
 import { ductape } from '../lib/ductape';
 
 export async function sendSMS(to: string, message: string) {
-  return ductape.actions.run({
-    product: 'my-product',
+  return ductape.api.run({
     app: 'twilio',
-    env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
     action: 'send-sms',
     input: { to, body: message }
   });
@@ -124,16 +124,16 @@ import Ductape from '@ductape/sdk';
 
 export const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
 });
 
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
 
 export async function initializeDuctape() {
   // Configure API credentials
-  ductape.actions.config({
-    product: 'my-product',
+  ductape.api.config({
     app: 'stripe',
-    env,
     credentials: {
       'headers:Authorization': '$Secret{STRIPE_API_KEY}',
     }
@@ -141,22 +141,16 @@ export async function initializeDuctape() {
 
   // Connect to relational database
   await ductape.databases.connect({
-    env,
-    product: 'my-product',
     database: 'users-db',
   });
 
   // Connect to graph database
   await ductape.graph.connect({
-    env,
-    product: 'my-product',
     graph: 'social-graph',
   });
 
   // Connect to vector database
   await ductape.vector.connect({
-    env,
-    product: 'my-product',
     tag: 'embeddings',
   });
 }
@@ -202,8 +196,6 @@ import { ductape } from '../lib/ductape';
 
 export async function searchSimilarProducts(queryEmbedding: number[]) {
   return ductape.vector.query({
-    product: 'my-product',
-    env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
     tag: 'embeddings',
     vector: queryEmbedding,
     topK: 10,
@@ -219,25 +211,23 @@ export async function searchSimilarProducts(queryEmbedding: number[]) {
 ```ts title="src/ductape.ts"
 import Ductape from '@ductape/sdk';
 
-export const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-});
-
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
 
+export const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: 'my-product',
+  env,
+});
+
 export async function initializeDuctape() {
-  ductape.actions.config({
-    product: 'my-product',
+  ductape.api.config({
     app: 'stripe',
-    env,
     credentials: {
       'headers:Authorization': '$Secret{STRIPE_API_KEY}',
     }
   });
 
   await ductape.databases.connect({
-    env,
-    product: 'my-product',
     database: 'users-db',
   });
 
@@ -260,80 +250,48 @@ initializeDuctape().then(() => {
 
 ### NestJS
 
-```ts title="src/ductape/ductape.module.ts"
-import { Module, Global } from '@nestjs/common';
-import { DuctapeService } from './ductape.service';
+Use the official **`@ductape/nestjs`** integration package for decorators and modules instead of wrapping the SDK manually. Full docs: [NestJS overview](/nestjs/overview). Examples below are **TypeScript only**.
 
-@Global()
+```bash
+npm install @ductape/nestjs @ductape/sdk
+```
+
+```ts title="app.module.ts"
+import { Module } from '@nestjs/common';
+import { DuctapeModule, DuctapeDatabaseModule } from '@ductape/nestjs';
+import { PaymentsModule } from './payments/payments.module';
+
 @Module({
-  providers: [DuctapeService],
-  exports: [DuctapeService],
-})
-export class DuctapeModule {}
-```
-
-```ts title="src/ductape/ductape.service.ts"
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import Ductape from '@ductape/sdk';
-
-@Injectable()
-export class DuctapeService implements OnModuleInit {
-  private readonly ductape: Ductape;
-  private readonly env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
-
-  constructor() {
-    this.ductape = new Ductape({
+  imports: [
+    DuctapeModule.forIntegration({
       accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-    });
-  }
-
-  async onModuleInit() {
-    this.ductape.actions.config({
       product: 'my-product',
-      app: 'stripe',
-      env: this.env,
-      credentials: {
-        'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-      }
-    });
-
-    await this.ductape.databases.connect({
-      env: this.env,
-      product: 'my-product',
-      database: 'users-db',
-    });
-  }
-
-  get actions() {
-    return this.ductape.actions;
-  }
-
-  get databases() {
-    return this.ductape.databases;
-  }
-
-  get workflows() {
-    return this.ductape.workflows;
-  }
-}
+      env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
+    }),
+    DuctapeDatabaseModule.register({ tags: ['users-db'] }),
+    PaymentsModule,
+  ],
+})
+export class AppModule {}
 ```
 
-```ts title="src/payments/payments.service.ts"
+```ts title="payments/payments.service.ts"
 import { Injectable } from '@nestjs/common';
-import { DuctapeService } from '../ductape/ductape.service';
+import { Api, ApiConfig } from '@ductape/nestjs';
 
 @Injectable()
+@ApiConfig({
+  product: 'my-product',
+  app: 'stripe',
+  env: 'prd',
+  credentials: {
+    'headers:Authorization': '$Secret{STRIPE_API_KEY}',
+  },
+})
 export class PaymentsService {
-  constructor(private readonly ductape: DuctapeService) {}
-
-  async createCharge(amount: number, currency: string) {
-    return this.ductape.actions.run({
-      product: 'my-product',
-      app: 'stripe',
-      env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
-      action: 'create-charge',
-      input: { amount, currency }
-    });
+  @Api({ app: 'stripe', action: 'create-charge' })
+  createCharge(input: { amount: number; currency: string }) {
+    return input;
   }
 }
 ```
@@ -352,12 +310,12 @@ export function getDuctape(): Ductape {
   if (!ductapeInstance) {
     ductapeInstance = new Ductape({
       accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+      product: 'my-product',
+      env,
     });
 
-    ductapeInstance.actions.config({
-      product: 'my-product',
+    ductapeInstance.api.config({
       app: 'stripe',
-      env,
       credentials: {
         'headers:Authorization': '$Secret{STRIPE_API_KEY}',
       }
@@ -372,8 +330,6 @@ export async function initializeDuctape(): Promise<Ductape> {
 
   if (!initialized) {
     await ductape.databases.connect({
-      env,
-      product: 'my-product',
       database: 'users-db',
     });
 
@@ -392,10 +348,8 @@ export async function POST(request: Request) {
   const { amount, currency } = await request.json();
   const ductape = getDuctape();
 
-  const result = await ductape.actions.run({
-    product: 'my-product',
+  const result = await ductape.api.run({
     app: 'stripe',
-    env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
     action: 'create-charge',
     input: { amount, currency }
   });

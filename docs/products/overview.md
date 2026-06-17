@@ -77,14 +77,21 @@ console.log('Product tag:', product.tag);
 // Tag is auto-generated from name: "my-product"
 ```
 
-### Initializing Products
-Before using a product, initialize it to set the active context:
+### Initializing Products (product builder API)
+
+Call `product.init()` before using the **product builder** (`ductape.product.environment`, `ductape.product.app`, webhooks, etc.). It pre-loads the product into the builder — it does **not** set runtime defaults for databases, graphs, or vectors.
+
+For database/graph/vector calls, set `product` and `env` on the [`Ductape` constructor](/sdk/runtime-defaults) instead:
 
 ```typescript
-await ductape.product.init(product.tag);
-```
+const ductape = new Ductape({
+  accessKey: 'your-access-key',
+  product: product.tag,
+  env: 'dev',
+});
 
-This loads the product configuration and makes it available for operations. All subsequent resource operations (environments, apps, features, etc.) will apply to this initialized product.
+await ductape.product.init(product.tag); // builder APIs only
+```
 
 ### Fetching Products
 Retrieve product information:
@@ -150,7 +157,7 @@ const link = await ductape.product.webhook.generateLink({
 ## Best Practices
 
 - **Use descriptive tags** - Product tags are used throughout the SDK; make them meaningful
-- **Initialize before use** - Always call `product.init()` before working with product resources
+- **Initialize before builder use** - Call `product.init()` before `ductape.product.*` builder APIs; use constructor `product`/`env` for runtime database/graph/vector calls
 - **Organize by environment** - Use environments to separate dev, staging, and production
 - **Start minimal** - Create products with empty arrays; add resources as needed
 - **Version control** - Export product configurations to version control

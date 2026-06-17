@@ -6,13 +6,17 @@ sidebar_position: 6
 
 Migrations provide version-controlled schema changes for your database. Every schema operation in Ductape automatically creates a migration, ensuring all changes are tracked, reproducible, and reversible across all environments.
 
+:::tip Runtime defaults
+When using `ductape.databases` from a `Ductape` instance, set `product` and `env` on the [constructor](/sdk/runtime-defaults) and pass only `database` to `connect()`. Examples below use `DatabaseService` directly; pass `product` and `env` on `connect()` only if you are not using a `Ductape` client with constructor defaults.
+:::
+
 ## Quick Example
 
 ```ts
 import { DatabaseService } from '@ductape/sdk';
 
 const db = new DatabaseService();
-await db.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+await db.connect({ database: 'main-db' });
 
 // Create table - automatically generates and applies a migration
 const result = await db.schema.create('users', {
@@ -111,6 +115,8 @@ await db.schema.modifyField('users', 'email', {
   required: true,
 });
 ```
+
+## Index management {#index-management}
 
 ### Create Index
 
@@ -449,11 +455,11 @@ Always run migrations in development before production:
 
 ```ts
 // Development
-await db.connect({ env: 'dev', product: 'my-app', database: 'main-db' });
+await db.connect({ database: 'main-db' });
 await db.schema.create('new_table', { ... });
 
 // After testing, apply to production
-await db.connect({ env: 'prd', product: 'my-app', database: 'main-db' });
+await db.connect({ database: 'main-db' });
 await db.schema.create('new_table', { ... });
 ```
 
@@ -545,7 +551,7 @@ If a migration fails partway through:
 ```ts
 // Get status for each environment
 for (const env of ['dev', 'staging', 'prd']) {
-  await db.connect({ env, product: 'my-app', database: 'main-db' });
+  await db.connect({ env, database: 'main-db' });
   const status = await engine.getStatus({ definedMigrations: allMigrations });
   console.log(`${env}: ${status.completed}/${status.total} migrations applied`);
 }

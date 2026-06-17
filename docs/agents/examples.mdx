@@ -17,7 +17,6 @@ A support agent that can look up orders, process returns, and handle common inqu
 
 ```typescript
 const supportAgent = await ductape.agents.define({
-  product: 'ecommerce',
   tag: 'customer-support',
   name: 'Customer Support Agent',
   model: {
@@ -194,7 +193,6 @@ An agent that can query databases and generate insights:
 
 ```typescript
 const dataAgent = await ductape.agents.define({
-  product: 'analytics',
   tag: 'data-analyst',
   name: 'Data Analysis Agent',
   model: {
@@ -326,7 +324,6 @@ An agent that reviews code and provides feedback:
 
 ```typescript
 const codeReviewAgent = await ductape.agents.define({
-  product: 'devtools',
   tag: 'code-reviewer',
   name: 'Code Review Agent',
   model: {
@@ -432,7 +429,6 @@ An agent that can search and synthesize information:
 
 ```typescript
 const researchAgent = await ductape.agents.define({
-  product: 'research',
   tag: 'research-assistant',
   name: 'Research Assistant',
   model: {
@@ -567,7 +563,6 @@ An agent that automates workflows and integrations:
 
 ```typescript
 const automationAgent = await ductape.agents.define({
-  product: 'automation',
   tag: 'workflow-agent',
   name: 'Workflow Automation Agent',
   model: {
@@ -702,8 +697,6 @@ Always confirm before executing workflows that modify data.`,
 ```typescript
 // Customer Support
 const supportResult = await ductape.agents.run({
-  product: 'ecommerce',
-  env: 'dev',
   tag: 'customer-support',
   input: 'I need to return an item from order ORD-12345',
   sessionId: 'customer-session-abc',
@@ -711,16 +704,12 @@ const supportResult = await ductape.agents.run({
 
 // Data Analysis
 const analysisResult = await ductape.agents.run({
-  product: 'analytics',
-  env: 'dev',
   tag: 'data-analyst',
   input: 'What were our top 5 selling products last month?',
 });
 
 // Research
 const researchResult = await ductape.agents.run({
-  product: 'research',
-  env: 'dev',
   tag: 'research-assistant',
   input: 'Research the latest trends in AI agent architectures',
 });

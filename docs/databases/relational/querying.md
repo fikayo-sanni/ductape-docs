@@ -38,8 +38,6 @@ If you haven't called `connect()`, specify the connection:
 
 ```ts
 const result = await ductape.database.query({
-  env: 'prd',
-  product: 'my-app',
   database: 'users-db',
   table: 'users',
 });

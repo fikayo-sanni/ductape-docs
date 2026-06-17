@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Running Actions
 
-Once you have Actions imported into an App, you can execute them using `ductape.actions.run()`. This function handles authentication, environment switching, and request formatting automatically.
+Once you have Actions imported into an App, you can execute them using `ductape.api.run()`. This function handles authentication, environment switching, and request formatting automatically.
 
 ## Prerequisites
 
@@ -19,15 +19,15 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
+  product: 'my-product',
+  env: 'dev',
 });
 ```
 
 ## Quick Example
 
 ```ts
-const result = await ductape.actions.run({
-  env: 'dev',
-  product: 'my-product',
+const result = await ductape.api.run({
   app: 'stripe-app',
   action: 'create_customer',
   input: {
@@ -41,11 +41,13 @@ console.log(result); // { id: 'cus_xxx', email: 'john@example.com', ... }
 
 ## How It Works
 
-1. **env** - Which environment to run in (`dev`, `stg`, `prd`)
-2. **product** - Your product's unique identifier
-3. **app** - The connected app's access tag (e.g., `stripe-app`, `twilio-app`)
-4. **event** - The action you want to trigger (e.g., `create_customer`, `send_sms`)
-5. **input** - The data to send (automatically resolved to body, query, params, or headers based on the action's schema)
+Set **product** and **env** on the `Ductape` constructor (see [runtime defaults](/sdk/runtime-defaults)). Each call then needs:
+
+1. **app** - The connected app's access tag (e.g., `stripe-app`, `twilio-app`)
+2. **action** (or **event**) - The action to trigger (e.g., `create_customer`, `send_sms`)
+3. **input** - Data to send (auto-resolved to body, query, params, or headers from the action schema)
+
+You can still pass `product` or `env` on a single call to override the constructor for that call only.
 
 ## Flat Input Format
 
@@ -87,9 +89,7 @@ input: {
 ### Sending data in the request body
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'payments',
+await ductape.api.run({
   app: 'stripe',
   action: 'create_payment_intent',
   input: {
@@ -103,9 +103,7 @@ await ductape.actions.run({
 ### Using query parameters
 
 ```ts
-await ductape.actions.run({
-  env: 'dev',
-  product: 'crm',
+await ductape.api.run({
   app: 'hubspot',
   action: 'search_contacts',
   input: {
@@ -118,9 +116,7 @@ await ductape.actions.run({
 ### With route parameters
 
 ```ts
-await ductape.actions.run({
-  env: 'dev',
-  product: 'inventory',
+await ductape.api.run({
   app: 'shopify',
   action: 'get_product',
   input: {
@@ -132,9 +128,7 @@ await ductape.actions.run({
 ### With custom headers
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'api-gateway',
+await ductape.api.run({
   app: 'internal-api',
   action: 'fetch_user',
   input: {
@@ -149,9 +143,7 @@ await ductape.actions.run({
 When you have fields that could conflict, use prefixes for clarity:
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'orders',
+await ductape.api.run({
   app: 'order-service',
   action: 'update_order',
   input: {
@@ -171,18 +163,18 @@ Use `actions.config()` to set credentials once and reuse them across multiple ac
 
 ```ts
 // Define app configurations
-const stripeConfig = { product: 'my-product', app: 'stripe', env: 'prd' };
-const twilioConfig = { product: 'my-product', app: 'twilio', env: 'prd' };
+const stripeConfig = { app: 'stripe' };
+const twilioConfig = { app: 'twilio' };
 
 // Set credentials using the config
-ductape.actions.config({
+ductape.api.config({
   ...stripeConfig,
   credentials: {
     'headers:Authorization': '$Secret{STRIPE_API_KEY}',
   }
 });
 
-ductape.actions.config({
+ductape.api.config({
   ...twilioConfig,
   credentials: {
     'headers:Authorization': '$Secret{TWILIO_AUTH_TOKEN}',
@@ -190,19 +182,19 @@ ductape.actions.config({
 });
 
 // Now use the same config for all action calls
-await ductape.actions.run({
+await ductape.api.run({
   ...stripeConfig,
   action: 'create_charge',
   input: { amount: 1000, currency: 'usd' }
 });
 
-await ductape.actions.run({
+await ductape.api.run({
   ...stripeConfig,
   action: 'list_customers',
   input: { limit: 10 }
 });
 
-await ductape.actions.run({
+await ductape.api.run({
   ...twilioConfig,
   action: 'send_sms',
   input: { to: '+1234567890', body: 'Hello!' }
@@ -214,13 +206,13 @@ This pattern keeps your code DRY and makes it easy to switch environments:
 ```ts
 // Environment-based configs
 const stripe = {
-  dev: { product: 'my-product', app: 'stripe', env: 'dev' },
-  prd: { product: 'my-product', app: 'stripe', env: 'prd' },
+  dev: { app: 'stripe' },
+  prd: { app: 'stripe' },
 };
 
 // Use the appropriate config
 const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
-ductape.actions.config({
+ductape.api.config({
   ...stripe[env],
   credentials: { 'headers:Authorization': '$Secret{STRIPE_API_KEY}' }
 });
@@ -231,9 +223,7 @@ ductape.actions.config({
 Use sessions to inject user-specific data dynamically:
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'dashboard',
+await ductape.api.run({
   app: 'analytics',
   action: 'get_user_stats',
   input: {
@@ -246,9 +236,7 @@ await ductape.actions.run({
 ### With caching and retries
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'catalog',
+await ductape.api.run({
   app: 'products-api',
   action: 'list_products',
   input: {
@@ -273,13 +261,11 @@ await ductape.actions.run({
 
 ### actions.config()
 
-Set shared credentials for a product/app/env combination. These credentials are automatically merged into all subsequent action calls.
+Set shared credentials for an app. **Product** and **env** come from the `Ductape` constructor unless you pass them to override.
 
 ```ts
-ductape.actions.config({
-  product: string,      // Product tag
+ductape.api.config({
   app: string,          // App tag
-  env: string,          // Environment (dev, staging, prd)
   credentials: {        // Credentials in flat input format
     'headers:Authorization': 'Bearer xxx',
     'headers:X-API-Key': 'key_xxx',
@@ -302,8 +288,8 @@ ductape.actions.config({
 
 ```ts
 interface IActionProcessorInput {
-  env: string;
-  product: string;
+  product?: string;  // optional; defaults to constructor
+  env?: string;      // optional; defaults to constructor
   app: string;
   action: string;
   input: IFlatInput | IActionRequest;  // Flat or structured format

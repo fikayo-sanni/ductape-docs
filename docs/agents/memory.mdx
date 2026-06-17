@@ -106,7 +106,6 @@ Long-term memory uses vector databases to store and retrieve information across 
 import { VectorDBType, DistanceMetric } from '@ductape/sdk';
 
 await ductape.vector.create({
-  product: 'my-product',
   name: 'Agent Memory Store',
   tag: 'agent-memory',
   type: VectorDBType.PINECONE,
@@ -196,8 +195,6 @@ Isolate memories per user or conversation:
 ```typescript
 // Run with sessionId
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'support-agent',
   input: 'Remember that I prefer email communication',
   sessionId: 'user-123',  // Isolates memory to this user
@@ -205,8 +202,6 @@ const result = await ductape.agents.run({
 
 // Later, same user
 const result2 = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'support-agent',
   input: 'What are my preferences?',
   sessionId: 'user-123',  // Will recall preferences
@@ -302,7 +297,6 @@ Remember customer information across interactions:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'customer-agent',
   name: 'Customer Service Agent',
   systemPrompt: `You are a customer service agent.
@@ -349,7 +343,6 @@ Use memory as a searchable knowledge base:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'knowledge-agent',
   name: 'Knowledge Base Agent',
   systemPrompt: `You are a helpful assistant with access to a knowledge base.
@@ -403,7 +396,6 @@ Store conversation summaries for long-term context:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'summary-agent',
   name: 'Agent with Summaries',
   systemPrompt: 'You are a helpful assistant that remembers past conversations.',
@@ -498,8 +490,6 @@ Periodically remove outdated information:
 ```typescript
 // In a maintenance job
 await ductape.vector.deleteVectors({
-  product: 'my-product',
-  env: 'dev',
   tag: 'agent-memory',
   filter: {
     timestamp: { $lt: thirtyDaysAgo },

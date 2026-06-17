@@ -84,7 +84,7 @@ import fs from 'fs';
 const file = fs.readFileSync('./stripe-api.postman_collection.json');
 
 // Import into your app
-await ductape.actions.import({
+await ductape.api.import({
   file,
   type: ImportDocTypes.postmanV21,
   app: 'stripe-payments',
@@ -107,7 +107,7 @@ You can also create a new App directly from your API documentation:
 
 ```ts
 // This creates a new app and imports all actions
-await ductape.actions.import({
+await ductape.api.import({
   file,
   type: ImportDocTypes.postmanV21,
   // Omit app to create a new app
@@ -181,10 +181,9 @@ With your App configured, you can now call any imported action:
 
 ```ts
 // Call the "create-charge" action from your Stripe app
-const result = await ductape.actions.run({
+const result = await ductape.api.run({
   app: 'stripe-payments',
   event: 'create-charge',
-  env: 'dev',
   input: {
     amount: 2000, // $20.00
     currency: 'usd',
@@ -220,7 +219,7 @@ async function main() {
 
   // Import actions from Postman collection
   const collection = fs.readFileSync('./sendgrid.postman_collection.json');
-  await ductape.actions.import({
+  await ductape.api.import({
     file: collection,
     type: ImportDocTypes.postmanV21,
     app: 'sendgrid',
@@ -246,10 +245,9 @@ async function main() {
   });
 
   // Send an email using the imported action
-  const result = await ductape.actions.run({
+  const result = await ductape.api.run({
     app: 'sendgrid',
     event: 'send-email',
-    env: 'dev',
     input: {
       personalizations: [
         { to: [{ email: 'user@example.com' }] }

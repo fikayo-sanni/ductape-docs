@@ -1,0 +1,124 @@
+---
+title: Product & environment defaults
+sidebar_position: 2
+---
+
+# Product and environment defaults
+
+Many SDK operations need a **product tag** and **environment slug** (`dev`, `prd`, etc.). In TypeScript, set both **only on the `Ductape` constructor**. They are then inherited when you omit `product` and `env` from `connect()` and from query payloads (after a connection is established).
+
+:::info Not supported
+Do **not** rely on `ductape.configure()`, `DUCTAPE_PRODUCT` / `DUCTAPE_ENV` environment variables, or `product.init(product, env)` for runtime defaults. `product.init(tag)` only pre-loads the product builder.
+:::
+
+## Constructor
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+});
+
+// Omit product/env — taken from the constructor
+await ductape.databases.connect({ database: 'main-db' });
+
+await ductape.databases.find({
+  table: 'users',
+  where: { status: 'active' },
+  limit: 10,
+});
+
+await ductape.graph.connect({ graph: 'social' });
+await ductape.vector.connect({ vector: 'embeddings' });
+
+// Same defaults apply to actions, sessions, storage, caches, notifications, quotas, fallbacks, and healthchecks
+await ductape.api.run({ app: 'stripe', action: 'create-charge', input: { amount: 1000, currency: 'usd' } });
+await ductape.sessions.create({ tag: 'user-session', data: { userId: '1' } });
+await ductape.storage.upload({ storage: 'main', file: buffer, fileName: 'doc.pdf' });
+await ductape.caches.set({ cache: 'user-cache', key: 'user:1', value: '{}' });
+await ductape.notifications.email.send({
+  notification: 'emails:welcome',
+  input: { recipients: ['a@b.com'], subject: {}, template: {} },
+});
+```
+
+You may still pass `product` or `env` on a specific call to override the constructor for that call only.
+
+## Resolution order
+
+When a method needs `product` and `env`:
+
+1. Values on the **current call** (if provided)
+2. **Active connection context** (after `databases.connect`, `graph.connect`, etc.)
+3. **`product` and `env` from the constructor**
+
+If none apply, the SDK throws an error asking you to set both on `new Ductape({ accessKey, product, env })`.
+
+## Shared module pattern
+
+Create one instance and reuse it (credentials can still come from env vars — only the **constructor** registers defaults):
+
+```ts title="src/lib/ductape.ts"
+import Ductape from '@ductape/sdk';
+
+export const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product: process.env.DUCTAPE_PRODUCT!,
+  env: process.env.DUCTAPE_ENV ?? 'dev',
+});
+```
+
+```ts title="src/services/users.ts"
+import { ductape } from '../lib/ductape';
+
+export async function listActiveUsers() {
+  await ductape.databases.connect({ database: 'users-db' });
+  return ductape.databases.find({
+    table: 'users',
+    where: { status: 'active' },
+  });
+}
+```
+
+## CLI vs SDK
+
+| | CLI | TypeScript SDK |
+|---|-----|----------------|
+| Config | `.ductape/config.json` → `product_tag`, `env_slug` | `new Ductape({ product, env })` |
+| Scope | Linked project + proxy commands | Application singleton |
+
+After `ductape link --product my-api --env dev`, CLI commands like `ductape db query` use the linked project automatically. In app code, set the same values on the constructor.
+
+## Other SDK languages
+
+Java, Go, and .NET use the same pattern: pass **product tag** and **environment slug** on the client constructor, then omit them from `connect()` and service calls.
+
+```java
+Ductape ductape = new Ductape(auth, "my-api", "dev");
+ductape.databaseService().connect(Map.of("database", "main-db", "type", "postgres"));
+ductape.api().run(Map.of(
+    "app", "stripe",
+    "action", "create-charge",
+    "input", Map.of("amount", 1000, "currency", "usd")));
+```
+
+```go
+client := ductape.New(auth, "my-api", "dev")
+client.Database.Connect(ctx, map[string]any{"database": "main-db", "type": "postgres"})
+client.Actions.Run(ctx, map[string]any{
+    "app": "stripe", "action": "create-charge",
+    "input": map[string]any{"amount": 1000, "currency": "usd"},
+})
+```
+
+```csharp
+var ductape = new Ductape(auth, "my-api", "dev");
+await ductape.Database.ConnectAsync(new Dictionary<string, object?> { ["database"] = "main-db" });
+await ductape.Actions.RunAsync(new Dictionary<string, object?> {
+    ["app"] = "stripe", ["action"] = "create-charge",
+    ["input"] = new Dictionary<string, object?> { ["amount"] = 1000, ["currency"] = "usd" },
+});
+```
+
+TypeScript is the reference implementation; see each package README for language-specific constructor signatures.

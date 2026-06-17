@@ -42,6 +42,8 @@ const ductape = new Ductape({
 });
 ```
 
+Set `product` and `env` on the constructor only — see [SDK runtime defaults](/sdk/runtime-defaults).
+
 ## Step 3: Register a Graph Database
 
 Register your graph database with environment-specific connection strings:
@@ -69,13 +71,58 @@ await ductape.graph.create({
 });
 ```
 
+**Cloud-linked graphs** — provision or import from AWS Neptune, GCP Spanner Graph, or Azure Cosmos DB (Gremlin):
+
+```ts
+// AWS Neptune
+await ductape.graph.create({
+  name: 'Social Graph',
+  tag: 'social-graph',
+  type: 'neptune',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_aws',
+    instance: 'my-neptune-cluster',
+    region: 'us-east-1',
+  }],
+});
+
+// GCP Spanner Graph
+await ductape.graph.create({
+  name: 'Social Graph',
+  tag: 'social-graph',
+  type: 'spanner-graph',
+  envs: [{
+    slug: 'prd',
+    cloud: 'gcp_prod',
+    instance: 'my-spanner-instance',
+    region: 'us-central1',
+  }],
+});
+
+// Azure Cosmos DB (Gremlin)
+await ductape.graph.create({
+  name: 'Social Graph',
+  tag: 'social-graph',
+  type: 'cosmos-gremlin',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_azure',
+    instance: 'my-cosmos-account',
+    region: 'eastus',
+  }],
+});
+```
+
+See [Cloud-linked components](../../cloud/cloud-linked-components).
+
 ### Graph Database Configuration Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | Yes | Human-readable display name |
 | `tag` | string | Yes | Unique identifier for the graph database |
-| `type` | string | Yes | Database type: `neo4j`, `neptune`, `arangodb`, or `memgraph` |
+| `type` | string | Yes | Database type: `neo4j`, `neptune`, `spanner-graph`, `cosmos-gremlin`, `arangodb`, or `memgraph` |
 | `description` | string | No | Description of what the graph stores |
 | `envs` | array | Yes | Environment-specific connection configurations |
 
@@ -84,7 +131,9 @@ await ductape.graph.create({
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `slug` | string | Yes | Environment identifier (e.g., `dev`, `staging`, `prd`) |
-| `connection_url` | string | Yes | Graph database connection string |
+| `connection_url` | string | Yes* | Graph database connection string |
+| `cloud` | string | No | Workspace cloud connection tag (imports/provisions Neptune or Cosmos Gremlin) |
+| `instance` | string | No | Cloud resource name when using `cloud` |
 | `database` | string | No | Database name (ArangoDB) |
 | `graphName` | string | No | Graph name (ArangoDB) |
 | `region` | string | No | AWS region (Neptune) |
@@ -95,8 +144,6 @@ Before running operations, establish a connection:
 
 ```ts
 const result = await ductape.graph.connect({
-  env: 'dev',
-  product: 'my-app',
   graph: 'social-graph',
 });
 
@@ -105,7 +152,7 @@ console.log('Database Type:', result.type);
 console.log('Latency:', result.latency, 'ms');
 ```
 
-Once connected, subsequent operations inherit the connection context. You no longer need to specify `env`, `product`, and `graph` for every operation.
+Once connected, subsequent operations inherit the connection context. You no longer need to specify `env`, `product`, or `graph` on every operation (constructor defaults apply before connect; connection context applies after).
 
 ## Step 5: Create Your First Node
 
@@ -187,9 +234,7 @@ import Ductape from '@ductape/sdk';
 async function main() {
   // Initialize SDK
   const ductape = new Ductape({
-    workspace_id: 'your-workspace-id',
-    user_id: 'your-user-id',
-    private_key: 'your-private-key',
+    accessKey: 'your-access-key',
   });
 
   // Register graph database (usually done once during setup)
@@ -205,11 +250,7 @@ async function main() {
   });
 
   // Connect to graph database
-  await ductape.graph.connect({
-    env: 'dev',
-    product: 'my-app',
-    graph: 'social-graph',
-  });
+  await ductape.graph.connect({ graph: 'social-graph' });
 
   // Create nodes
   const alice = await ductape.graph.createNode({
@@ -269,8 +310,6 @@ Use the `testConnection` method to verify connectivity without performing operat
 
 ```ts
 const result = await ductape.graph.testConnection({
-  env: 'dev',
-  product: 'my-app',
   graph: 'social-graph',
 });
 
@@ -316,22 +355,14 @@ await ductape.graph.create({
   envs: [{ slug: 'dev', connection_url: 'bolt://localhost:7688' }],
 });
 
-// Switch between graphs by connecting to each
-await ductape.graph.connect({
-  env: 'dev',
-  product: 'my-app',
-  graph: 'social-graph',
-});
+// Switch between graphs by connecting to each (product/env from constructor)
+await ductape.graph.connect({ graph: 'social-graph' });
 
 // Query social graph
 const users = await ductape.graph.findNodes({ labels: ['Person'] });
 
 // Connect to different graph
-await ductape.graph.connect({
-  env: 'dev',
-  product: 'my-app',
-  graph: 'knowledge-graph',
-});
+await ductape.graph.connect({ graph: 'knowledge-graph' });
 
 // Query knowledge graph
 const entities = await ductape.graph.findNodes({ labels: ['Entity'] });

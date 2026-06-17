@@ -1,0 +1,39 @@
+Use the `useAnalytics` hook from `@ductape/react` for the same analytics API with React-friendly bindings.
+
+```tsx
+import { useEffect } from 'react';
+import { useAnalytics } from '@ductape/react';
+import { useLocation } from 'react-router-dom';
+
+function AppAnalytics() {
+  const { pageview, enableAutoCapture } = useAnalytics();
+
+  useEffect(() => {
+    return enableAutoCapture({ clicks: true, pageviews: true });
+  }, [enableAutoCapture]);
+
+  const location = useLocation();
+  useEffect(() => {
+    pageview({ path: location.pathname });
+  }, [location.pathname, pageview]);
+
+  return null;
+}
+
+function CheckoutButton() {
+  const { track, identify, visitorId } = useAnalytics();
+
+  return (
+    <button
+      data-track="checkout-cta"
+      onClick={() => track({ event: 'checkout_click', properties: { visitorId } })}
+    >
+      Checkout
+    </button>
+  );
+}
+```
+
+**Hook return value:** `track`, `pageview`, `identify`, `visitorId`, `enableAutoCapture`, `flush`.
+
+Call `identify(sessionToken)` after login so events include session fields. On logout, use `client.analytics.clearSession()` from `useDuctape()` if you need to stop attributing events to the signed-in user.

@@ -49,8 +49,6 @@ const feature = await ductape.product.features.create({
 
 ```typescript
 const result = await ductape.processor.feature.run({
-  env: "prd",
-  product: "payments_service",
   feature: "payment_notify",
   input: {
     userId: "12345",

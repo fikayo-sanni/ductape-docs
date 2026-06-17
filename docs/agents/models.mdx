@@ -18,7 +18,6 @@ Instead of embedding LLM configuration directly in each agent:
 ```typescript
 // Inline configuration (not recommended for production)
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'my-agent',
   model: {
     provider: 'anthropic',
@@ -35,7 +34,6 @@ You can create a model configuration once and reference it:
 ```typescript
 // Reference by tag (recommended)
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'my-agent',
   model: 'claude-sonnet',  // References the model tag
   // ...
@@ -62,7 +60,6 @@ const ductape = new Ductape({ ... });
 
 // Create a model configuration
 await ductape.model.create({
-  product: 'my-product',
   tag: 'claude-sonnet',
   name: 'Claude Sonnet',
   description: 'Claude Sonnet for general-purpose tasks',
@@ -131,7 +128,6 @@ envs: [
 
 ```typescript
 await ductape.model.create({
-  product: 'my-product',
   tag: 'claude-opus',
   name: 'Claude Opus',
   provider: 'anthropic',
@@ -146,7 +142,6 @@ await ductape.model.create({
 
 ```typescript
 await ductape.model.create({
-  product: 'my-product',
   tag: 'gpt-4-turbo',
   name: 'GPT-4 Turbo',
   provider: 'openai',
@@ -161,7 +156,6 @@ await ductape.model.create({
 
 ```typescript
 await ductape.model.create({
-  product: 'my-product',
   tag: 'gemini-pro',
   name: 'Gemini Pro',
   provider: 'google',
@@ -178,7 +172,6 @@ For self-hosted or alternative endpoints:
 
 ```typescript
 await ductape.model.create({
-  product: 'my-product',
   tag: 'local-llama',
   name: 'Local Llama',
   provider: 'custom',
@@ -201,7 +194,6 @@ await ductape.model.create({
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'customer-support',
   name: 'Customer Support Agent',
   model: 'claude-sonnet',  // Reference the model tag
@@ -217,8 +209,7 @@ When an agent runs, the model configuration is resolved based on the execution e
 ```typescript
 // Running in production
 await ductape.agents.run({
-  product: 'my-product',
-  env: 'prd',  // Uses the 'prd' API key from the model
+  // Uses the 'prd' API key from the model
   tag: 'customer-support',
   input: { ... },
 });
@@ -242,7 +233,6 @@ Override model settings for all executions of a specific agent:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'creative-agent',
   name: 'Creative Agent',
   model: 'claude-sonnet',  // Base model settings
@@ -261,7 +251,6 @@ Override settings for specific environments:
 
 ```typescript
 const agent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'smart-agent',
   model: 'claude-sonnet',
   modelConfig: {
@@ -291,8 +280,6 @@ Override settings at execution time:
 
 ```typescript
 await ductape.agents.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'smart-agent',
   input: { ... },
   modelConfig: {
@@ -337,7 +324,6 @@ Settings are merged with the following precedence (highest to lowest):
 
 ```typescript
 await ductape.model.update({
-  product: 'my-product',
   tag: 'claude-sonnet',
   temperature: 0.5,  // Update default temperature
   envs: [
@@ -354,12 +340,10 @@ await ductape.model.update({
 ```typescript
 // Fetch all models
 const models = await ductape.model.fetchAll({
-  product: 'my-product',
 });
 
 // Fetch specific model
 const model = await ductape.model.fetch({
-  product: 'my-product',
   tag: 'claude-sonnet',
 });
 ```
@@ -368,7 +352,6 @@ const model = await ductape.model.fetch({
 
 ```typescript
 await ductape.model.delete({
-  product: 'my-product',
   tag: 'claude-sonnet',
 });
 ```
@@ -387,7 +370,6 @@ API keys are automatically encrypted using the product's private key:
 ```typescript
 // Keys are automatically encrypted when you create/update
 await ductape.model.create({
-  product: 'my-product',
   tag: 'my-model',
   name: 'My Model',
   provider: 'anthropic',
@@ -410,7 +392,6 @@ await ductape.model.create({
 ```typescript
 // Different models for different purposes
 await ductape.model.create({
-  product: 'my-product',
   tag: 'claude-fast',
   name: 'Claude Fast',
   provider: 'anthropic',
@@ -420,7 +401,6 @@ await ductape.model.create({
 });
 
 await ductape.model.create({
-  product: 'my-product',
   tag: 'claude-creative',
   name: 'Claude Creative',
   provider: 'anthropic',
@@ -434,7 +414,6 @@ await ductape.model.create({
 
 ```typescript
 await ductape.model.create({
-  product: 'my-product',
   tag: 'main-model',
   name: 'Main Model',
   provider: 'anthropic',

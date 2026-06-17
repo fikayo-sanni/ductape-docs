@@ -1,0 +1,223 @@
+---
+title: Link components
+sidebar_position: 2
+---
+
+# Link components
+
+After you [connect a cloud account](./connections), link resources to product components by setting **`cloud`** and a resource identifier on the component env. Ductape does the rest when you save.
+
+## The pattern
+
+Every linked env follows the same shape:
+
+```ts
+{
+  slug: 'prd',
+  cloud: 'prod_aws',   // connection tag — not a connection ID
+  // + resource-specific fields (instance, bucketName, queueName, …)
+}
+```
+
+On save, Ductape:
+
+1. Lists resources in the linked account (if needed)
+2. **Imports** the resource if it already exists, or **provisions** a new one
+3. Stores credentials as workspace secrets (`$Secret{...}`)
+4. Sets `authMode: 'cloud_connection'` on the env
+
+At runtime, `connect()`, `upload()`, `produce()`, etc. resolve secrets and refresh cloud credentials automatically.
+
+## Examples by component
+
+### Database (PostgreSQL)
+
+```ts
+await ductape.databases.create({
+  product: 'my-product',
+  tag: 'app-db',
+  name: 'App Database',
+  type: 'postgresql',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_azure',
+    instance: 'my-pg-server',
+    region: 'eastus',
+  }],
+});
+```
+
+| Provider | Connection tag | Key fields |
+|----------|----------------|------------|
+| AWS RDS | `prod_aws` | `instance`, `region`, `securityGroups` (if customer-managed) |
+| GCP Cloud SQL | `prod_gcp` | `instance`, `region` |
+| Azure Flexible Server | `prod_azure` | `instance`, `region` |
+| MongoDB Atlas | `prod_atlas` | `instance` (cluster name) |
+
+**AWS RDS:** New instances are created on **save** (can take several minutes). Use the same `instance` across envs to share one RDS; use different names per env for separate instances. Importing existing RDS requires the master password — prefer provision for new databases. See [AWS networking](./aws-networking).
+
+### Storage
+
+```ts
+await ductape.storage.create({
+  product: 'my-product',
+  tag: 'app-storage',
+  name: 'App Storage',
+  envs: [{
+    slug: 'prd',
+    type: 'aws',
+    config: {
+      cloud: 'prod_aws',
+      bucketName: 'my-app-uploads',
+      region: 'us-east-1',
+    },
+  }],
+});
+```
+
+| Provider | Config fields |
+|----------|---------------|
+| AWS | `cloud`, `bucketName`, `region` |
+| GCP | `cloud`, `bucketName`, `location` |
+| Azure | `cloud`, `containerName`, `region` |
+
+### Message broker
+
+```ts
+await ductape.messaging.create({
+  product: 'my-product',
+  tag: 'order-events',
+  name: 'Order Events',
+  envs: [{
+    slug: 'prd',
+    type: 'aws_sqs',
+    config: {
+      cloud: 'prod_aws',
+      queueName: 'order-events',
+      region: 'us-east-1',
+    },
+  }],
+});
+```
+
+| Provider | Config fields |
+|----------|---------------|
+| AWS SQS | `cloud`, `queueName`, `region` |
+| GCP Pub/Sub | `cloud`, `topicName`, `region` |
+| Azure Service Bus | `cloud`, `queueName`, `region`, `namespaceName` |
+
+### Graph
+
+```ts
+await ductape.graph.create({
+  product: 'my-product',
+  tag: 'social-graph',
+  name: 'Social Graph',
+  type: 'neptune',
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_aws',
+    instance: 'my-neptune-cluster',
+    region: 'us-east-1',
+    securityGroups: ['prod-rds'],
+  }],
+});
+```
+
+Ductape resolves and stores `connection_url` as an encrypted secret. **AWS Neptune** requires [VPC networking](./aws-networking).
+
+### Vector
+
+```ts
+await ductape.vector.create({
+  product: 'my-product',
+  tag: 'product-vectors',
+  name: 'Embeddings',
+  type: 'opensearch',
+  dimensions: 1536,
+  envs: [{
+    slug: 'prd',
+    cloud: 'prod_aws',
+    instance: 'my-opensearch-domain',
+    region: 'us-east-1',
+  }],
+});
+```
+
+Ductape stores `endpoint` and `apiKey` from the link draft as encrypted secrets.
+
+## Import vs provision
+
+| Situation | What happens |
+|-----------|--------------|
+| Resource name exists in the account | **Import** — link existing resource |
+| Name omitted or resource not found | **Provision** — create with default template |
+| Component `create` / `update` via SDK | Materializer runs list → import or provision automatically |
+
+You rarely call import/provision directly unless building custom tooling.
+
+## Low-level APIs
+
+Use `ductape.cloud.resources` when you need explicit control:
+
+```ts
+// List what's in the account
+const { resources } = await ductape.cloud.resources.list({
+  cloud: 'prod_aws',
+  service: 'postgresql',
+  region: 'us-east-1',
+});
+
+// Import an existing server
+await ductape.cloud.resources.import({
+  cloud: 'prod_azure',
+  service: 'postgresql',
+  type: 'databases',
+  product: 'my-product',
+  component: 'app-db',
+  env: 'prd',
+  resource: 'my-pg-server',
+});
+
+// Provision a new topic
+await ductape.cloud.resources.provision({
+  cloud: 'gcp_prod',
+  service: 'pubsub',
+  type: 'messageBrokers',
+  product: 'my-product',
+  component: 'order-events',
+  env: 'prd',
+  topicName: 'order-events',
+  region: 'us-central1',
+});
+```
+
+All cloud APIs take **`cloud`** (the connection tag).
+
+## Service reference
+
+| Component `type` | AWS `service` | GCP `service` | Azure `service` | Atlas / Aura |
+|------------------|---------------|---------------|-----------------|--------------|
+| `storage` | `s3` | `gcs` | `blob` | — |
+| `messageBrokers` | `sqs` | `pubsub` | `servicebus` | — |
+| `databases` | `rds` | `cloudsql` | `postgresql` | `atlas-cluster` |
+| `graphs` | `neptune` | `spanner-graph` | `cosmos-gremlin` | `aura-instance` |
+| `vectors` | `opensearch` | `vertex-vector-search` | `azure-search` | — |
+
+## Workbench
+
+When editing a component env:
+
+1. Pick a cloud connection (shown by tag)
+2. Select or type a resource name
+3. Save — import/provision runs in the background
+
+The link panel lists all services for the selected provider.
+
+## See also
+
+- [Cloud overview](./overview) — the full three-step flow
+- [Cloud connections](./connections) — create, complete, validate
+- [AWS networking](./aws-networking) — RDS and Neptune security groups
+- [Provider guides](./providers/aws) — per-provider IAM and credentials
+- [CLI cloud commands](../cli/cloud)

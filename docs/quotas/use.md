@@ -11,8 +11,6 @@ Enforce usage limits and track consumption using `ductape.quota.run()`.
 ```ts
 // Check if user has remaining API calls
 const result = await ductape.quota.run({
-  env: 'prd',
-  product: 'my-app',
   quota_tag: 'api-requests',
   action: 'check'
 });
@@ -31,8 +29,6 @@ const result = await ductape.quota.run({
 
 ```ts
 const quota = await ductape.quota.run({
-  env: 'prd',
-  product: 'billing',
   quota_tag: 'monthly-exports',
   action: 'check'
 });
@@ -42,8 +38,6 @@ const quota = await ductape.quota.run({
 
 ```ts
 await ductape.quota.run({
-  env: 'prd',
-  product: 'billing',
   quota_tag: 'api-requests',
   action: 'increment',
   amount: 1
@@ -54,8 +48,6 @@ await ductape.quota.run({
 
 ```ts
 await ductape.quota.run({
-  env: 'prd',
-  product: 'storage',
   quota_tag: 'storage-bytes',
   action: 'increment',
   amount: 1024 * 1024  // 1MB
@@ -66,8 +58,6 @@ await ductape.quota.run({
 
 ```ts
 await ductape.quota.run({
-  env: 'prd',
-  product: 'billing',
   quota_tag: 'monthly-exports',
   action: 'reset'
 });
@@ -77,8 +67,6 @@ await ductape.quota.run({
 
 ```ts
 await ductape.quota.run({
-  env: 'prd',
-  product: 'api-gateway',
   quota_tag: 'user-api-calls',
   action: 'increment',
   amount: 1,

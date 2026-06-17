@@ -1,0 +1,14 @@
+---
+title: Graph runtime
+sidebar_position: 11
+---
+
+# Graph runtime
+
+```bash
+ductape graph connect -f '{"graph":"social"}'
+ductape graph query -f '{"cypher":"MATCH (n) RETURN n LIMIT 1"}'
+ductape graph findNodes -f '{"label":"Person"}'
+```
+
+Uses **graph-proxy** with persisted graph context.

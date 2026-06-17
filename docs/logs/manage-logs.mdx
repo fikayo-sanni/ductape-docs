@@ -297,7 +297,6 @@ Monitor specific environments:
 ```typescript
 const prodLogs = await ductape.logs.fetch({
   component: 'product',
-  env: 'prd',
   status: 'fail',
   groupBy: 'week',
 });

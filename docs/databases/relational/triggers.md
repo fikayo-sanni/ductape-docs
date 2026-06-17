@@ -26,8 +26,6 @@ const { databases } = ductape;
 
 // Connect to your database
 const db = await databases.connect({
-  env: 'prd',
-  product: 'my-product',
   database: 'my-db',
 });
 
@@ -464,8 +462,6 @@ import ductape from './ductape';
 const { databases } = ductape;
 
 const db = await databases.connect({
-  env: 'prd',
-  product: 'ecommerce',
   database: 'orders-db',
 });
 

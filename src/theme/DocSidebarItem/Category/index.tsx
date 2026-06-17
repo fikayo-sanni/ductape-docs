@@ -41,13 +41,30 @@ import {
   Smartphone,
   GraduationCap,
   Network,
+  LayoutDashboard,
+  SquareTerminal,
+  Cloud,
   type LucideIcon,
 } from 'lucide-react';
+import {NestJsIcon} from '@site/src/components/icons/NestJsIcon';
 
-// Map category labels to Lucide icons - matches workbench icons
-const iconMap: Record<string, LucideIcon> = {
+type SidebarIconProps = {
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+type SidebarIcon = LucideIcon | React.ComponentType<SidebarIconProps>;
+
+// Map category labels to Lucide icons - matches workbench / product surfaces
+const iconMap: Record<string, SidebarIcon> = {
   'Getting Started': Rocket,
-  'Tutorials': BookOpen,
+  'CLI': SquareTerminal,
+  'MCP Server': Bot,
+  'NestJS': NestJsIcon,
+  'Miscellaneous': FolderOpen,
+  'Workbench': LayoutDashboard,
+  'Tutorials': GraduationCap,
   'Apps': Grid3x3,
   'Products': Package,
   'Operators': Code2,
@@ -62,6 +79,7 @@ const iconMap: Record<string, LucideIcon> = {
   'Notifications': Bell,
   'Message Brokers': MessageSquare,
   'Storage': HardDrive,
+  'Cloud': Cloud,
   'Database Actions': Database,
   'Database Migrations': RefreshCw,
   'Quotas': Timer,
@@ -84,6 +102,8 @@ const iconMap: Record<string, LucideIcon> = {
   'Templates': Bell,
   'Healthchecks': Activity,
   'Secrets': Key,
+  'Backend': Cpu,
+  'Frontend': Monitor,
   'Backend SDK': Cpu,
   'Client SDKs': Monitor,
   'Frontend Usage': Smartphone,

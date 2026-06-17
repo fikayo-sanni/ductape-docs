@@ -34,8 +34,6 @@ await ductape.product.storage.create({
 
 ```typescript
 const uploadResult = await ductape.processor.storage.save({
-  env: "dev",
-  product: "payments_service",
   storage: "main_storage",
   input: {
     fileName: "example.txt",
@@ -50,8 +48,6 @@ console.log(uploadResult);
 
 ```typescript
 const file = await ductape.processor.storage.fetch({
-  env: "dev",
-  product: "payments_service",
   storage: "main_storage",
   input: {
     fileName: "example.txt"
@@ -64,8 +60,6 @@ console.log(file);
 
 ```typescript
 await ductape.processor.storage.delete({
-  env: "dev",
-  product: "payments_service",
   storage: "main_storage",
   input: {
     fileName: "example.txt"

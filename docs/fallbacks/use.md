@@ -11,8 +11,6 @@ Handle failures gracefully with backup logic using `ductape.fallback.run()`.
 ```ts
 // Trigger a fallback when payment fails
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'my-app',
   fallback_tag: 'payment-failure',
   action: 'trigger',
   input: {
@@ -35,8 +33,6 @@ await ductape.fallback.run({
 
 ```ts
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'trigger',
   input: {
@@ -51,8 +47,6 @@ await ductape.fallback.run({
 
 ```ts
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'notifications',
   fallback_tag: 'sms-failure',
   action: 'trigger',
   input: {
@@ -67,8 +61,6 @@ await ductape.fallback.run({
 
 ```ts
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'update',
   input: {
@@ -82,8 +74,6 @@ await ductape.fallback.run({
 
 ```ts
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'payments',
   fallback_tag: 'payment-failure',
   action: 'reset'
 });
@@ -93,8 +83,6 @@ await ductape.fallback.run({
 
 ```ts
 await ductape.fallback.run({
-  env: 'prd',
-  product: 'checkout',
   fallback_tag: 'checkout-failure',
   action: 'trigger',
   input: {

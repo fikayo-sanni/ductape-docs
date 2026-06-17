@@ -132,8 +132,6 @@ Execute fallback logic at runtime using `ductape.fallback.run()`:
 
 ```typescript
 const result = await ductape.fallback.run({
-  env: 'prd',
-  product: 'my-product',
   tag: 'payment-fallback',
   input: {
     amount: 2500,
@@ -364,8 +362,6 @@ await ductape.fallback.create({
 
 // Send SMS with automatic fallback
 const result = await ductape.fallback.run({
-  env: 'prd',
-  product: 'messaging-app',
   tag: 'sms-fallback',
   input: {
     phone: '+1234567890',

@@ -109,6 +109,8 @@ config();
 
 const ductape = new Ductape({
     accessKey: String(process.env.DUCTAPE_ACCESS_KEY),
+    product: String(process.env.PRODUCT_TAG),
+    env: process.env.DUCTAPE_ENV ?? 'dev',
     redis_url: 'redis://localhost:6379', // optional
 });
 
@@ -227,9 +229,7 @@ import ductape from "./ductape"
 
 export const fetchBanksPaystack = async () => {
 
-    const Banks = await ductape.actions.run({
-        env: "snd",
-        product: process.env.PRODUCT_TAG,
+    const Banks = await ductape.api.run({
         app: process.env.PAYSTACK_APP_TAG,
         input: {
 

@@ -1,0 +1,57 @@
+---
+title: MongoDB Atlas
+sidebar_position: 4
+---
+
+# MongoDB Atlas cloud connection
+
+Atlas connections use **project API keys** (not IAM). Ductape manages project network access and links Atlas clusters.
+
+## Setup checklist
+
+1. Atlas → **Project Settings** → copy **Project ID** (24-character hex).
+2. **Security** → **Project Identity & Access** → **Applications** → **API Keys**.
+3. Create API key with **Project Owner** under Project permissions.
+4. Copy public key and private key (private key shown once).
+5. Workbench → **Cloud** → Add Atlas connection with tag e.g. `prod_atlas`.
+6. After activation, under **Private access**, add Ductape proxy IPs to Atlas **Network Access** (or sync from Workbench).
+
+## SDK lifecycle
+
+```ts
+await ductape.cloud.connections.create({
+  provider: 'mongodb_atlas',
+  name: 'prod_atlas',
+  scopes: ['database'],
+});
+
+await ductape.cloud.connections.complete('prod_atlas', {
+  project_id: '5c843ba379358e5b3dc2dec6',
+  atlas_public_key: 'awqxqtif',
+  atlas_private_key: 'your-private-key',
+});
+
+await ductape.cloud.connections.validate('prod_atlas');
+```
+
+## Linked services
+
+| `service` | Component type |
+|-----------|----------------|
+| `atlas-cluster` | Databases (MongoDB) |
+
+Import an existing cluster:
+
+```ts
+const result = await ductape.cloud.resources.import({
+  cloud: 'prod_atlas',
+  service: 'atlas-cluster',
+  type: 'databases',
+  product: 'my-product',
+  component: 'db-mongo',
+  env: 'prd',
+  resource: 'cluster-name',
+});
+```
+
+Ductape stores the connection string as a workspace secret on the component env.

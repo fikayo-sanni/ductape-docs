@@ -1,0 +1,264 @@
+---
+title: Cloud
+sidebar_position: 9
+---
+
+# Cloud
+
+Cloud connections are referenced by **tag** (for example `prod_aws`), not internal IDs.
+
+```bash
+ductape cloud connections list
+ductape cloud connections create -f connection.json
+ductape cloud connections get <cloud-tag>
+ductape cloud connections update <cloud-tag> -f update.json
+ductape cloud connections complete <cloud-tag> -f complete.json
+ductape cloud connections validate <cloud-tag>
+ductape cloud connections delete <cloud-tag>
+ductape cloud resources list -f query.json
+```
+
+Connections are referenced by **tag** (for example `prod_aws`), not internal IDs.
+
+## Connection commands
+
+### Create
+
+`connection.json`:
+
+```json
+{
+  "provider": "aws",
+  "name": "Production AWS",
+  "scopes": ["storage", "broker", "database", "graph", "vector"]
+}
+```
+
+```bash
+ductape cloud connections create -f connection.json
+```
+
+### Complete setup (credentials)
+
+**AWS** — `complete.json`:
+
+```json
+{
+  "role_arn": "arn:aws:iam::123456789012:role/DuctapeAccess"
+}
+```
+
+**Azure** — `complete.json`:
+
+```json
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000000",
+  "subscription_id": "00000000-0000-0000-0000-000000000000",
+  "client_id": "00000000-0000-0000-0000-000000000000",
+  "client_secret": "your-client-secret",
+  "default_location": "eastus"
+}
+```
+
+**GCP** — `complete.json`:
+
+```json
+{
+  "project_id": "my-gcp-project",
+  "service_account_json": { "type": "service_account", "project_id": "..." }
+}
+```
+
+**MongoDB Atlas** — `complete.json`:
+
+```json
+{
+  "project_id": "5c843ba379358e5b3dc2dec6",
+  "atlas_public_key": "awqxqtif",
+  "atlas_private_key": "your-private-key"
+}
+```
+
+**Neo4j Aura** — `complete.json`:
+
+```json
+{
+  "aura_client_id": "your-client-id",
+  "aura_client_secret": "your-client-secret"
+}
+```
+
+```bash
+ductape cloud connections complete prod_aws -f complete.json
+ductape cloud connections complete prod_gcp -f complete-gcp.json
+ductape cloud connections complete prod_atlas -f complete-atlas.json
+ductape cloud connections validate prod_aws
+```
+
+See [Cloud connections](../cloud/connections) and [provider guides](../cloud/providers/aws) for full setup checklists.
+
+Omit `client_secret` (or other secret fields) on a later `complete` call to keep the stored value; include them only when rotating credentials.
+
+### Update display name or description
+
+`update.json`:
+
+```json
+{
+  "display_name": "Production AWS (US-East)",
+  "description": "Primary US-East production account"
+}
+```
+
+```bash
+ductape cloud connections update prod_aws -f update.json
+```
+
+The connection tag cannot be changed after creation.
+
+### Delete
+
+```bash
+ductape cloud connections delete prod_aws
+```
+
+Removes the connection from the workspace (soft delete). Linked product components may fail until credentials are configured again.
+
+### AWS networking (RDS / Neptune)
+
+Configure VPC access from the **Workbench** (**Security groups** tab) or any SDK. Two modes:
+
+- **Managed allowlist** — `updateManagedNetworking` saves CIDRs; Ductape creates/syncs a security group (requires extra EC2 IAM on your `DuctapeAccess` role).
+- **Customer-managed groups** — `updateSecurityGroups` registers pre-configured groups; you create inbound rules in EC2.
+
+Resolve API/proxy hostname for hosted allowlisting:
+
+```ts
+const { addresses } = await ductape.cloud.connections.resolveNetworkingHost('api.ductape.app');
+```
+
+Managed allowlist example:
+
+```ts
+await ductape.cloud.connections.updateManagedNetworking('prod_aws', {
+  mode: 'managed',
+  include_ductape_proxy: true,
+  ductape_proxy_host: 'api.ductape.app',
+  allowed_sources: [{ cidr: '203.0.113.10/32', label: 'App NAT' }],
+  region: 'us-east-1',
+});
+```
+
+Customer-managed registry example:
+
+```ts
+await ductape.cloud.connections.updateSecurityGroups('prod_aws', {
+  security_groups: [{
+    tag: 'prod-rds',
+    groupId: 'sg-abc123',
+    resourceTypes: ['rds', 'neptune'],
+  }],
+});
+```
+
+### VPC connector (private RDS / Neptune)
+
+```ts
+await ductape.cloud.connections.updateVpcConnector('prod_aws', {
+  vpc_id: 'vpc-abc123',
+  subnet_ids: ['subnet-aaa', 'subnet-bbb'],
+  region: 'us-east-1',
+});
+
+await ductape.cloud.connections.getVpcConnectorStatus('prod_aws');
+```
+
+Deploy the outbound agent from `connectors/aws-vpc-agent` using the enrollment token from Workbench.
+
+When `networking.mode` is `vpc_connector`, hosted proxy and Workbench database tests route PostgreSQL (and Neptune Gremlin) through the connector relay WebSocket at `/integrations/v1/cloud/vpc-connector/relay/ws` — no Ductape IP allowlisting required.
+
+See [AWS networking](../cloud/aws-networking) for IAM policy, ports, and RDS vs Neptune guidance.
+
+## Supported `service` values
+
+| Provider | Storage | Broker | Database | Graph | Vector |
+|----------|---------|--------|----------|-------|--------|
+| **AWS** | `s3` | `sqs` | `rds` | `neptune` | `opensearch` |
+| **GCP** | `gcs` | `pubsub` | `cloudsql` | `spanner-graph` | `vertex-vector-search` |
+| **Azure** | `blob` | `servicebus` | `postgresql` | `cosmos-gremlin` | `azure-search` |
+
+## List resources
+
+**AWS S3:**
+
+```json
+{
+  "cloud": "prod_aws",
+  "service": "s3",
+  "region": "us-east-1"
+}
+```
+
+**GCP Pub/Sub:**
+
+```json
+{
+  "cloud": "gcp_prod",
+  "service": "pubsub",
+  "region": "us-central1"
+}
+```
+
+**GCP Cloud SQL:**
+
+```json
+{
+  "cloud": "gcp_prod",
+  "service": "cloudsql",
+  "region": "us-central1"
+}
+```
+
+**Azure Service Bus:**
+
+```json
+{
+  "cloud": "prod_azure",
+  "service": "servicebus",
+  "region": "eastus"
+}
+```
+
+**Azure PostgreSQL:**
+
+```json
+{
+  "cloud": "prod_azure",
+  "service": "postgresql",
+  "region": "eastus"
+}
+```
+
+**Azure Cosmos DB (Gremlin):**
+
+```json
+{
+  "cloud": "prod_azure",
+  "service": "cosmos-gremlin",
+  "region": "eastus"
+}
+```
+
+**GCP Vertex AI Vector Search:**
+
+```json
+{
+  "cloud": "gcp_prod",
+  "service": "vertex-vector-search",
+  "region": "us-central1"
+}
+```
+
+Requires a linked project and login.
+
+See [Link components](../cloud/cloud-linked-components) and [Cloud overview](../cloud/overview) for provisioning and linking from the SDK (TypeScript, Go, Java, .NET).

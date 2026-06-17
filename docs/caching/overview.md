@@ -61,9 +61,7 @@ const cache = await ductape.cache.fetch('user-data');
 Add the `cache` parameter when calling operations:
 
 ```ts
-await ductape.actions.run({
-  env: 'prd',
-  product: 'my-app',
+await ductape.api.run({
   app: 'api-service',
   event: 'get_user',
   input: { body: { userId: '123' } },

@@ -1,0 +1,125 @@
+---
+sidebar_position: 5
+title: Core decorators
+---
+
+# Core decorators
+
+Core decorators cover app actions, relational databases, file storage, and webhooks.
+
+## `@Api` — `ductape.api`
+
+| Decorator | SDK call |
+|-----------|----------|
+| `@Api({ app, action, product?, env? })` | `api.run` |
+| `@ApiRun(...)` | alias for `@Api` |
+| `@ApiDispatch({ app, action, schedule?, … })` | `api.dispatch` |
+| `@ApiConfig({ product, app, env, credentials })` | `api.config` (once per app/env) |
+
+Apply `@ApiConfig` on a class (typically a service) before calling `@Api` for that app. Credentials can reference secrets: `'headers:Authorization': '$Secret{STRIPE_API_KEY}'`.
+
+The **first method argument** (or `@ApiInputFromRequest()` on controllers) becomes the action `input`. The interceptor **replaces** the method return value with the SDK result.
+
+```typescript
+@ApiConfig({
+  product: 'shop-api',
+  app: 'stripe',
+  env: 'prd',
+  credentials: { 'headers:Authorization': '$Secret{STRIPE_API_KEY}' },
+})
+@Injectable()
+export class PaymentsService {
+  @Api({ app: 'stripe', action: 'create-charge' })
+  charge(input: { amount: number; currency: string }) {
+    return input;
+  }
+
+  @ApiDispatch({ app: 'stripe', action: 'sync-customers', schedule: '0 2 * * *' })
+  scheduleSync(input: Record<string, unknown>) {
+    return input;
+  }
+}
+```
+
+See [Run actions](/actions/run-actions) for action concepts.
+
+## `@Database` — `ductape.databases`
+
+| Usage | Description |
+|-------|-------------|
+| `@Database('users-db')` | Inject `DatabaseHandle` |
+| `handle.query({ table, where })` | Connected query |
+| `handle.insert / update / delete` | CRUD |
+| `handle.raw()` | Full SDK namespace (schema, migrations) |
+
+Requires `DuctapeDatabaseModule.register({ tags: ['users-db'] })` and resolved **product** + **env**.
+
+```typescript
+@Injectable()
+export class UsersService {
+  constructor(@Database('users-db') private readonly db: DatabaseHandle) {}
+
+  findActive() {
+    return this.db.query({
+      table: 'users',
+      where: { status: 'active' },
+      limit: 50,
+    });
+  }
+}
+```
+
+See [Relational databases](/databases/relational/getting-started).
+
+## `@Storage` — `ductape.storage`
+
+| Usage | Description |
+|-------|-------------|
+| `@Storage('uploads')` | Inject `StorageHandle` |
+| `handle.upload({ fileName, buffer, mimeType })` | Upload |
+| `handle.download / list / delete` | File operations |
+| `handle.raw()` | Full SDK namespace |
+
+Requires `DuctapeStorageModule.register({ tags: ['uploads'] })`.
+
+See [Storage](/storage/overview).
+
+## `@Webhook` — registration and consumption
+
+Two surfaces: **product integrator** (integration mode) and **app builder** (workspace mode — see [Workspace builders](./workspace-builders)).
+
+### Registration — `product.apps.webhooks.*`
+
+| Decorator | SDK call |
+|-----------|----------|
+| `@Webhook.Register({ webhook, url, method, env?, accessTag? })` | `generateLink` |
+| `@Webhook.List({ product?, accessTag? })` | `list` |
+| `@Webhook.Consumer({ webhook, event? })` | Metadata only — marks inbound handler |
+
+`@Webhook.Register` methods return the **Ductape proxy URL** (interceptor replaces the return value). Use `@AccessTag` when the webhook belongs to a specific product-app connection.
+
+```typescript
+@Controller('hooks')
+@AccessTag('shop-admin')
+export class WebhooksController {
+  @Post('orders')
+  @Webhook.Consumer({ webhook: 'order_events', event: 'order_created' })
+  handle(@WebhookBodyFromRequest() body: unknown) {
+    return { ok: true, body };
+  }
+}
+```
+
+See [Product webhooks](/products/webhooks).
+
+## Parameter helpers
+
+| Decorator | Purpose |
+|-----------|---------|
+| `@ApiInputFromRequest()` | Map request body/query to `@Api` input in controllers |
+| `@WebhookBodyFromRequest()` | Inject inbound webhook payload |
+
+## Related
+
+- [Runtime decorators](./decorators-runtime) — messaging, workflows, agents, sessions
+- [Context & handles](./context-and-handles) — `@Product`, `@Env`, `@AccessTag`

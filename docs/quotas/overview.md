@@ -104,8 +104,6 @@ Execute quota checks at runtime using `ductape.quota.run()`:
 
 ```typescript
 const result = await ductape.quota.run({
-  env: 'prd',
-  product: 'my-product',
   tag: 'api-calls',
   input: {
     userId: 'user123',
@@ -310,8 +308,6 @@ await ductape.quota.create({
 
 // Run quota check
 const check = await ductape.quota.run({
-  env: 'prd',
-  product: 'api-platform',
   tag: 'monthly-api-quota',
   input: {
     userId: 'user123',

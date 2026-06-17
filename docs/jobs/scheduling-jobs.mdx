@@ -24,9 +24,7 @@ Ductape's job scheduling system allows you to:
 
 ```ts
 // Schedule an action to run in 1 hour
-const job = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'my-app',
+const job = await ductape.api.dispatch({
   app: 'email-service',
   event: 'send_welcome_email',
   input: {
@@ -49,7 +47,7 @@ Each namespace has its own `dispatch()` method for scheduling operations as jobs
 
 | Namespace | Method | Description |
 |-----------|--------|-------------|
-| `ductape.actions` | `dispatch()` | Schedule app actions |
+| `ductape.api` | `dispatch()` | Schedule app actions |
 | `ductape.workflows` | `dispatch()` | Schedule workflow execution |
 | `ductape.notifications` | `dispatch()` | Schedule notifications |
 | `ductape.storage` | `dispatch()` | Schedule storage operations |
@@ -89,9 +87,7 @@ interface IDispatchSchedule {
 
 ```ts
 // Omit schedule or use start_at: Date.now()
-const job = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'billing',
+const job = await ductape.api.dispatch({
   app: 'payment-service',
   event: 'process_payment',
   input: {
@@ -106,9 +102,7 @@ const job = await ductape.actions.dispatch({
 
 ```ts
 // Run at a specific timestamp
-const job = await ductape.actions.dispatch({
-  env: 'prd',
-  product: 'marketing',
+const job = await ductape.api.dispatch({
   app: 'campaign-service',
   event: 'send_campaign',
   input: {
@@ -127,8 +121,6 @@ const job = await ductape.actions.dispatch({
 ```ts
 // Run every day at 9 AM
 const job = await ductape.workflows.dispatch({
-  env: 'prd',
-  product: 'reports',
   workflow: 'generate_daily_report',
   input: {},
   retries: 2,
@@ -147,8 +139,6 @@ console.log('Next run:', job.next_run_at);
 ```ts
 // Run every 24 hours
 const job = await ductape.database.dispatch({
-  env: 'prd',
-  product: 'sync',
   database: 'inventory-db',
   operation: 'insert',
   input: {

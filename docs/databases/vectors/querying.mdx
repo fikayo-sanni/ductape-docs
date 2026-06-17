@@ -17,8 +17,6 @@ Find vectors similar to a query vector:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,  // Array of numbers
   topK: 10,             // Number of results to return
@@ -45,8 +43,6 @@ Retrieve metadata with results:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 5,
@@ -67,8 +63,6 @@ results.matches.forEach((match) => {
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -83,8 +77,6 @@ const results = await ductape.vector.query({
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -100,8 +92,6 @@ const results = await ductape.vector.query({
 ```typescript
 // Price less than 100
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -112,8 +102,6 @@ const results = await ductape.vector.query({
 
 // Rating greater than or equal to 4
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -140,8 +128,6 @@ const results = await ductape.vector.query({
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -155,8 +141,6 @@ const results = await ductape.vector.query({
 });
 
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -175,8 +159,6 @@ Only return results above a similarity threshold:
 
 ```typescript
 const results = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -192,8 +174,6 @@ Query within a specific namespace:
 ```typescript
 // Query in 'products' namespace
 const productResults = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -202,8 +182,6 @@ const productResults = await ductape.vector.query({
 
 // Query in 'articles' namespace
 const articleResults = await ductape.vector.query({
-  product: 'my-product',
-  env: 'dev',
   tag: 'my-vectors',
   vector: queryVector,
   topK: 10,
@@ -238,8 +216,6 @@ async function semanticSearch(query: string, limit: number = 10) {
   const queryVector = await getEmbedding(query);
 
   const results = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vector: queryVector,
     topK: limit,
@@ -262,8 +238,6 @@ const articles = await semanticSearch('machine learning tutorials');
 async function findSimilar(itemId: string, limit: number = 5) {
   // Fetch the item's vector
   const item = await ductape.vector.fetchVectors({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     ids: [itemId],
   });
@@ -271,8 +245,6 @@ async function findSimilar(itemId: string, limit: number = 5) {
 
   // Query for similar items, excluding the original
   const results = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vector,
     topK: limit + 1,  // +1 to account for the item itself
@@ -301,8 +273,6 @@ async function hybridSearch(
   const queryVector = await getEmbedding(query);
 
   const results = await ductape.vector.query({
-    product: 'my-product',
-    env: 'dev',
     tag: 'my-vectors',
     vector: queryVector,
     topK: 20,

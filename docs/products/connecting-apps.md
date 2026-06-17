@@ -183,12 +183,10 @@ setupProductApps().catch(console.error);
 Once connected, use apps in your workflows:
 
 ```typescript
-// Run an action from a connected app
-await ductape.actions.run({
-  env: 'prd',
-  product: 'ecommerce-platform',
+// Run an action from a connected app (product/env from Ductape constructor)
+await ductape.api.run({
   app: 'stripe-payments',
-  event: 'create-charge',
+  action: 'create-charge',
   input: {
     body: {
       amount: 2000,

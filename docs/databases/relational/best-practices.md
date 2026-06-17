@@ -15,15 +15,11 @@ Always configure separate database credentials for each environment:
 ```ts
 // Development - local database
 await ductape.database.connect({
-  env: 'dev',
-  product: 'my-app',
   database: 'main-db',
 });
 
 // Production - production credentials
 await ductape.database.connect({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 ```
@@ -37,8 +33,6 @@ Establish the connection once and reuse it for multiple operations:
 ```ts
 // Good: Connect once at startup
 await ductape.database.connect({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 
@@ -94,8 +88,6 @@ Create indexes for frequently queried columns:
 ```ts
 // Create index for email lookups
 await ductape.database.createIndex({
-  env: 'dev',
-  product: 'my-app',
   database: 'main-db',
   table: 'users',
   index: {
@@ -108,8 +100,6 @@ await ductape.database.createIndex({
 
 // Create composite index for common queries
 await ductape.database.createIndex({
-  env: 'dev',
-  product: 'my-app',
   database: 'main-db',
   table: 'orders',
   index: {
@@ -177,8 +167,6 @@ Always wrap related operations in transactions:
 ```ts
 // Good: Atomic operations
 await ductape.database.transaction({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 }, async (transaction) => {
   const order = await ductape.database.insert({

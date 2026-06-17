@@ -17,7 +17,6 @@ A complete order processing workflow with payment, inventory, and notifications.
 
 ```typescript
 await ductape.workflows.define({
-  product: 'ecommerce',
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   description: 'Process customer orders from payment to delivery',
@@ -227,7 +226,6 @@ Multi-step user registration with email verification:
 
 ```typescript
 await ductape.workflows.define({
-  product: 'my-app',
   tag: 'user-onboarding',
   name: 'User Onboarding',
 
@@ -354,7 +352,6 @@ Process uploaded documents with OCR and classification:
 
 ```typescript
 await ductape.workflows.define({
-  product: 'doc-processor',
   tag: 'document-pipeline',
   name: 'Document Processing Pipeline',
 
@@ -511,7 +508,6 @@ Recurring subscription billing with retry logic:
 
 ```typescript
 await ductape.workflows.define({
-  product: 'billing',
   tag: 'subscription-billing',
   name: 'Subscription Billing',
 
@@ -743,7 +739,6 @@ Multi-level approval process with escalation:
 
 ```typescript
 await ductape.workflows.define({
-  product: 'hr-system',
   tag: 'expense-approval',
   name: 'Expense Approval',
 
@@ -1010,7 +1005,6 @@ Synchronize data between systems with conflict resolution:
 
 ```typescript
 await ductape.workflows.define({
-  product: 'integration',
   tag: 'data-sync',
   name: 'Data Synchronization',
 

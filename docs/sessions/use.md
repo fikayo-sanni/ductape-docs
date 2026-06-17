@@ -13,12 +13,9 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd', // optional
 });
 
 const result = await ductape.sessions.start({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   data: {
     userId: 'user_123',
@@ -48,8 +45,6 @@ console.log(result.expiresAt);    // Expiration date
 
 ```ts
 const session = await ductape.sessions.start({
-  product: 'ecommerce',
-  env: 'prd',
   tag: 'checkout-session',
   data: {
     userId: 'user_456',
@@ -64,8 +59,6 @@ const session = await ductape.sessions.start({
 
 ```ts
 const session = await ductape.sessions.start({
-  product: 'dashboard',
-  env: 'prd',
   tag: 'user-session',
   data: {
     userId: 'user_789',
@@ -84,16 +77,12 @@ const session = await ductape.sessions.start({
 ```ts
 // Checkout flow session
 const checkoutSession = await ductape.sessions.start({
-  product: 'marketplace',
-  env: 'prd',
   tag: 'checkout-flow',
   data: { userId: 'user_123', details: { cartId: 'cart_456' } }
 });
 
 // Support chat session
 const supportSession = await ductape.sessions.start({
-  product: 'marketplace',
-  env: 'prd',
   tag: 'support-chat',
   data: { userId: 'user_123', details: { ticketId: 'ticket_789' } }
 });

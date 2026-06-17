@@ -30,7 +30,6 @@ Here's a simple order fulfillment workflow using the code-first API:
 
 ```typescript
 const orderWorkflow = await ductape.workflows.define({
-  product: 'my-product',
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   handler: async (ctx) => {
@@ -411,8 +410,6 @@ Send a signal from outside:
 
 ```typescript
 await ductape.workflows.signal({
-  product: 'my-product',
-  env: 'prd',
   workflow_id: 'wf-123',
   signal: 'order-approved',
   payload: { approvedBy: 'manager@company.com' },
@@ -446,8 +443,6 @@ if (fraudCheck.risk > 0.8) {
 
 ```typescript
 const result = await ductape.workflows.execute({
-  product: 'my-product',
-  env: 'prd',
   tag: 'order-fulfillment',
   input: {
     orderId: 'ORD-12345',

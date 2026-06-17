@@ -17,13 +17,10 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd',
 });
 
 const result = await ductape.sessions.fetchUsers({
-  product: 'my-product',
   session: 'user-session',
-  env: 'prd',   // Optional: filter by environment
   page: 1,
   limit: 20,
 });
@@ -42,9 +39,9 @@ for (const user of result.users) {
 
 | Field     | Type     | Required | Description                                 |
 |-----------|----------|----------|---------------------------------------------|
-| `product` | string   | Yes      | The tag of your product.                    |
+| `product` | string   | No*      | Product tag (inherits from constructor).    |
 | `session` | string   | Yes      | The tag of the session to query users from. |
-| `env`     | string   | No       | Filter by environment (e.g., 'production'). |
+| `env`     | string   | No*      | Environment slug (inherits from constructor). |
 | `page`    | number   | No       | The page number for pagination (default: 1).|
 | `limit`   | number   | No       | The number of users per page (default: 20). |
 
@@ -82,10 +79,8 @@ Get detailed information about a specific session user, including their session 
 
 ```ts
 const userDetails = await ductape.sessions.fetchUserDetails({
-  product: 'my-product',
   session: 'user-session',
   identifier: 'user@example.com',
-  env: 'prd',  // Optional
 });
 
 console.log('User ID:', userDetails.ductape_user_id);
@@ -136,26 +131,20 @@ All of these methods are on `ductape.sessions` after initializing Ductape with y
 ```ts
 // Fetch paginated users
 const users = await ductape.sessions.fetchUsers({
-  product: 'my-product',
   session: 'user-session',
-  env: 'prd',
   page: 1,
   limit: 20,
 });
 
 // Fetch specific user details
 const userDetails = await ductape.sessions.fetchUserDetails({
-  product: 'my-product',
   session: 'user-session',
   identifier: 'user@example.com',
-  env: 'prd',
 });
 
 // Fetch dashboard metrics
 const dashboard = await ductape.sessions.fetchDashboard({
-  product: 'my-product',
   session: 'user-session',
-  env: 'prd',
 });
 ```
 

@@ -13,7 +13,6 @@ Every notification send is logged server-side so you can query send history and 
 ```ts
 const { items, total, page, limit, hasMore } = await ductape.notifications.getMessages({
   product_tag: 'my-app',
-  env: 'prd',
   start_date: new Date(Date.now() - 7 * 864e5).toISOString(), // last 7 days
   end_date: new Date().toISOString(),
   status: 'failed',

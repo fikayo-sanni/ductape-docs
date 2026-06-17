@@ -13,8 +13,6 @@ Establish a connection once and all subsequent operations inherit the context:
 ```ts
 // Connect once
 await ductape.database.connect({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
 });
 
@@ -28,8 +26,6 @@ Or specify connection parameters explicitly on each call:
 
 ```ts
 await ductape.database.query({
-  env: 'prd',
-  product: 'my-app',
   database: 'main-db',
   table: 'users',
 });
@@ -71,7 +67,7 @@ The database service provides these methods:
 import { SchemaHelpers } from '@ductape/sdk';
 
 await ductape.database.createTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   {
     name: 'products',
     columns: [
@@ -118,7 +114,7 @@ import { ColumnAlterationType, ColumnType } from '@ductape/sdk';
 
 // Add column
 await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'products',
   [
     {
@@ -130,7 +126,7 @@ await ductape.database.alterTable(
 
 // Drop column
 await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'products',
   [
     { type: ColumnAlterationType.DROP, columnName: 'old_field' },
@@ -139,7 +135,7 @@ await ductape.database.alterTable(
 
 // Rename column
 await ductape.database.alterTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'products',
   [
     {
@@ -155,7 +151,7 @@ await ductape.database.alterTable(
 
 ```ts
 await ductape.database.dropTable(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'old_table'
 );
 ```
@@ -165,14 +161,12 @@ await ductape.database.dropTable(
 ```ts
 // List all tables
 const tables = await ductape.database.listTables({
-  env: 'dev',
-  product: 'my-app',
   database: 'main-db',
 });
 
 // Get table schema
 const schema = await ductape.database.getTableSchema(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'users'
 );
 
@@ -182,7 +176,7 @@ console.log('Indexes:', schema.indexes);
 
 // Check if table exists
 const exists = await ductape.database.tableExists(
-  { env: 'dev', product: 'my-app', database: 'main-db' },
+  { database: 'main-db' },
   'users'
 );
 ```

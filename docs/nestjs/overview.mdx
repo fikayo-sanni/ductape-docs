@@ -1,0 +1,93 @@
+---
+sidebar_position: 1
+sidebar_label: Overview
+title: NestJS integration overview
+---
+
+# @ductape/nestjs
+
+:::info TypeScript only
+`@ductape/nestjs` is a TypeScript/NestJS package. All code samples in this section are **TypeScript** — there are no Java, Go, or .NET tabs.
+:::
+
+The **`@ductape/nestjs`** package wraps [`@ductape/sdk`](/sdk) with NestJS modules, injectable handles, and decorators so you can call Ductape from controllers and services without manual SDK wiring.
+
+## What it provides
+
+| Capability | NestJS surface |
+|------------|----------------|
+| App actions | `@Api`, `@ApiDispatch`, `@ApiConfig` |
+| Databases & storage | `@Database`, `@Storage` + feature modules |
+| Webhooks | `@Webhook.Register`, `@Webhook.Consumer`, `@Webhook.List` |
+| Messaging, workflows, jobs | `@Messaging.*`, `@Workflow.*`, `@Job.Run`, … |
+| Agents, warehouse, sessions | `@Agent.*`, `@Warehouse.Query`, `@Session.*`, … |
+| Resilience | `@Health.*`, `@Quota.*`, `@Fallback.*` |
+| Workspace builders | `@WebhookBuilder.Define`, `@ModelBuilder.Define`, `@AgentBuilder.Define` |
+| Context | `@Product`, `@Env`, `@AccessTag`, `@InjectContext` |
+
+## Install
+
+```bash
+npm install @ductape/nestjs @ductape/sdk @nestjs/common @nestjs/core reflect-metadata rxjs
+```
+
+Peer dependency: **`@ductape/sdk` ≥ 0.1.12**, **NestJS 10 or 11**.
+
+:::info Package status
+`@ductape/nestjs` is at **0.1.0** in the monorepo. Install from the published package when available, or link locally from `sdk/nestjs` during development.
+:::
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph app ["Your NestJS app"]
+    Dec["Api, Database, Storage, Webhook"]
+    Ctx["Product, Env, AccessTag"]
+    Handles["Injectable database and storage handles"]
+  end
+
+  subgraph nestjs_pkg ["@ductape/nestjs"]
+    CtxInt[DuctapeContextInterceptor]
+    MethodInt[DuctapeMethodInterceptor]
+    BuilderInt[DuctapeBuilderInterceptor]
+    Svc[DuctapeContextService]
+  end
+
+  SDK["@ductape/sdk"]
+  Platform["Ductape platform APIs"]
+
+  Dec --> MethodInt
+  Ctx --> CtxInt
+  Handles --> Svc
+  CtxInt --> Svc
+  MethodInt --> Svc
+  BuilderInt --> Svc
+  Svc --> SDK
+  SDK --> Platform
+```
+
+- **Decorators with runtime behavior** (`@Api`, `@Webhook.Register`, messaging, agents, sessions, and related decorators) are executed by **`DuctapeMethodInterceptor`** (or **`DuctapeBuilderInterceptor`** in workspace mode).
+- **Injectable handles** (`@Database('orders-db')`) resolve through **`DuctapeContextService`**, which respects `@Product` / `@Env` on the current HTTP request when set.
+- Use **`ctx.sdk`** from `@InjectContext()` for SDK namespaces not yet wrapped (logs, cloud, …).
+
+## Auth modes
+
+| Mode | Module helper | SDK auth | Typical use |
+|------|---------------|----------|-------------|
+| **Integration** | `DuctapeModule.forIntegration()` | `accessKey` + default `product` / `env` | Customer apps, product integrators |
+| **Workspace** | `DuctapeModule.forWorkspace()` | `accessKey` (workspace user context resolved by the SDK) | Admin tools, app/model/agent builders |
+
+Integration mode covers `@Api`, `@Database`, `@Storage`, and `@Webhook.Register`.
+
+Workspace mode is required for builder APIs (`ductape.webhooks.create`, `ductape.app.*`, model/agent admin).
+
+## Next steps
+
+- [Getting started](./getting-started) — wire `DuctapeModule` and your first `@Api` handler
+- [Module setup](./module-setup) — `forIntegration`, `forWorkspace`, feature modules
+- [Context & handles](./context-and-handles) — `@Product`, `@Env`, `@InjectContext`, multi-tenant patterns
+- [Core decorators](./decorators-core) — `@Api`, `@Database`, `@Storage`, `@Webhook`
+- [Runtime decorators](./decorators-runtime) — messaging, workflows, agents, sessions, resilience
+- [Workspace builders](./workspace-builders) — declarative webhook/model/agent definitions
+- [Interceptors](./interceptors) — global vs per-controller registration

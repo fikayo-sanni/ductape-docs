@@ -10,8 +10,6 @@ Validate and decrypt session tokens to retrieve user data using `ductape.session
 
 ```ts
 const result = await ductape.sessions.verify({
-  product: 'my-product',
-  env: 'prd',
   tag: 'user-session',
   token: 'user-session:eyJhbGci...', // or the full token from sessions.start()
 });
@@ -33,8 +31,6 @@ Pass the session token (and product, env, tag) to verify and decode the JWT. The
 
 ```ts
 const result = await ductape.sessions.verify({
-  product: 'my-product',
-  env: 'prd',
   tag: 'checkout-session',
   token: req.headers.authorization?.replace('Bearer ', '') ?? '',
 });
@@ -53,8 +49,6 @@ async function authMiddleware(req, res, next) {
 
   try {
     const result = await ductape.sessions.verify({
-      product: 'my-product',
-      env: 'prd',
       tag: 'user-session',
       token: token ?? '',
     });

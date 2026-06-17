@@ -38,7 +38,6 @@ Convert an agent into a tool with the `asTool()` method:
 ```typescript
 // Define specialized agents first
 const researchAgent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'research-agent',
   name: 'Research Specialist',
   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
@@ -56,7 +55,6 @@ Focus on facts and cite your sources.`,
 });
 
 const writerAgent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'writer-agent',
   name: 'Writing Specialist',
   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
@@ -68,7 +66,6 @@ Focus on clarity, structure, and readability.`,
 
 // Create a manager agent that can delegate to specialists
 const managerAgent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'project-manager',
   name: 'Project Manager',
   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
@@ -88,7 +85,6 @@ For complex tasks:
     // Convert agents to tools
     ductape.agents.asTool({
       agentTag: 'research-agent',
-      product: 'my-product',
       options: {
         toolTag: 'delegate-research',
         toolDescription: 'Delegate research tasks to the Research Specialist. Use for finding facts, verifying information, and gathering data.',
@@ -96,7 +92,6 @@ For complex tasks:
     }),
     ductape.agents.asTool({
       agentTag: 'writer-agent',
-      product: 'my-product',
       options: {
         toolTag: 'delegate-writing',
         toolDescription: 'Delegate writing tasks to the Writing Specialist. Provide research results and requirements for the content.',
@@ -107,8 +102,6 @@ For complex tasks:
 
 // Run the manager agent
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'project-manager',
   input: 'Create a blog post about the benefits of microservices architecture',
 });
@@ -138,7 +131,6 @@ Define specific parameters for the delegated task:
 ```typescript
 ductape.agents.asTool({
   agentTag: 'data-analyst',
-  product: 'my-product',
   options: {
     toolDescription: 'Analyze data and generate insights',
     inputSchema: {
@@ -172,7 +164,6 @@ Transform data as it flows between agents:
 ```typescript
 ductape.agents.asTool({
   agentTag: 'summarizer',
-  product: 'my-product',
   options: {
     inputTransform: (params) => ({
       task: `Summarize the following in 3 bullet points:\n\n${params.content}`,
@@ -192,7 +183,6 @@ Get detailed information about the sub-agent's execution:
 ```typescript
 ductape.agents.asTool({
   agentTag: 'research-agent',
-  product: 'my-product',
   options: {
     includeDetails: true,
   },
@@ -217,7 +207,6 @@ For agents stored in the database, use `handlerRef` to reference other agents:
 
 ```typescript
 const managerAgent = await ductape.agents.define({
-  product: 'my-product',
   tag: 'manager',
   name: 'Manager Agent',
   model: { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
@@ -467,8 +456,6 @@ Sub-agents can share or isolate sessions:
 ```typescript
 // Shared session (inherits from parent)
 const result = await ductape.agents.run({
-  product: 'my-product',
-  env: 'dev',
   tag: 'manager',
   input: 'Process this request',
   sessionId: 'user-123',  // Sub-agents get 'user-123:agent-tag'

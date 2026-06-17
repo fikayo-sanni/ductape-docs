@@ -1,0 +1,48 @@
+---
+title: Authentication
+sidebar_position: 2
+---
+
+# Authentication
+
+## Email / password
+
+```bash
+ductape login
+ductape login -e you@example.com -p '***'
+```
+
+After login you are prompted to **choose a workspace** (stored in `~/.ductape/config.json` as `active_workspace_id`).
+
+```bash
+ductape login --workspace 0
+ductape login --workspace "My Team"
+ductape login --skip-workspace-select
+```
+
+Credentials: `~/.ductape/credentials.json` (mode `600`).
+
+## OAuth (Google / GitHub)
+
+```bash
+ductape login --browser
+ductape login --browser github
+ductape login --token "<token-from-redirect-url>"
+```
+
+## Profiles
+
+```bash
+ductape profiles list
+ductape profiles use local    # http://localhost:4311/api
+ductape profiles use cloud    # https://api.ductape.app
+```
+
+## Session info
+
+```bash
+ductape whoami
+ductape logout
+```
+
+`whoami` includes `active_workspace`, linked project, and API profile.

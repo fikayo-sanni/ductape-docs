@@ -28,8 +28,6 @@ await ductape.product.caches.create({
 
 ```typescript
 const result = await ductape.processor.action.run({
-  env: "dev",
-  product: "payments_service",
   app: "email_service",
   event: "send_email",
   cache: "main_cache",

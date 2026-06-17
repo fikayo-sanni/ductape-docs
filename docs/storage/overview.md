@@ -15,13 +15,10 @@ import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: 'your-access-key',
-  env_type: 'prd', // optional
 });
 
 // Upload a file
 const result = await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
   buffer: fileBuffer,
@@ -49,8 +46,6 @@ console.log('File URL:', result.url);
 
 ```ts
 const result = await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'images/photo.jpg',
   buffer: imageBuffer,           // Buffer or string
@@ -64,8 +59,6 @@ const result = await ductape.storage.upload({
 
 ```ts
 const result = await ductape.storage.download({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
 });
@@ -79,8 +72,6 @@ Use `storage.remove()` to delete a file:
 
 ```ts
 const result = await ductape.storage.remove({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/old-report.pdf',
 });
@@ -94,8 +85,6 @@ Use `storage.listFiles()` for paginated listing:
 
 ```ts
 const result = await ductape.storage.listFiles({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   prefix: 'documents/',           // Optional
   limit: 100,                     // Optional (default: 100, max: 1000)
@@ -137,8 +126,6 @@ Get file counts and sizes without loading all files:
 
 ```ts
 const stats = await ductape.storage.stats({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   prefix: 'documents/',     // Optional
 });
@@ -153,8 +140,6 @@ Create temporary URLs for secure file access:
 ```ts
 // Read access (download)
 const result = await ductape.storage.getSignedUrl({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'documents/report.pdf',
   expiresIn: 3600,            // Seconds (default: 3600)
@@ -163,8 +148,6 @@ const result = await ductape.storage.getSignedUrl({
 
 // Write access (upload)
 const uploadUrl = await ductape.storage.getSignedUrl({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: 'uploads/new-file.pdf',
   expiresIn: 600,
@@ -180,8 +163,6 @@ Queue storage operations as background jobs:
 
 ```ts
 const result = await ductape.storage.dispatch({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   operation: 'upload',
   input: {
@@ -197,15 +178,48 @@ const result = await ductape.storage.dispatch({
 
 ---
 
+## Managing Storage Configurations
+
+Create, list, fetch, update, and delete storage configs with the CRUD API. See [Storage CRUD](./crud) for full examples.
+
+```ts
+// Create (cloud-linked)
+await ductape.storage.create({ product: 'my-product', name: 'App Storage', tag: 'app-storage', envs: [...] });
+
+// List / fetch / update / delete
+await ductape.storage.list('my-product');
+await ductape.storage.fetch('my-product', 'app-storage');
+await ductape.storage.update('my-product', 'app-storage', { envs: [...] });
+await ductape.storage.delete('my-product', 'app-storage');
+```
+
+---
+
 ## Creating Storage Configurations
 
-Create and manage storage per product. Pass **product** in the data object:
+Create storage with manual credentials **or** link a workspace cloud account by tag:
 
 ```ts
 import { StorageProviders } from '@ductape/sdk/types';
 
+// Cloud-linked (recommended)
 await ductape.storage.create({
   product: 'my-product',
+  name: 'App Storage',
+  tag: 'app-storage',
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.AWS,
+    config: {
+      cloud: 'prod_aws',
+      bucketName: 'my-prod-bucket',
+      region: 'us-east-1',
+    },
+  }],
+});
+
+// Manual credentials
+await ductape.storage.create({
   name: 'App Storage',
   tag: 'app-storage',
   envs: [
@@ -219,32 +233,25 @@ await ductape.storage.create({
         secretAccessKey: process.env.AWS_SECRET_KEY,
       },
     },
-    {
-      slug: 'dev',
-      type: StorageProviders.GCP,
-      config: {
-        bucketName: 'my-dev-bucket',
-        config: { /* GCP service account JSON */ },
-      },
-    },
   ],
 });
 ```
+
+See [Cloud-linked components](../cloud/cloud-linked-components) for the full AWS / GCP / Azure provisioning matrix and update flows.
 
 ### Updating Storage
 
 ```ts
 await ductape.storage.update('my-product', 'app-storage', {
-  envs: [
-    {
-      slug: 'prd',
-      type: StorageProviders.AZURE,
-      config: {
-        containerName: 'my-container',
-        connectionString: process.env.AZURE_CONNECTION_STRING,
-      },
+  envs: [{
+    slug: 'prd',
+    type: StorageProviders.GCP,
+    config: {
+      cloud: 'gcp_prod',
+      bucketName: 'my-dev-bucket',
+      location: 'US',
     },
-  ],
+  }],
 });
 ```
 
@@ -384,5 +391,6 @@ try {
 
 ## See Also
 
+* [Storage CRUD](./crud)
 * [Processing Storage](./use)
 * [Sessions](../sessions/overview)

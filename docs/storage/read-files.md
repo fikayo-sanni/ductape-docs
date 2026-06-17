@@ -15,8 +15,6 @@ const file = await ductape.storage.files.read('path/to/file.pdf');
 
 // Use the result in an upload
 await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'main-storage',
   fileName: file.fileName,
   buffer: Buffer.from(file.buffer, 'base64'),
@@ -57,8 +55,6 @@ interface IFileReadResult {
 const file = await ductape.storage.files.read('invoices/invoice-001.pdf');
 
 await ductape.storage.upload({
-  product: 'my-product',
-  env: 'prd',
   storage: 'invoices-storage',
   fileName: file.fileName,
   buffer: Buffer.from(file.buffer, 'base64'),

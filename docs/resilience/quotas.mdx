@@ -23,7 +23,6 @@ Quotas allow you to split traffic between multiple providers. For example, send 
 
 ```ts
 const quota = await resilience.quota.define({
-  product: 'my-product',
   tag: 'sms-quota',
   name: 'SMS Provider Quota',
   description: 'Distribute SMS across providers',
@@ -168,8 +167,6 @@ ctx.provider('twilio')
 
 ```ts
 const result = await resilience.quota.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: {
     phone: '+1234567890',
@@ -182,8 +179,6 @@ const result = await resilience.quota.run({
 
 ```ts
 const result = await resilience.quota.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: { phone: '+1234567890', message: 'Hello!' },
   session: {
@@ -197,8 +192,6 @@ const result = await resilience.quota.run({
 
 ```ts
 const result = await resilience.quota.run({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: { phone: '+1234567890', message: 'Hello!' },
   cache: 'sms-cache',
@@ -212,8 +205,6 @@ Schedule quota execution for later:
 ```ts
 // Dispatch with delay
 const job = await resilience.quota.dispatch({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: { phone: '+1234567890', message: 'Hello!' },
   schedule: {
@@ -223,8 +214,6 @@ const job = await resilience.quota.dispatch({
 
 // Dispatch at specific time
 const job = await resilience.quota.dispatch({
-  product: 'my-product',
-  env: 'prd',
   tag: 'sms-quota',
   input: { phone: '+1234567890', message: 'Happy Birthday!' },
   schedule: {
@@ -234,8 +223,6 @@ const job = await resilience.quota.dispatch({
 
 // Dispatch with cron schedule
 const job = await resilience.quota.dispatch({
-  product: 'my-product',
-  env: 'prd',
   tag: 'daily-report',
   input: { type: 'daily' },
   schedule: {
