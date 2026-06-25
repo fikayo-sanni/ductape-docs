@@ -79,6 +79,11 @@
   transform: scale(1.02);
 }
 
+.logoMark {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 .logoText {
   font-size: 1.125rem;
   font-weight: 700;

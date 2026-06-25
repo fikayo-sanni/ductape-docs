@@ -77,20 +77,19 @@ const socialLinks = [
   },
 ];
 
-const DuctapeLogo = () => (
-  <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M14 10C10 10 8 14 8 18V22C8 24 6 26 6 26C6 26 8 28 8 30V34C8 38 10 42 14 42"
-      stroke="#0846A6" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <path d="M34 10C38 10 40 14 40 18V22C40 24 42 26 42 26C42 26 40 28 40 30V34C40 38 38 42 34 42"
-      stroke="#0846A6" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <path d="M16 20H32" stroke="#0846A6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M16 26H32" stroke="#0846A6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M16 32H32" stroke="#0846A6" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="16" cy="20" r="2" fill="#0846A6" />
-    <circle cx="32" cy="26" r="2" fill="#0846A6" />
-    <circle cx="16" cy="32" r="2" fill="#0846A6" />
-  </svg>
-);
+const DuctapeLogo = () => {
+  const logoSrc = useBaseUrl('/img/favicon.svg');
+
+  return (
+    <img
+      src={logoSrc}
+      alt=""
+      width={32}
+      height={32}
+      className={styles.logoMark}
+    />
+  );
+};
 
 export default function Footer(): JSX.Element {
   return (

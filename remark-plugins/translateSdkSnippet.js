@@ -3,6 +3,90 @@
  * Heuristic-based; mirrors sdk/{java,go,dotnet}/docs/migration.md patterns.
  */
 
+const fs = require('fs');
+const path = require('path');
+
+// Every file in sdk/ts/src that declares `export enum X { ... }`. Docs snippets reference these
+// enums (DataTypes.STRING, AuthTypes.TOKEN, etc.) as bare values inside object literals; since
+// Go/Java/.NET have no equivalent enum types to import, we resolve each reference to its
+// underlying string literal (read from source, not hardcoded, so it can't drift) before doing any
+// other translation.
+const ENUM_SOURCE_FILES = [
+  'database/types/presave.interface.ts',
+  'database/types/trigger.interface.ts',
+  'database/types/enums.ts',
+  'database/adapters/base.adapter.ts',
+  'types/inputs.types.ts',
+  'types/productsBuilder.types.ts',
+  'types/index.types.ts',
+  'types/enums.ts',
+  'types/processor.types.ts',
+  'graph/types/enums.ts',
+  'imports/imports.types.ts',
+  'logs/logs.types.ts',
+  'resilience/types/index.ts',
+  'jobs/types.ts',
+  'vector/types/enums.ts',
+  'pricing/pricing.types.ts',
+  'notifications/types/notifications.types.ts',
+];
+
+let enumValueMapCache = null;
+
+/** Parses `export enum Name { MEMBER = 'value', ... }` blocks out of the SDK source. */
+function loadEnumValueMap() {
+  if (enumValueMapCache) {
+    return enumValueMapCache;
+  }
+  const map = {};
+  const sdkSrcRoot = path.join(__dirname, '..', '..', 'sdk', 'ts', 'src');
+  for (const relativeFile of ENUM_SOURCE_FILES) {
+    let contents;
+    try {
+      contents = fs.readFileSync(path.join(sdkSrcRoot, relativeFile), 'utf8');
+    } catch {
+      continue;
+    }
+    const enumPattern = /export enum (\w+)\s*\{([^}]*)\}/g;
+    let enumMatch;
+    while ((enumMatch = enumPattern.exec(contents))) {
+      const [, enumName, body] = enumMatch;
+      const members = {};
+      const memberPattern = /(\w+)\s*=\s*['"]([^'"]*)['"]/g;
+      let memberMatch;
+      while ((memberMatch = memberPattern.exec(body))) {
+        members[memberMatch[1]] = memberMatch[2];
+      }
+      map[enumName] = members;
+    }
+  }
+  enumValueMapCache = map;
+  return map;
+}
+
+/**
+ * Replaces bare `EnumName.MEMBER` references (e.g. `DataTypes.STRING`) with the member's
+ * underlying string literal, so downstream object-literal conversion treats it like any other
+ * quoted string value instead of leaving an unresolved identifier behind.
+ */
+function resolveEnumReferences(code) {
+  const enumMap = loadEnumValueMap();
+  return code.replace(/\b([A-Z][A-Za-z0-9]*)\.([A-Z][A-Z0-9_]*)\b/g, (full, enumName, member) => {
+    const enumDef = enumMap[enumName];
+    if (enumDef && Object.prototype.hasOwnProperty.call(enumDef, member)) {
+      return `'${enumDef[member]}'`;
+    }
+    return full;
+  });
+}
+
+/** Strips TS-only type imports (e.g. `import { DataTypes } from '@ductape/sdk/types';`) that
+ * have no runtime equivalent to import in Go/Java/.NET — by the time this runs, any enum values
+ * from that import have already been inlined as literals by resolveEnumReferences. */
+function stripTypeOnlyImports(code) {
+  return code.replace(/^import\s+(?:type\s+)?\{[^}]*\}\s+from\s+['"]@ductape\/sdk\/types['"];?\n?/gm, '');
+}
+
 const SKIP_BLOCK =
   /(@ductape\/nestjs|@ductape\/react|@ductape\/client|@ductape\/vue|useDuctape|DuctapeProvider|@nestjs\/|DuctapeModule|DuctapeContext|DuctapeMethodInterceptor|DuctapeBuilderInterceptor|DuctapeContextInterceptor|DuctapeDatabaseModule|DuctapeStorageModule|@Api\b|@ApiConfig|@ApiDispatch|@Database\b|@Storage\b|@Webhook|@InjectContext|@Product\b|@Env\b|@AccessTag|@Messaging|@Notification|@Workflow|@Job\.|@Cache\b|@Graph\b|@Vector\b|@Secret\b|@Agent\b|@Warehouse|@Session|@Health|@Quota|@Fallback|@AppTag|WebhookBuilder|ModelBuilder|AgentBuilder|from 'express'|NextResponse|create-react-app|npx create|interface I[A-Z]|type I[A-Z]|export interface|export type)/;
 
@@ -21,6 +105,8 @@ function shouldSkipBlock(code) {
 /** @param {string} ts */
 function translateToJava(ts) {
   let code = ts;
+  code = stripTypeOnlyImports(code);
+  code = resolveEnumReferences(code);
 
   code = code.replace(
     /import\s+Ductape\s+from\s+['"]@ductape\/sdk['"];?\s*\n?/g,
@@ -98,21 +184,26 @@ import app.ductape.sdk.core.RequestContext;
 /** @param {string} ts */
 function translateToGo(ts) {
   let code = ts;
+  code = stripTypeOnlyImports(code);
+  code = resolveEnumReferences(code);
 
   code = code.replace(
     /import\s+Ductape\s+from\s+['"]@ductape\/sdk['"];?\s*\n?/g,
     `import (
 \t"context"
 \t"github.com/ductape/ductape/sdk/go/core"
-\t"github.com/ductape/ductape/sdk/go/ductape"
+\tductapesdk "github.com/ductape/ductape/sdk/go/ductape"
 )
 
 `,
   );
 
+  // Uses the "ductapesdk" import alias (not "ductape") so the package-constructor call below
+  // survives the later blanket "ductape." -> "client." substitution (which targets the TS
+  // variable named ductape, not the Go package).
   code = code.replace(
     /const\s+ductape\s*=\s*new\s+Ductape\(\{[^}]*accessKey:\s*([^,}]+)[^}]*\}\);?/g,
-    'auth := core.NewRequestContext("", "", "", "", $1)\nclient, err := ductape.New(core.EnvProduction, auth)\nif err != nil {\n\treturn err\n}',
+    'auth := core.NewRequestContext("", "", "", "", $1)\nclient, err := ductapesdk.New(core.EnvProduction, auth)\nif err != nil {\n\treturn err\n}',
   );
 
   code = convertObjectCalls(code, 'ductape.api.run', 'client.Api.Run', 'map[string]any', 'ctx, ');
@@ -137,6 +228,9 @@ function translateToGo(ts) {
   code = convertObjectCalls(code, 'ductape.notifications.send', 'client.Notifications.Send', 'map[string]any', 'ctx, ');
 
   code = code.replace(/\bawait\s+/g, '');
+  // Bare object-literal assignments (not passed inline to a recognized call above, which already
+  // wraps its own braces) need an explicit map[string]any{ — plain `details := {` isn't valid Go.
+  code = code.replace(/\b(?:const|let)\s+(\w+)\s*=\s*\{/g, '$1 := map[string]any{');
   code = code.replace(/\bconst\s+(\w+)\s*=/g, '$1 :=');
   code = code.replace(/\blet\s+(\w+)\s*=/g, '$1 :=');
   code = code.replace(/console\.log\(/g, 'fmt.Println(');
@@ -153,6 +247,8 @@ function translateToGo(ts) {
 /** @param {string} ts */
 function translateToDotnet(ts) {
   let code = ts;
+  code = stripTypeOnlyImports(code);
+  code = resolveEnumReferences(code);
 
   code = code.replace(
     /import\s+Ductape\s+from\s+['"]@ductape\/sdk['"];?\s*\n?/g,
@@ -192,6 +288,10 @@ using Ductape.Sdk.Core;
   code = convertObjectCalls(code, 'ductape.cache.create', 'await ductape.Cache.CreateAsync', 'Dictionary<string, object?>');
   code = convertObjectCalls(code, 'ductape.notifications.send', 'await ductape.Notifications.SendAsync', 'Dictionary<string, object?>');
 
+  // Bare object-literal assignments (not passed inline to a recognized call above, which already
+  // wraps its own braces) need an explicit new Dictionary<string, object?> — plain `var details =
+  // {` isn't valid C# collection-initializer syntax.
+  code = code.replace(/\b(?:const|let)\s+(\w+)\s*=\s*\{/g, 'var $1 = new Dictionary<string, object?>\n{');
   code = code.replace(/\bconst\s+/g, 'var ');
   code = code.replace(/\blet\s+/g, 'var ');
   code = code.replace(/console\.log\(/g, 'Console.WriteLine(');
@@ -251,6 +351,8 @@ function convertTsObjectLiteralsToJava(code) {
     .replace(/(\w+):\s*"([^"]*)"/g, '"$1", "$2"')
     .replace(/(\w+):\s*(\d+)/g, '"$1", $2')
     .replace(/(\w+):\s*(true|false)/g, '"$1", $2')
+    // Trailing commas are valid in TS object literals but not in a Java Map.of(...) varargs call.
+    .replace(/,(\s*)\}/g, '$1}')
     .replace(/\{(\s*)/g, 'Map.of($1')
     .replace(/\}(\s*[,;)]?)/g, ')$1');
 }

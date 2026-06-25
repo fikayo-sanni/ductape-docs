@@ -113,7 +113,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/ductape.png',
+    image: 'img/favicon.png',
 
     // Color mode settings
     colorMode: {
@@ -126,7 +126,7 @@ const config: Config = {
       title: '',
       logo: {
         alt: 'Ductape Logo',
-        src: 'img/ductape-logo.svg',
+        src: 'img/favicon.svg',
         href: '/',
       },
       items: [
