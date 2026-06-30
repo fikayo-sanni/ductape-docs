@@ -471,8 +471,6 @@ export interface ILogData {
 }
 ```
 
-**File:** `backend/logs/src/model/log.model.ts`
-
 ```typescript
 const schema = new mongoose.Schema<Logging>({
   // ... existing fields
@@ -710,8 +708,6 @@ logs = {
   ) => this.execute<T>('logs', 'fetchAppDashboard', appId, options),
 };
 ```
-
-**File:** `backend/proxy/src/validators/sdk-proxy.validators.ts`
 
 ```typescript
 const ALLOWED_METHODS: Record<SDKModule, string[]> = {
