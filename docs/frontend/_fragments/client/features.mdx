@@ -1,17 +1,17 @@
 
-Workflows allow you to execute complex, multi-step processes with built-in durability, retries, and state management. Execute backend workflows directly from your frontend application.
+Features allow you to execute complex, multi-step processes with built-in durability, retries, and state management. Execute backend features directly from your frontend application.
 
 When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
 
-## Executing Workflows
+## Executing Features
 
 ### Basic Execution
 
 ```typescript
 const sessionToken = getSessionFromYourBackend();
 
-const execution = await ductape.workflows.execute({
-  workflow: 'process-order',
+const execution = await ductape.features.execute({
+  feature: 'process-order',
   input: {
     orderId: 'order-123',
     userId: 'user-456'
@@ -26,8 +26,8 @@ console.log('Status:', execution.status);
 ### Execute with Options
 
 ```typescript
-const execution = await ductape.workflows.execute({
-  workflow: 'send-notification',
+const execution = await ductape.features.execute({
+  feature: 'send-notification',
   input: {
     userId: 'user-123',
     message: 'Your order has shipped!'
@@ -43,16 +43,17 @@ const execution = await ductape.workflows.execute({
 });
 ```
 
-## Checking Workflow Status
+## Checking Feature Status
 
 ### Get Current Status
 
 ```typescript
-const status = await ductape.workflows.getStatus({
+const status = await ductape.features.getStatus({
   executionId: 'exec-123'
 });
 
 console.log('Status:', status.status); // 'running', 'completed', 'failed', 'cancelled'
+
 console.log('Result:', status.result);
 console.log('Error:', status.error);
 ```
@@ -62,7 +63,7 @@ console.log('Error:', status.error);
 ```typescript
 async function waitForCompletion(executionId: string): Promise<any> {
   while (true) {
-    const status = await ductape.workflows.getStatus({ executionId });
+    const status = await ductape.features.getStatus({ executionId });
 
     if (status.status === 'completed') {
       return status.result;
@@ -73,7 +74,7 @@ async function waitForCompletion(executionId: string): Promise<any> {
     }
 
     if (status.status === 'cancelled') {
-      throw new Error('Workflow was cancelled');
+      throw new Error('Feature was cancelled'');
     }
 
     // Wait 1 second before checking again
@@ -82,25 +83,25 @@ async function waitForCompletion(executionId: string): Promise<any> {
 }
 
 // Usage
-const execution = await ductape.workflows.execute({
-  workflow: 'data-processing',
+const execution = await ductape.features.execute({
+  feature: 'data-processing',
   input: { dataId: '123' }
 });
 
 try {
   const result = await waitForCompletion(execution.executionId);
-  console.log('Workflow completed:', result);
+  console.log('Feature completed':', result);
 } catch (error) {
-  console.error('Workflow failed:', error);
+  console.error('Feature failed':', error);
 }
 ```
 
-## Workflow History
+## Feature History
 
 Get the execution history to see all steps:
 
 ```typescript
-const history = await ductape.workflows.getHistory({
+const history = await ductape.features.getHistory({
   executionId: 'exec-123'
 });
 
@@ -111,17 +112,17 @@ history.events.forEach(event => {
 
 ## Sending Signals
 
-Send signals to running workflows:
+Send signals to running features:
 
 ```typescript
-// Start a long-running workflow
-const execution = await ductape.workflows.execute({
-  workflow: 'approval-process',
+// Start a long-running feature
+const execution = await ductape.features.execute({
+  feature: 'approval-process',
   input: { requestId: 'req-123' }
 });
 
 // Later: send an approval signal
-await ductape.workflows.signal({
+await ductape.features.signal({
   executionId: execution.executionId,
   signal: 'approve',
   data: {
@@ -131,27 +132,27 @@ await ductape.workflows.signal({
 });
 ```
 
-## Cancelling Workflows
+## Cancelling Features
 
 ```typescript
-await ductape.workflows.cancel({
+await ductape.features.cancel({
   executionId: 'exec-123',
   reason: 'User cancelled the operation'
 });
 ```
 
-## Subscribing to Workflow Updates
+## Subscribing to Feature Updates
 
-Get real-time updates on workflow execution:
+Get real-time updates on feature execution:
 
 ```typescript
 // Connect to WebSocket first
 await ductape.connect();
 
-const subscription = ductape.workflows.subscribe({
+const subscription = ductape.features.subscribe({
   executionId: 'exec-123',
   onChange: (event) => {
-    console.log('Workflow event:', event);
+    console.log('Feature event':', event);
 
     if (event.type === 'status_changed') {
       console.log('New status:', event.data.status);
@@ -162,11 +163,11 @@ const subscription = ductape.workflows.subscribe({
     }
 
     if (event.type === 'completed') {
-      console.log('Workflow completed:', event.data.result);
+      console.log('Feature completed':', event.data.result);
     }
 
     if (event.type === 'failed') {
-      console.error('Workflow failed:', event.data.error);
+      console.error('Feature failed':', event.data.error);
     }
   }
 });
@@ -175,13 +176,13 @@ const subscription = ductape.workflows.subscribe({
 subscription.unsubscribe();
 ```
 
-## Listing Workflows
+## Listing Features
 
-Get a list of workflow executions:
+Get a list of feature executions:
 
 ```typescript
-const result = await ductape.workflows.list({
-  workflow: 'process-order',
+const result = await ductape.features.list({
+  feature: 'process-order',
   status: 'running',
   limit: 20,
   offset: 0
@@ -208,9 +209,9 @@ class OrderProcessor {
     this.showLoading(true);
 
     try {
-      // Execute workflow
-      const execution = await this.ductape.workflows.execute({
-        workflow: 'process-order',
+      // Execute feature
+      const execution = await this.ductape.features.execute({
+        feature: 'process-order',
         input: {
           orderId: orderId,
           timestamp: new Date().toISOString()
@@ -218,10 +219,10 @@ class OrderProcessor {
       });
 
       // Subscribe to updates
-      const subscription = this.ductape.workflows.subscribe({
+      const subscription = this.ductape.features.subscribe({
         executionId: execution.executionId,
         onChange: (event) => {
-          this.handleWorkflowEvent(event);
+          this.handleFeatureEvent(event);
         }
       });
 
@@ -245,7 +246,7 @@ class OrderProcessor {
 
   private async waitForCompletion(executionId: string): Promise<any> {
     while (true) {
-      const status = await this.ductape.workflows.getStatus({ executionId });
+      const status = await this.ductape.features.getStatus({ executionId });
 
       if (status.status === 'completed') {
         return status.result;
@@ -259,7 +260,7 @@ class OrderProcessor {
     }
   }
 
-  private handleWorkflowEvent(event: any) {
+  private handleFeatureEvent(event: any) {
     switch (event.type) {
       case 'status_changed':
         this.updateStatus(event.data.status);
@@ -270,11 +271,11 @@ class OrderProcessor {
         break;
 
       case 'completed':
-        console.log('Workflow completed:', event.data.result);
+        console.log('Feature completed':', event.data.result);
         break;
 
       case 'failed':
-        console.error('Workflow failed:', event.data.error);
+        console.error('Feature failed':', event.data.error);
         break;
     }
   }
@@ -308,10 +309,10 @@ const processor = new OrderProcessor(ductape);
 await processor.processOrder('order-123');
 ```
 
-## Approval Workflow Example
+## Approval Feature Example
 
 ```typescript
-class ApprovalWorkflow {
+class ApprovalFeature {
   private ductape: Ductape;
   private executionId: string | null = null;
 
@@ -320,8 +321,8 @@ class ApprovalWorkflow {
   }
 
   async submitForApproval(data: any) {
-    const execution = await this.ductape.workflows.execute({
-      workflow: 'approval-process',
+    const execution = await this.ductape.features.execute({
+      feature: 'approval-process',
       input: {
         data: data,
         submittedBy: 'current-user-id',
@@ -332,7 +333,7 @@ class ApprovalWorkflow {
     this.executionId = execution.executionId;
 
     // Subscribe to updates
-    this.ductape.workflows.subscribe({
+    this.ductape.features.subscribe({
       executionId: this.executionId,
       onChange: (event) => {
         if (event.type === 'completed') {
@@ -348,10 +349,10 @@ class ApprovalWorkflow {
 
   async approve(comments: string) {
     if (!this.executionId) {
-      throw new Error('No active workflow');
+      throw new Error('No active feature');
     }
 
-    await this.ductape.workflows.signal({
+    await this.ductape.features.signal({
       executionId: this.executionId,
       signal: 'approve',
       data: {
@@ -364,10 +365,10 @@ class ApprovalWorkflow {
 
   async reject(reason: string) {
     if (!this.executionId) {
-      throw new Error('No active workflow');
+      throw new Error('No active feature');
     }
 
-    await this.ductape.workflows.signal({
+    await this.ductape.features.signal({
       executionId: this.executionId,
       signal: 'reject',
       data: {
@@ -380,10 +381,10 @@ class ApprovalWorkflow {
 
   async cancel() {
     if (!this.executionId) {
-      throw new Error('No active workflow');
+      throw new Error('No active feature');
     }
 
-    await this.ductape.workflows.cancel({
+    await this.ductape.features.cancel({
       executionId: this.executionId,
       reason: 'Cancelled by user'
     });
@@ -401,7 +402,7 @@ class ApprovalWorkflow {
 }
 
 // Usage
-const approval = new ApprovalWorkflow(ductape);
+const approval = new ApprovalFeature(ductape);
 
 // Submit for approval
 await approval.submitForApproval({
@@ -417,10 +418,10 @@ await approval.approve('Approved for purchase');
 // await approval.reject('Budget exceeded');
 ```
 
-## Multi-Step Workflow with Progress
+## Multi-Step Feature with Progress
 
 ```typescript
-class MultiStepWorkflow {
+class MultiStepFeature {
   private ductape: Ductape;
   private steps: string[] = [
     'Validating input',
@@ -436,13 +437,13 @@ class MultiStepWorkflow {
   }
 
   async execute(input: any) {
-    const execution = await this.ductape.workflows.execute({
-      workflow: 'multi-step-process',
+    const execution = await this.ductape.features.execute({
+      feature: 'multi-step-process',
       input: input
     });
 
     // Subscribe to step updates
-    const subscription = this.ductape.workflows.subscribe({
+    const subscription = this.ductape.features.subscribe({
       executionId: execution.executionId,
       onChange: (event) => {
         if (event.type === 'step_completed') {
@@ -464,7 +465,7 @@ class MultiStepWorkflow {
 
   private async waitForCompletion(executionId: string): Promise<any> {
     while (true) {
-      const status = await this.ductape.workflows.getStatus({ executionId });
+      const status = await this.ductape.features.getStatus({ executionId });
 
       if (status.status === 'completed') {
         return status.result;
@@ -489,25 +490,25 @@ class MultiStepWorkflow {
 }
 
 // Usage
-const workflow = new MultiStepWorkflow(ductape);
-const result = await workflow.execute({ dataId: '123' });
+const feature = new MultiStepFeature(ductape);
+const result = await feature.execute({ dataId: '123' });
 ```
 
-## Workflow Dashboard
+## Feature Dashboard
 
 ```typescript
-class WorkflowDashboard {
+class FeatureDashboard {
   private ductape: Ductape;
 
   constructor(ductape: Ductape) {
     this.ductape = ductape;
   }
 
-  async loadWorkflows() {
+  async loadFeatures() {
     const [running, completed, failed] = await Promise.all([
-      this.ductape.workflows.list({ status: 'running', limit: 10 }),
-      this.ductape.workflows.list({ status: 'completed', limit: 10 }),
-      this.ductape.workflows.list({ status: 'failed', limit: 10 })
+      this.ductape.features.list({ status: 'running', limit: 10 }),
+      this.ductape.features.list({ status: 'completed', limit: 10 }),
+      this.ductape.features.list({ status: 'failed', limit: 10 })
     ]);
 
     this.renderSection('running', running.executions);
@@ -516,15 +517,15 @@ class WorkflowDashboard {
   }
 
   private renderSection(status: string, executions: any[]) {
-    const container = document.getElementById(`${status}-workflows`);
+    const container = document.getElementById(`${status}-features`);
     container.innerHTML = '';
 
     executions.forEach(exec => {
       const item = document.createElement('div');
-      item.className = 'workflow-item';
+      item.className = 'feature-item';
       item.innerHTML = `
-        <div class="workflow-info">
-          <strong>${exec.workflow}</strong>
+        <div class="feature-info">
+          <strong>${exec.feature}</strong>
           <span>${exec.executionId}</span>
           <span>${new Date(exec.startedAt).toLocaleString()}</span>
         </div>
@@ -538,8 +539,8 @@ class WorkflowDashboard {
 
   async viewDetails(executionId: string) {
     const [status, history] = await Promise.all([
-      this.ductape.workflows.getStatus({ executionId }),
-      this.ductape.workflows.getHistory({ executionId })
+      this.ductape.features.getStatus({ executionId }),
+      this.ductape.features.getHistory({ executionId })
     ]);
 
     console.log('Status:', status);
@@ -556,20 +557,20 @@ class WorkflowDashboard {
 }
 
 // Usage
-const dashboard = new WorkflowDashboard(ductape);
-await dashboard.loadWorkflows();
+const dashboard = new FeatureDashboard(ductape);
+await dashboard.loadFeatures();
 ```
 
 ## Best Practices
 
-1. **Handle errors gracefully**: Always wrap workflow execution in try-catch
-2. **Use subscriptions**: Subscribe to workflow updates for real-time feedback
-3. **Implement timeouts**: Set reasonable timeouts for workflow execution
+1. **Handle errors gracefully**: Always wrap feature execution in try-catch
+2. **Use subscriptions**: Subscribe to feature updates for real-time feedback
+3. **Implement timeouts**: Set reasonable timeouts for feature execution
 4. **Store execution IDs**: Save execution IDs in your database for tracking
-5. **Show progress**: Provide visual feedback during long-running workflows
+5. **Show progress**: Provide visual feedback during long-running features
 6. **Handle cancellation**: Allow users to cancel long-running operations
 7. **Retry logic**: Implement retry logic for transient failures
-8. **Log events**: Log workflow events for debugging and monitoring
+8. **Log events**: Log feature events for debugging and monitoring
 
 ## Next Steps
 

@@ -146,13 +146,13 @@ const result = await ductape.storage.upload({
 console.log('File uploaded:', result.url);
 ```
 
-### Execute a Workflow
+### Execute a Feature
 
 ```typescript
 const sessionToken = getSessionFromYourBackend();
 
-const execution = await ductape.workflows.execute({
-  workflow: 'process-order',
+const execution = await ductape.features.execute({
+  feature: 'process-order',
   input: {
     orderId: '12345',
     userId: 'user-789'
@@ -160,7 +160,7 @@ const execution = await ductape.workflows.execute({
   session: sessionToken,
 });
 
-console.log('Workflow execution:', execution.executionId);
+console.log('Feature execution:', execution.executionId);
 ```
 
 ### Subscribe to Database Changes
@@ -388,7 +388,7 @@ For Vue 3 applications, we recommend using [@ductape/vue](../vue/getting-started
 
 - [Database Operations](./databases)
 - [Storage](./storage)
-- [Workflows](./workflows)
+- [Features](./features)
 - [Agents](./agents)
 - [Real-time Subscriptions](./subscriptions)
 - [Sessions & Authentication](./sessions)

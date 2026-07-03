@@ -12,7 +12,7 @@ A product is a complete backend system that:
 - **Organizes resources** - Groups apps, environments, sessions, features, and other components
 - **Manages environments** - Supports multiple deployment environments (dev, staging, production)
 - **Connects integrations** - Links third-party apps and APIs to your product
-- **Orchestrates workflows** - Coordinates features, jobs, and actions
+- **Orchestrates features** - Coordinates features, jobs, and actions
 - **Tracks versions** - Maintains configuration and state across deployments
 
 Think of a product as your entire application backend—everything from authentication to payment processing to data storage, all managed in one place.
@@ -26,7 +26,7 @@ Every product contains:
 | **Basic Info** | Name, tag, description, workspace association |
 | **Apps** | Connected third-party integrations (Stripe, SendGrid, etc.) |
 | **Environments** | Deployment environments (dev, staging, production) |
-| **Features** | Workflow orchestrations |
+| **Features** | Feature orchestrations |
 | **Sessions** | User session management |
 | **Databases** | Database configurations and connections |
 | **Graphs** | Graph database configurations |
@@ -186,5 +186,5 @@ Create → Initialize → Add Resources → Deploy → Update → Monitor
 ## See Also
 
 - [Apps](/apps/getting-started) - Create and manage apps
-- [Features](/features/overview) - Build product workflows
+- [Features](/features/overview) - Build product features
 - [Sessions](/sessions/overview) - Manage user sessions

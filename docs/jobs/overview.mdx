@@ -5,7 +5,7 @@ sidebar_label: Overview
 
 # Jobs Overview
 
-Jobs let you schedule background work: one-off tasks, recurring cron-style runs, and processor-backed operations (notifications, storage, database, graph, workflows).
+Jobs let you schedule background work: one-off tasks, recurring cron-style runs, and processor-backed operations (notifications, storage, database, graph, features).
 
 ## Concepts
 
@@ -13,11 +13,11 @@ Jobs let you schedule background work: one-off tasks, recurring cron-style runs,
 |------|-------------|
 | **Job** | A unit of scheduled work with payload, status, and optional repeat/cron |
 | **Monitor** | SDK worker loop that claims due jobs and routes them to the processor |
-| **Dispatch** | Enqueue work without blocking the caller (actions, workflows, resilience, etc.) |
+| **Dispatch** | Enqueue work without blocking the caller (actions, features, resilience, etc.) |
 
 ## When to use jobs
 
-- Run workflows on a schedule or with delay
+- Run features on a schedule or with delay
 - Retry failed operations with backoff
 - Process notifications, storage, or database operations asynchronously
 - Run healthchecks and recurring maintenance

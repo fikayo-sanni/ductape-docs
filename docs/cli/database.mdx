@@ -1,22 +1,328 @@
 ---
-title: Database runtime
+title: Database runtime & migrations
 sidebar_position: 10
 ---
 
-# Database runtime
+# Database runtime & migrations
 
-**Definitions** (schemas, tables): `ductape resources databases …`
+The CLI gives you two complementary ways to work with databases:
 
-**Runtime queries**: `ductape db` via **db-proxy**
+| Mode | Commands | Purpose |
+|------|----------|---------|
+| **Schema management** | `ductape db schema generate`, `ductape db migrate` | Declare your schema in `schema.json`, generate migration files, apply them to any environment |
+| **Runtime proxy** | `ductape db connect`, `ductape db query`, … | Interactive queries and raw proxy passthrough against a connected database |
 
-Requires a [linked project](./linking) (or `ductape link`). The CLI uses `product_tag` and `env_slug` from `.ductape/config.json` — you do not pass them on every `db` command.
+Both require a [linked project](./linking) — the CLI reads `product_tag` and `env_slug` from `ductape/config.json` so you don't pass them on every command.
 
-```bash
-ductape db connect -f '{"database":"main-db","graph":"main-db"}'
-ductape db context
-ductape db query -f '{"sql":"SELECT 1"}'
-ductape db listTables -f '{}'
-ductape db schema.list -f '{"schema":"public"}'
+---
+
+## Project structure
+
+Running `ductape init` scaffolds the following inside your project:
+
+```
+ductape/
+  config.json            ← project linking (product, env, workspace)
+  database/
+    schema.json          ← declarative schema definition
+    migrations/
+      <db-tag>/          ← generated migration files (one JSON file per migration)
 ```
 
-Connection context is stored in `~/.ductape/runtime-context.json` (same idea as Workbench `databaseProxy`).
+`schema.json` and all generated migration files under `migrations/` should be committed to version control. They are the source of truth for your database structure.
+
+---
+
+## schema.json
+
+`ductape/database/schema.json` is an array of entries, one per database:
+
+```json
+[
+  {
+    "db": "main-db",
+    "tables": {
+      "users": {
+        "id":         { "type": "String", "primaryKey": true, "autoGenerate": true },
+        "email":      { "type": "String", "required": true, "unique": true },
+        "name":       { "type": "String", "required": true },
+        "role":       { "type": "String", "enum": ["admin", "member", "viewer"] },
+        "active":     { "type": "Boolean", "default": true },
+        "createdAt":  { "type": "Date", "default": "now" },
+        "updatedAt":  { "type": "Date", "default": "now" }
+      },
+      "posts": {
+        "id":         { "type": "String", "primaryKey": true, "autoGenerate": true },
+        "title":      { "type": "String", "required": true },
+        "body":       { "type": "String" },
+        "authorId":   { "type": "String", "required": true, "index": true },
+        "publishedAt":{ "type": "Date" },
+        "createdAt":  { "type": "Date", "default": "now" }
+      }
+    }
+  }
+]
+```
+
+The `db` value must match the database tag registered in your Ductape product. You can have multiple entries in the array for multiple databases.
+
+### Field definition reference
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | string | Field type (see table below) |
+| `required` | boolean | If `true`, sets `nullable: false` |
+| `unique` | boolean | Adds a unique constraint |
+| `primaryKey` | boolean | Marks the field as primary key |
+| `autoGenerate` | boolean | Auto-increment / SERIAL / auto-UUID |
+| `default` | any | Default value. Use `"now"` for `CURRENT_TIMESTAMP` |
+| `maxlength` | number | Max length for string fields |
+| `enum` | string[] | Allowed values. Sets type to `enum` automatically |
+| `index` | boolean | Generates a separate index on this field |
+| `float` | boolean | When type is `Number`, uses `float` instead of `integer` |
+
+### Supported types
+
+The CLI maps mongoose-style type names to Ductape's cross-database `FieldType`:
+
+| Schema value | Ductape type | SQL | MongoDB | DynamoDB | Cassandra |
+|---|---|---|---|---|---|
+| `String` | `string` | VARCHAR | String | S | text |
+| `Number` | `integer` | INT | Number | N | int |
+| `Number` + `float: true` | `float` | FLOAT | Double | N | float |
+| `Boolean` | `boolean` | BOOLEAN | Boolean | BOOL | boolean |
+| `Date` | `datetime` | DATETIME | Date | S | timestamp |
+| `ObjectId` / `UUID` | `uuid` | UUID | String | S | uuid |
+| `Buffer` | `binary` | BYTEA | BinData | B | blob |
+| `Mixed` / `Object` | `object` | JSON | Object | M | text |
+| `Array` | `array` | ARRAY | Array | L | list |
+| `Decimal128` | `decimal` | DECIMAL | Decimal128 | N | decimal |
+| `BigInt` | `bigint` | BIGINT | Long | N | bigint |
+
+---
+
+## ductape db schema generate
+
+Compares `schema.json` against the local migration file history and writes new migration files for anything that has changed. It does **not** connect to a database or apply anything — it only produces files.
+
+```bash
+# Generate migrations for all databases in schema.json
+ductape db schema generate
+
+# Limit to one database
+ductape db schema generate --db main-db
+
+# Also generate drop operations for fields removed from schema.json
+ductape db schema generate --destructive
+```
+
+### What gets generated
+
+- **New table** → a `createCollection` migration with all declared fields, plus a `createIndex` operation for every field marked `index: true`
+- **New field on an existing table** → an `addField` migration
+- **Removed field** (when `--destructive` is passed) → a `dropField` migration
+
+By default, fields removed from `schema.json` produce a warning but no migration. This prevents accidental data loss — you must explicitly opt into destructive changes.
+
+Each generated file lands in `ductape/database/migrations/<db-tag>/` with a timestamped filename:
+
+```
+ductape/database/migrations/main-db/
+  20260703120000_001_create_collection_users.json
+  20260703120000_002_create_collection_posts.json
+```
+
+Each file is a self-contained migration object with `up` and `down` operations:
+
+```json
+{
+  "tag": "create_users",
+  "name": "Create collection users",
+  "up": [
+    {
+      "type": "createCollection",
+      "name": "users",
+      "fields": [
+        { "name": "id", "type": "uuid", "primaryKey": true, "autoGenerate": true },
+        { "name": "email", "type": "string", "unique": true, "nullable": false }
+      ],
+      "ifNotExists": true
+    }
+  ],
+  "down": [
+    { "type": "dropCollection", "name": "users", "ifExists": true }
+  ],
+  "createdAt": "2026-07-03T12:00:00.000Z"
+}
+```
+
+:::tip Review before applying
+Inspect generated files before running `migrate`. The migration history is immutable once applied — editing a file after it has been applied will cause a checksum mismatch on the next `migrate status` check.
+:::
+
+---
+
+## ductape db migrate
+
+Reads all migration files in `ductape/database/migrations/<db-tag>/`, compares them against the applied migration history in the database, and runs any that have not yet been applied — in filename order.
+
+```bash
+# Apply pending migrations for all databases in schema.json
+ductape db migrate
+
+# Apply for a specific database
+ductape db migrate --db main-db
+
+# Apply to a specific environment (overrides env_slug from ductape/config.json)
+ductape db migrate --env staging
+
+# Preview what would run without applying
+ductape db migrate --dry-run
+```
+
+Migration tracking is handled by Ductape's `MigrationEngine`, which maintains a `_ductape_migrations` table/collection automatically on first run. Re-running `ductape db migrate` is safe — already-applied migrations are skipped.
+
+### Standard workflow
+
+```bash
+# 1. Update ductape/database/schema.json with your new tables or fields
+
+# 2. Generate migration files
+ductape db schema generate
+
+# 3. Review the generated files in ductape/database/migrations/
+
+# 4. Apply to development
+ductape db migrate
+
+# 5. Commit everything — schema.json + migration files
+git add ductape/database/schema.json ductape/database/migrations/
+git commit -m "add users and posts tables"
+
+# 6. Apply to staging / production
+ductape db migrate --env staging
+ductape db migrate --env prd
+```
+
+---
+
+## ductape db migrate status
+
+Shows which migration files have been applied and which are pending, per database.
+
+```bash
+ductape db migrate status
+ductape db migrate status --db main-db
+ductape db migrate status --env staging
+ductape db migrate status --json
+```
+
+Example output:
+
+```
+[main-db]
+  Applied (2):
+    + create_users
+    + create_posts
+  Pending (1):
+    - add_avatar_to_users
+```
+
+---
+
+## ductape db migrate rollback
+
+Rolls back the last N applied migrations by running their `down` operations.
+
+```bash
+# Roll back the last migration
+ductape db migrate rollback
+
+# Roll back the last 3
+ductape db migrate rollback -n 3
+
+# Roll back for a specific database
+ductape db migrate rollback --db main-db
+```
+
+:::caution Destructive in production
+`rollback` applies the `down` operations defined in each migration file. For `dropCollection` and `dropField` down operations, this permanently deletes data. Always verify migration down operations in a non-production environment first.
+:::
+
+---
+
+## Raw proxy commands
+
+For ad-hoc queries and direct inspection, the `ductape db` command passes requests through the encrypted db-proxy to your connected database.
+
+### Connect to a database
+
+```bash
+ductape db connect -f '{"database":"main-db"}'
+```
+
+Connection context is saved to `~/.ductape/runtime-context.json`. All subsequent `ductape db` proxy calls use it automatically until you connect to a different database.
+
+### View current connection
+
+```bash
+ductape db context
+```
+
+### Query
+
+```bash
+ductape db query -f '{"sql":"SELECT * FROM users LIMIT 10"}'
+```
+
+### Other proxy methods
+
+```bash
+ductape db listTables -f '{}'
+ductape db schema.list -f '{"schema":"public"}'
+ductape db schema.describe -f '{"table":"users"}'
+ductape db migration.list -f '{"database":"main-db"}'
+```
+
+Pass `--json` to any command for raw JSON output:
+
+```bash
+ductape db listTables -f '{}' --json
+```
+
+---
+
+## Environment targeting
+
+The CLI reads `env_slug` from `ductape/config.json` as the default environment. Override it per-command with `--env`:
+
+```bash
+# Apply migrations to production without changing your local config
+ductape db migrate --env prd
+```
+
+This is the recommended approach for multi-environment deployments — keep `env_slug: "dev"` in `config.json` for daily development and always pass `--env` explicitly for staging and production.
+
+---
+
+## Team workflows and migration sync
+
+Migration files in `ductape/database/migrations/` work like migration files in any other framework: they are committed to version control and shared across the team.
+
+The recommended convention:
+
+1. One developer runs `ductape db schema generate` after modifying `schema.json`
+2. The generated files are committed in the same PR as the application code
+3. Other team members pull the branch and run `ductape db migrate` — the engine skips anything already applied in their local database
+
+:::info Multi-codebase sync
+When multiple codebases share the same Ductape database, migration files should originate from a single source (e.g., a shared infrastructure repo or CI pipeline). Generating migrations from two places simultaneously can produce conflicting files. A `ductape db schema push` / `pull` sync mechanism is planned for a future release.
+:::
+
+---
+
+## See also
+
+- [Project linking](./linking) — `ductape/config.json` and product/env setup
+- [Resources](./resources) — registering databases in your product
+- [Database migrations (SDK)](/docs/databases/relational/migrations) — programmatic migration API

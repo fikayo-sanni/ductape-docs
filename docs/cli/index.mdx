@@ -5,16 +5,21 @@ sidebar_position: 1
 
 # Ductape CLI
 
-The Ductape CLI (`@ductape/cli`) is the terminal counterpart to the **Workbench**. It uses the same APIs:
-
-- **REST + Bearer token** for account, workspaces, products, and apps
-- **Encrypted proxy** (`x-access-token` + AES payload) for component CRUD and runtime DB/graph operations
+The Ductape CLI (`@ductape/cli`) lets you manage your Ductape workspace, applications, resources, and local projects directly from your terminal.
 
 ## Install
 
+Install the CLI globally:
+
 ```bash
-cd cli
-npm install && npm run build && npm link
+npm install -g @ductape/cli
+```
+
+
+Verify the installation:
+
+```bash
+ductape --help
 ```
 
 ## Quick reference
@@ -28,51 +33,47 @@ npm install && npm run build && npm link
 | Apps | `apps list\|get\|create\|update\|delete\|import` |
 | Project | `init`, `link`, `unlink` |
 | Local stack | `install`, `start`, `stop`, `status` |
-| Components | `resources <type> <verb>` |
+| Resources | `resources <type> <verb>` |
 | Cloud | `cloud connections …`, `cloud resources …` |
-| DB runtime | `db connect`, `db query`, `db context` |
+| Database runtime | `db connect`, `db query`, `db context` |
+| Database migrations | `db schema generate`, `db migrate`, `db migrate status`, `db migrate rollback` |
 | Graph runtime | `graph connect`, `graph query` |
 | Secrets | `secrets create\|list\|get\|update\|delete` |
-| Snippets | `generate payload`, `generate snippet` |
+| Generate | `generate payload`, `generate snippet` |
 | Shell | `completion bash\|zsh` |
 
 ## SDK runtime defaults
 
-In app code (`@ductape/sdk`), set `product` and `env` on the **constructor only**. The CLI uses `.ductape/config.json` instead. See [SDK runtime defaults](/sdk/runtime-defaults).
+Applications built with `@ductape/sdk` specify their `product` and `environment` when creating the SDK client.
+
+The CLI uses the local project configuration stored in `ductape/config.json`, so you don't need to specify these values on every command.
+
+See **SDK runtime defaults** for more information.
 
 ## Documentation map
 
-- [Authentication](./authentication) — login, OAuth, profiles
-- [Workspaces](./workspaces) — select and switch workspace at login
-- [Project linking](./linking) — `.ductape/config.json` and `link`
-- [Local platform](./local-platform) — `ductape start` / Docker stack
-- [Products](./products) — workspace product CRUD
-- [Apps](./apps) — integration app CRUD
-- [Resources](./resources) — component CRUD via sdk-proxy
-- [Cloud](./cloud) — connections and cloud resources
-- [Database runtime](./database) — db-proxy queries
-- [Graph runtime](./graph) — graph-proxy queries
-- [Secrets](./secrets) — workspace secrets
-- [Generate](./generate) — payloads and code snippets
-- [Troubleshooting](./troubleshooting) — common errors
+- Authentication — login, OAuth, and profiles
+- Workspaces — listing and switching workspaces
+- Project linking — `ductape/config.json` and `link`
+- Local platform — running the local Ductape platform
+- Products — product management
+- Apps — integration app management
+- Resources — component CRUD operations
+- Cloud — cloud connections and resources
+- Database runtime & migrations — schema.json, migration files, apply and rollback
+- Graph runtime — graph queries
+- Secrets — workspace secrets
+- Generate — payload and code generation
+- Troubleshooting — common issues and fixes
 
 ## API parity
 
-CLI REST commands use the same Nest routes as the Workbench (`/apps/v1`, `/integrations/v1`, etc.) via the API gateway. See [cli/API_PARITY.md](https://github.com/ductape/ductape/blob/main/cli/API_PARITY.md) in the repo.
+The CLI and Workbench use the same backend APIs, ensuring that operations performed from the terminal behave consistently with the web interface.
 
-## CLI vs MCP server
+## CLI vs MCP Server
 
-| | CLI | MCP server |
+| | CLI | MCP Server |
 |---|-----|------------|
-| Auth | User JWT + encryption | `publishable_key` per call |
-| Payload | AES encrypted | Plain JSON |
-| Use case | Developers, CI, local ops | AI agents with scoped keys |
-
-## Development
-
-```bash
-cd cli
-npm run build
-npm test
-npm run dev -- whoami
-```
+| Authentication | User JWT + encrypted requests | `publishable_key` per request |
+| Payload format | AES-encrypted | Plain JSON |
+| Primary use case | Developers, CI/CD, local operations | AI agents with scoped access |

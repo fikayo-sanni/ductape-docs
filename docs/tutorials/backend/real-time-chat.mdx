@@ -5,7 +5,7 @@ title: Building a Real-time Chat Backend
 
 # Building a Real-time Chat Backend
 
-Learn how to build a scalable real-time chat backend with message brokers, workflows, presence detection, and notification systems using Ductape SDK.
+Learn how to build a scalable real-time chat backend with message brokers, features, presence detection, and notification systems using Ductape SDK.
 
 ## What You'll Build
 
@@ -15,7 +15,7 @@ Learn how to build a scalable real-time chat backend with message brokers, workf
 - File upload handling
 - Group chat management
 - Message search and history
-- Automated moderation workflows
+- Automated moderation features
 - Push notifications
 - Message encryption
 
@@ -177,7 +177,7 @@ async function subscribeToMessages(conversationId: string, callback: (message: a
 }
 ```
 
-## Sending Messages with Workflows
+## Sending Messages with Features
 
 ```typescript
 // Send message function
@@ -188,9 +188,9 @@ async function sendMessage(data: {
   type?: string;
   reply_to_id?: string;
 }) {
-  // Start message workflow
-  const workflow = await ductape.workflows.execute({
-    workflow: 'send-message',
+  // Start message feature
+  const feature = await ductape.features.execute({
+    feature: 'send-message',
     input: {
       conversation_id: data.conversation_id,
       sender_id: data.sender_id,
@@ -200,16 +200,16 @@ async function sendMessage(data: {
     }
   });
 
-  return workflow;
+  return feature;
 }
 ```
 
-## Message Sending Workflow
+## Message Sending Feature
 
-Create `workflows/send-message.ts`:
+Create `features/send-message.ts`:
 
 ```typescript
-export const sendMessageWorkflow = {
+export const sendMessageFeature = {
   name: 'send-message',
   version: '1.0.0',
   steps: [

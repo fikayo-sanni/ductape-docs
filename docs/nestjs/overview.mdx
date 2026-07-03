@@ -19,7 +19,7 @@ The **`@ductape/nestjs`** package wraps [`@ductape/sdk`](/sdk) with NestJS modul
 | App actions | `@Api`, `@ApiDispatch`, `@ApiConfig` |
 | Databases & storage | `@Database`, `@Storage` + feature modules |
 | Webhooks | `@Webhook.Register`, `@Webhook.Consumer`, `@Webhook.List` |
-| Messaging, workflows, jobs | `@Messaging.*`, `@Workflow.*`, `@Job.Run`, … |
+| Messaging, features, jobs | `@Messaging.*`, `@Feature.*`, `@Job.Run`, … |
 | Agents, warehouse, sessions | `@Agent.*`, `@Warehouse.Query`, `@Session.*`, … |
 | Resilience | `@Health.*`, `@Quota.*`, `@Fallback.*` |
 | Workspace builders | `@WebhookBuilder.Define`, `@ModelBuilder.Define`, `@AgentBuilder.Define` |
@@ -82,12 +82,37 @@ Integration mode covers `@Api`, `@Database`, `@Storage`, and `@Webhook.Register`
 
 Workspace mode is required for builder APIs (`ductape.webhooks.create`, `ductape.app.*`, model/agent admin).
 
+## Database schema management
+
+`@ductape/nestjs` provides the `@Database` decorator and injectable handles for querying databases at runtime. Schema management — creating tables, adding fields, running and tracking migrations — is handled separately via the CLI.
+
+**The recommended workflow for NestJS projects:**
+
+1. Declare your tables in `ductape/database/schema.json` at the root of your NestJS project
+2. Run `ductape db schema generate` to produce version-controlled migration files
+3. Run `ductape db migrate` (or `ductape db migrate --env prd`) to apply pending migrations before deploying
+
+This keeps schema changes explicit, reviewable in pull requests, and applied in a controlled sequence across environments — independent of your NestJS application startup.
+
+```bash
+# From your NestJS project root (after ductape init / ductape link)
+ductape db schema generate
+ductape db migrate --env staging
+ductape db migrate --env prd
+```
+
+:::tip
+Add `ductape db migrate` to your CI/CD pipeline as a pre-deploy step. Because the migration engine tracks applied migrations in `_ductape_migrations`, running it multiple times is safe.
+:::
+
+See [CLI: Database runtime & migrations](/docs/cli/database) for the full schema.json format and command reference.
+
 ## Next steps
 
 - [Getting started](./getting-started) — wire `DuctapeModule` and your first `@Api` handler
 - [Module setup](./module-setup) — `forIntegration`, `forWorkspace`, feature modules
 - [Context & handles](./context-and-handles) — `@Product`, `@Env`, `@InjectContext`, multi-tenant patterns
 - [Core decorators](./decorators-core) — `@Api`, `@Database`, `@Storage`, `@Webhook`
-- [Runtime decorators](./decorators-runtime) — messaging, workflows, agents, sessions, resilience
+- [Runtime decorators](./decorators-runtime) — messaging, features, agents, sessions, resilience
 - [Workspace builders](./workspace-builders) — declarative webhook/model/agent definitions
 - [Interceptors](./interceptors) — global vs per-controller registration

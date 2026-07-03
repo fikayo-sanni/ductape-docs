@@ -161,8 +161,8 @@ Generate reports every business day:
 
 ```ts
 // Generate sales report at 6 AM on weekdays
-const salesReport = await ductape.workflows.dispatch({
-  workflow: 'generate_sales_report',
+const salesReport = await ductape.features.dispatch({
+  feature: 'generate_sales_report',
   input: {
     reportType: 'daily',
     format: 'pdf',
@@ -181,8 +181,8 @@ const salesReport = await ductape.workflows.dispatch({
 Generate weekly summary every Monday:
 
 ```ts
-const weeklyAnalytics = await ductape.workflows.dispatch({
-  workflow: 'generate_weekly_summary',
+const weeklyAnalytics = await ductape.features.dispatch({
+  feature: 'generate_weekly_summary',
   input: {
     reportType: 'weekly',
     includeCharts: true,
@@ -248,8 +248,8 @@ const sessionCleanup = await ductape.database.dispatch({
 Archive old logs monthly:
 
 ```ts
-const logRotation = await ductape.workflows.dispatch({
-  workflow: 'rotate_logs',
+const logRotation = await ductape.features.dispatch({
+  feature: 'rotate_logs',
   input: {
     olderThanDays: 30,
     archiveLocation: 's3://logs-archive/',
@@ -402,8 +402,8 @@ const monthlyBilling = await ductape.api.dispatch({
 Calculate usage metrics hourly:
 
 ```ts
-const usageMetering = await ductape.workflows.dispatch({
-  workflow: 'calculate_usage_metrics',
+const usageMetering = await ductape.features.dispatch({
+  feature: 'calculate_usage_metrics',
   input: {
     hourStart: '$DateAdd($Now(), -1, "hours")',
     hourEnd: '$Now()'
@@ -484,8 +484,8 @@ const perfMetrics = await ductape.api.dispatch({
 Generate operational summary daily:
 
 ```ts
-const opsSummary = await ductape.workflows.dispatch({
-  workflow: 'generate_ops_summary',
+const opsSummary = await ductape.features.dispatch({
+  feature: 'generate_ops_summary',
   input: {
     period: 'daily',
     includeAlerts: true,
@@ -508,8 +508,8 @@ Send reminders for abandoned carts:
 
 ```ts
 // Run every hour, find carts abandoned 1-24 hours ago
-const abandonedCartReminder = await ductape.workflows.dispatch({
-  workflow: 'send_abandoned_cart_reminders',
+const abandonedCartReminder = await ductape.features.dispatch({
+  feature: 'send_abandoned_cart_reminders',
   input: {
     abandonedAfterHours: 1,
     abandonedBeforeHours: 24,
@@ -563,8 +563,8 @@ async function scheduleFlashSale(saleId: string, startTime: number, endTime: num
 Check inventory levels twice daily:
 
 ```ts
-const lowStockAlert = await ductape.workflows.dispatch({
-  workflow: 'check_low_stock',
+const lowStockAlert = await ductape.features.dispatch({
+  feature: 'check_low_stock',
   input: {
     thresholds: {
       warning: 50,
@@ -634,8 +634,8 @@ const eventReplay = await ductape.events.dispatch({
 Run promotion check until campaign ends:
 
 ```ts
-const campaignCheck = await ductape.workflows.dispatch({
-  workflow: 'check_campaign_performance',
+const campaignCheck = await ductape.features.dispatch({
+  feature: 'check_campaign_performance',
   input: {
     campaignId: 'summer_sale_2025'
   },

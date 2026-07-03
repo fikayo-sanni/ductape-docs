@@ -10,6 +10,10 @@ Migrations provide version-controlled schema changes for your database. Every sc
 When using `ductape.databases` from a `Ductape` instance, set `product` and `env` on the [constructor](/sdk/runtime-defaults) and pass only `database` to `connect()`. Examples below use `DatabaseService` directly; pass `product` and `env` on `connect()` only if you are not using a `Ductape` client with constructor defaults.
 :::
 
+:::tip Prefer the CLI for schema management
+For most projects, **[`ductape db schema generate`](/docs/cli/database#ductape-db-schema-generate) and [`ductape db migrate`](/docs/cli/database#ductape-db-migrate)** are the recommended way to manage your database schema. Declare tables in `ductape/database/schema.json`, generate version-controlled migration files, and apply them to each environment with a single command. The programmatic API below is available for advanced use cases where you need migration logic embedded in application code.
+:::
+
 ## Quick Example
 
 ```ts
@@ -556,6 +560,72 @@ for (const env of ['dev', 'staging', 'prd']) {
   console.log(`${env}: ${status.completed}/${status.total} migrations applied`);
 }
 ```
+
+## Managing migrations with the CLI
+
+The CLI provides a file-based migration workflow that is version-control friendly and environment-safe. It is the recommended approach for team projects.
+
+### 1. Declare your schema
+
+Add your tables to `ductape/database/schema.json` in your project:
+
+```json
+[
+  {
+    "db": "main-db",
+    "tables": {
+      "users": {
+        "id":        { "type": "String", "primaryKey": true, "autoGenerate": true },
+        "email":     { "type": "String", "required": true, "unique": true },
+        "name":      { "type": "String", "required": true },
+        "createdAt": { "type": "Date", "default": "now" }
+      }
+    }
+  }
+]
+```
+
+### 2. Generate migration files
+
+```bash
+ductape db schema generate
+```
+
+This diffs `schema.json` against any existing migration files and writes new ones to `ductape/database/migrations/<db-tag>/`. Nothing is applied to the database at this step.
+
+### 3. Apply migrations
+
+```bash
+# Apply to your linked environment (from ductape/config.json)
+ductape db migrate
+
+# Apply to a specific environment
+ductape db migrate --env staging
+ductape db migrate --env prd
+```
+
+The `MigrationEngine` tracks applied migrations in `_ductape_migrations`. Re-running is safe — already-applied migrations are skipped.
+
+### 4. Check status and roll back
+
+```bash
+ductape db migrate status
+
+ductape db migrate rollback       # roll back the last migration
+ductape db migrate rollback -n 3  # roll back the last 3
+```
+
+### When to use the programmatic API instead
+
+The SDK's `db.schema.*` and `MigrationBuilder` API (documented above) is appropriate when:
+
+- You need to generate a migration at runtime based on dynamic application logic
+- You are building tooling or admin scripts that manage schema as part of a larger workflow
+- You need database-specific options (e.g., DynamoDB GSI configuration, Cassandra partition keys) that are not yet expressible in `schema.json`
+
+For everything else — including all production deployments — prefer the CLI workflow so that migrations are committed to version control and applied explicitly per environment.
+
+See [CLI: Database runtime & migrations](/docs/cli/database) for the full command reference.
 
 ## Next Steps
 

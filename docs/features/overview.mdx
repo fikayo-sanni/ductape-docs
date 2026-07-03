@@ -7,13 +7,13 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 <PreviewBanner />
 
-# Workflows
+# Features
 
-Workflows are durable, multi-step processes that execute a series of operations with automatic state persistence, retries, and rollbacks. They are designed for complex business processes that need to survive failures and maintain consistency.
+Features are durable, multi-step processes that execute a series of operations with automatic state persistence, retries, and rollbacks. They are designed for complex business processes that need to survive failures and maintain consistency.
 
-## When to Use Workflows
+## When to Use Features
 
-Use **Workflows** when you need:
+Use **Features** when you need:
 
 - **Durability** - Steps that must complete even if your server restarts
 - **Rollbacks** - Automatic compensation when something fails mid-process
@@ -26,10 +26,10 @@ Use **Workflows** when you need:
 
 ## Quick Example
 
-Here's a simple order fulfillment workflow using the code-first API:
+Here's a simple order fulfillment feature using the code-first API:
 
 ```typescript
-const orderWorkflow = await ductape.workflows.define({
+const orderFeature = await ductape.features.define({
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   handler: async (ctx) => {
@@ -98,13 +98,13 @@ const orderWorkflow = await ductape.workflows.define({
 
 ---
 
-## How Workflows Work
+## How Features Work
 
-Every workflow has:
+Every feature has:
 
 1. **A handler function** - Contains your business logic with steps
 2. **Steps** - Individual operations that can be retried and rolled back
-3. **Context (ctx)** - Provides access to Ductape components and workflow state
+3. **Context (ctx)** - Provides access to Ductape components and feature state
 4. **Rollback handlers** - Optional functions to undo completed work on failure
 
 ```
@@ -116,16 +116,16 @@ Input → ctx.step('A') → ctx.step('B') → ctx.step('C') → Output
 
 ---
 
-## The Workflow Context
+## The Feature Context
 
-The `ctx` object provides everything you need inside a workflow:
+The `ctx` object provides everything you need inside a feature:
 
 ### Input & Metadata
 
 ```typescript
-ctx.input           // Workflow input data
-ctx.workflow_id     // Unique execution ID
-ctx.workflow_tag    // Workflow tag
+ctx.input           // Feature input data
+ctx.feature_id      // Unique execution ID
+ctx.feature_tag     // Feature tag
 ctx.env             // Environment (dev, staging, prd)
 ctx.product         // Product tag
 ```
@@ -386,7 +386,7 @@ await ctx.messaging.produce({
 
 ### Sleep
 
-Pause workflow execution:
+Pause feature execution:
 
 ```typescript
 await ctx.sleep(5000);        // 5 seconds
@@ -409,8 +409,8 @@ console.log('Approved by:', approval.approvedBy);
 Send a signal from outside:
 
 ```typescript
-await ductape.workflows.signal({
-  workflow_id: 'wf-123',
+await ductape.features.signal({
+  feature_id: 'wf-123',
   signal: 'order-approved',
   payload: { approvedBy: 'manager@company.com' },
 });
@@ -439,10 +439,10 @@ if (fraudCheck.risk > 0.8) {
 
 ---
 
-## Executing Workflows
+## Executing Features
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   tag: 'order-fulfillment',
   input: {
     orderId: 'ORD-12345',
@@ -462,22 +462,22 @@ console.log('Completed Steps:', result.completed_steps);
 
 ## Conditionals, loops, and switch
 
-You can define **if/else** (including early return), **loops** (`for`), and **switch** in workflow handlers. Because the handler runs once at define time to record steps, use:
+You can define **if/else** (including early return), **loops** (`for`), and **switch** in feature handlers. Because the handler runs once at define time to record steps, use:
 
 - **branchOverrides** – when you branch on a **step result** and return early (e.g. "only run payment if validation passed").
-- **recordInput** – when you **loop** over workflow input (e.g. `for (const item of ctx.input.items)`).
-- **recordScenarios** – when you branch on **workflow input** (e.g. different steps for `type: 'a'` vs `type: 'b'` with `if/else` or `switch`).
+- **recordInput** – when you **loop** over feature input (e.g. `for (const item of ctx.input.items)`).
+- **recordScenarios** – when you branch on **feature input** (e.g. different steps for `type: 'a'` vs `type: 'b'` with `if/else` or `switch`).
 
-At runtime, steps get **conditions** (e.g. `$Step{validate}{valid} == true`, `$Input{type} == 'a'`) and the executor supports `==`, `!=`, `>=`, `<=`, `>`, `<`, and `&&` / `||`. Full syntax and examples: [Building Workflows - Conditionals, loops, and switch](./building-workflows#conditionals-loops-and-switch).
+At runtime, steps get **conditions** (e.g. `$Step{validate}{valid} == true`, `$Input{type} == 'a'`) and the executor supports `==`, `!=`, `>=`, `<=`, `>`, `<`, and `&&` / `||`. Full syntax and examples: [Building Features - Conditionals, loops, and switch](./building-features#conditionals-loops-and-switch).
 
 ## Next Steps
 
-- [Getting Started](./getting-started) - Set up your first workflow
-- [Building Workflows](./building-workflows) - Definition options, conditionals, loops, switch
+- [Getting Started](./getting-started) - Set up your first feature
+- [Building Features](./building-features) - Definition options, conditionals, loops, switch
 - [Step Types](./step-types) - Complete reference for all component operations
 - [Execution & Rollbacks](./execution) - How execution and rollbacks work
-- [Examples](./examples) - Real-world workflow patterns
+- [Examples](./examples) - Real-world feature patterns
 
 ## See Also
 
-- [Jobs](../jobs/overview) - Schedule workflows to run automatically
+- [Jobs](../jobs/overview) - Schedule features to run automatically

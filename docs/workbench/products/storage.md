@@ -5,7 +5,7 @@ description: Configure cloud storage for your product in the Ductape Workbench.
 
 # Setting up Storage
 
-Ductape allows you to connect cloud storage providers to your product so it can store and retrieve files during workflows and actions.
+Ductape allows you to connect cloud storage providers to your product so it can store and retrieve files during features and actions.
 
 Supported providers include **AWS S3**, **Google Cloud Storage**, and **Azure Blob Storage**.
 

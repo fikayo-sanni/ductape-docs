@@ -195,7 +195,7 @@ await ductape.quota.update('api-calls', {
 
 ## Using Quotas in Features
 
-Reference quotas in your feature workflows to enforce limits:
+Reference quotas in your feature features to enforce limits:
 
 ```typescript
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
@@ -335,6 +335,6 @@ if (check.exceeded) {
 
 ## See Also
 
-- [Features](/features/overview) - Integrate quotas into feature workflows
+- [Features](/features/overview) - Integrate quotas into feature features
 - [Fallbacks](/fallbacks/overview) - Handle quota exceeded scenarios
 - [Jobs](/jobs/overview) - Schedule quota reset tasks

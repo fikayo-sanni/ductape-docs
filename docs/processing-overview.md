@@ -5,7 +5,7 @@ sidebar_position: 21
 # Processors: Running Product Resources
 A Processor is the execution engine for your Ductape product. It runs actions, features, jobs, and other resources on your own infrastructure, while staying fully integrated with your product's environments, configuration, and version control.
 
-Think of it as the bridge between your code and where it actually runs. It ensures every workflow executes with the right settings, in the right environment, and with full context.
+Think of it as the bridge between your code and where it actually runs. It ensures every feature executes with the right settings, in the right environment, and with full context.
 
 ## Accessing Processor Methods
 

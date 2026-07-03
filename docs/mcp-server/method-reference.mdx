@@ -350,20 +350,20 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 
 ---
 
-## `workflow`
+## `feature`
 
 | Method | Params |
 |--------|--------|
-| `create` | `[product_tag, data: { tag, name, description?, input?, output?, envs?, steps: [{ tag, name?, type, app?, event?, database?, graph?, notification?, storage?, broker?, workflow?, input?, condition?, dependsOn?, options? }] }]` |
-| `update` | `[product_tag, workflow_tag, data: { name?, description?, steps?, envs? }]` |
-| `fetch` | `[product_tag, workflow_tag]` |
+| `create` | `[product_tag, data: { tag, name, description?, input?, output?, envs?, steps: [{ tag, name?, type, app?, event?, database?, graph?, notification?, storage?, broker?, feature?, input?, condition?, dependsOn?, options? }] }]` |
+| `update` | `[product_tag, feature_tag, data: { name?, description?, steps?, envs? }]` |
+| `fetch` | `[product_tag, feature_tag]` |
 | `fetchAll` | `[product_tag]` |
-| `delete` | `[product_tag, workflow_tag]` |
+| `delete` | `[product_tag, feature_tag]` |
 | `define` | `[{ product?, tag, name, description?, input?, output?, signals?, queries?, options?, envs?, recordInput?, recordScenarios?, branchOverrides?, handler }]` |
 | `execute` | `[{ product, env, tag, input, session?, idempotency_key?, cache?, retries?, timeout? }]` |
-| `dispatch` | `[{ product, env, workflow, input, schedule?, session?, cache?, retries? }]` |
-| `signal` | `[{ product, env, workflow_id, signal, payload? }]` |
-| `query` | `[{ product, env, workflow_id, query, params? }]` |
+| `dispatch` | `[{ product, env, feature, input, schedule?, session?, cache?, retries? }]` |
+| `signal` | `[{ product, env, feature_id, signal, payload? }]` |
+| `query` | `[{ product, env, feature_id, query, params? }]` |
 | `status` | `[executionId]` |
 | `cancel` | `[executionId, reason?]` |
 | `replay` | `[executionId, options?]` |
@@ -375,7 +375,7 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 | `relatedExecutions` | `[executionId]` |
 | `compare` | `[executionId1, executionId2]` |
 
-Step types: `action`, `database`, `graph`, `notification`, `storage`, `publish`, `workflow`, `sleep`, `wait_signal`.
+Step types: `action`, `database`, `graph`, `notification`, `storage`, `publish`, `feature`, `sleep`, `wait_signal`.
 
 ---
 

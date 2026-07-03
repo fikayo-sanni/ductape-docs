@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Defining Outputs for Fallbacks
 
-In Ductape, outputs are defined per option within a fallback. Each option specifies its own output mapping, which determines what data is made available if that option succeeds. Only the output of the successful (first non-failing) option is available for downstream workflow steps.
+In Ductape, outputs are defined per option within a fallback. Each option specifies its own output mapping, which determines what data is made available if that option succeeds. Only the output of the successful (first non-failing) option is available for downstream feature steps.
 
 ## Example: Outputs Per Option
 ```typescript
@@ -47,7 +47,7 @@ const nextEvent = {
 };
 ```
 
-> **Note:** Use `$Sequence{fallbackTag}{field}` to access the output of a fallback event in subsequent workflow steps. The old `$Fallbacks{...}` syntax is not valid for this purpose.
+> **Note:** Use `$Sequence{fallbackTag}{field}` to access the output of a fallback event in subsequent feature steps. The old `$Fallbacks{...}` syntax is not valid for this purpose.
 
 ## Best Practices
 - Define output mappings for each option to be as consistent as possible, so downstream steps can reference outputs without conditional logic.

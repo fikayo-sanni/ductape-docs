@@ -1,26 +1,26 @@
 
-Vue 3 composables for executing and managing Ductape Workflows.
+Vue 3 composables for executing and managing Ductape Features.
 
-## useWorkflowExecution
+## useFeatureExecution
 
-Execute a workflow and track its progress.
+Execute a feature and track its progress.
 
-### Basic Workflow Execution
+### Basic Feature Execution
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowExecution } from '@ductape/vue';
+import { useFeatureExecution } from '@ductape/vue';
 
-const { mutate, isLoading, data, error } = useWorkflowExecution({
+const { mutate, isLoading, data, error } = useFeatureExecution({
   onSuccess: (result) => {
-    console.log('Workflow completed:', result);
+    console.log('Feature completed:', result);
     alert('Order processed successfully!');
   }
 });
 
 const handleProcessOrder = (orderId: string) => {
   mutate({
-    workflow: 'process-order',
+    feature: 'process-order',
     input: {
       orderId,
       priority: 'high'
@@ -40,17 +40,17 @@ const handleProcessOrder = (orderId: string) => {
 </template>
 ```
 
-### Workflow with Real-time Status
+### Feature with Real-time Status
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useWorkflowExecution } from '@ductape/vue';
-import WorkflowStatus from './WorkflowStatus.vue';
+import { useFeatureExecution } from '@ductape/vue';
+import FeatureStatus from './FeatureStatus.vue';
 
 const executionId = ref<string | null>(null);
 
-const { mutate, isLoading } = useWorkflowExecution({
+const { mutate, isLoading } = useFeatureExecution({
   onSuccess: (result) => {
     executionId.value = result.executionId;
   }
@@ -58,7 +58,7 @@ const { mutate, isLoading } = useWorkflowExecution({
 
 const handleStart = () => {
   mutate({
-    workflow: 'data-pipeline',
+    feature: 'data-pipeline',
     input: {
       source: 'database',
       destination: 's3'
@@ -72,30 +72,30 @@ const handleStart = () => {
     <button @click="handleStart" :disabled="isLoading">
       Start Pipeline
     </button>
-    <WorkflowStatus v-if="executionId" :execution-id="executionId" />
+    <FeatureStatus v-if="executionId" :execution-id="executionId" />
   </div>
 </template>
 ```
 
-## useWorkflowStatus
+## useFeatureStatus
 
-Monitor the status of a running workflow.
+Monitor the status of a running feature.
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowStatus } from '@ductape/vue';
+import { useFeatureStatus } from '@ductape/vue';
 
 const props = defineProps<{ executionId: string }>();
 
-const { data: status, isLoading } = useWorkflowStatus(props.executionId, {
+const { data: status, isLoading } = useFeatureStatus(props.executionId, {
   refetchInterval: 2000 // Poll every 2 seconds
 });
 </script>
 
 <template>
   <div v-if="isLoading">Loading status...</div>
-  <div v-else class="workflow-status">
-    <h3>Workflow Status</h3>
+  <div v-else class="feature-status">
+    <h3>Feature Status</h3>
     <div>
       <strong>Status:</strong> {{ status?.status }}
     </div>
@@ -111,7 +111,7 @@ const { data: status, isLoading } = useWorkflowStatus(props.executionId, {
     </div>
 
     <div v-if="status?.status === 'completed'" class="success">
-      Workflow completed successfully!
+      Feature completed successfully!
     </div>
 
     <div v-if="status?.status === 'failed'" class="error">
@@ -135,27 +135,27 @@ const { data: status, isLoading } = useWorkflowStatus(props.executionId, {
 </style>
 ```
 
-## useWorkflowSubscription
+## useFeatureSubscription
 
-Subscribe to real-time workflow events.
+Subscribe to real-time feature events.
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useWorkflowSubscription } from '@ductape/vue';
+import { useFeatureSubscription } from '@ductape/vue';
 
 const props = defineProps<{ executionId: string }>();
 const events = ref<any[]>([]);
 
-useWorkflowSubscription({
+useFeatureSubscription({
   executionId: props.executionId,
   onEvent: (event) => {
     events.value.push(event);
 
     if (event.type === 'step_completed') {
       console.log(`Step ${event.step} completed`);
-    } else if (event.type === 'workflow_completed') {
-      console.log('Workflow finished!');
+    } else if (event.type === 'feature_completed') {
+      console.log('Feature finished!');
     }
   }
 });
@@ -163,7 +163,7 @@ useWorkflowSubscription({
 
 <template>
   <div>
-    <h3>Workflow Events</h3>
+    <h3>Feature Events</h3>
     <ul>
       <li v-for="(event, idx) in events" :key="idx">
         <strong>{{ event.type }}:</strong> {{ event.message }}
@@ -176,17 +176,17 @@ useWorkflowSubscription({
 </template>
 ```
 
-## useWorkflowSignal
+## useFeatureSignal
 
-Send signals to a running workflow.
+Send signals to a running feature.
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowSignal } from '@ductape/vue';
+import { useFeatureSignal } from '@ductape/vue';
 
 const props = defineProps<{ executionId: string }>();
 
-const { mutate: sendSignal, isLoading } = useWorkflowSignal({
+const { mutate: sendSignal, isLoading } = useFeatureSignal({
   onSuccess: () => {
     alert('Signal sent successfully');
   }
@@ -224,24 +224,24 @@ const handleReject = () => {
 </template>
 ```
 
-## useWorkflowCancel
+## useFeatureCancel
 
-Cancel a running workflow.
+Cancel a running feature.
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowCancel } from '@ductape/vue';
+import { useFeatureCancel } from '@ductape/vue';
 
 const props = defineProps<{ executionId: string }>();
 
-const { mutate: cancel, isLoading } = useWorkflowCancel({
+const { mutate: cancel, isLoading } = useFeatureCancel({
   onSuccess: () => {
-    alert('Workflow cancelled');
+    alert('Feature cancelled');
   }
 });
 
 const handleCancel = () => {
-  if (confirm('Are you sure you want to cancel this workflow?')) {
+  if (confirm('Are you sure you want to cancel this feature?')) {
     cancel({ executionId: props.executionId });
   }
 };
@@ -249,21 +249,21 @@ const handleCancel = () => {
 
 <template>
   <button @click="handleCancel" :disabled="isLoading" class="danger">
-    {{ isLoading ? 'Cancelling...' : 'Cancel Workflow' }}
+    {{ isLoading ? 'Cancelling...' : 'Cancel Feature' }}
   </button>
 </template>
 ```
 
-## useWorkflowHistory
+## useFeatureHistory
 
-View workflow execution history.
+View feature execution history.
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowHistory } from '@ductape/vue';
+import { useFeatureHistory } from '@ductape/vue';
 
-const { data, isLoading } = useWorkflowHistory({
-  workflow: 'process-order',
+const { data, isLoading } = useFeatureHistory({
+  feature: 'process-order',
   limit: 20
 });
 </script>
@@ -271,7 +271,7 @@ const { data, isLoading } = useWorkflowHistory({
 <template>
   <div v-if="isLoading">Loading history...</div>
   <div v-else>
-    <h2>Workflow History</h2>
+    <h2>Feature History</h2>
     <table>
       <thead>
         <tr>
@@ -298,15 +298,15 @@ const { data, isLoading } = useWorkflowHistory({
 </template>
 ```
 
-## Complete Approval Workflow Example
+## Complete Approval Feature Example
 
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue';
 import {
-  useWorkflowExecution,
-  useWorkflowSignal,
-  useWorkflowSubscription
+  useFeatureExecution,
+  useFeatureSignal,
+  useFeatureSubscription
 } from '@ductape/vue';
 
 interface ApprovalRequest {
@@ -320,39 +320,39 @@ interface ApprovalRequest {
 const props = defineProps<{ request: ApprovalRequest }>();
 
 const executionId = ref<string | null>(null);
-const workflowStatus = ref<string>('idle');
+const featureStatus = ref<string>('idle');
 
-// Start workflow
-const { mutate: startWorkflow, isLoading: isStarting } = useWorkflowExecution({
+// Start feature
+const { mutate: startFeature, isLoading: isStarting } = useFeatureExecution({
   onSuccess: (result) => {
     executionId.value = result.executionId;
-    workflowStatus.value = 'running';
+    featureStatus.value = 'running';
   }
 });
 
 // Send approval signal
-const { mutate: sendSignal } = useWorkflowSignal({
+const { mutate: sendSignal } = useFeatureSignal({
   onSuccess: () => {
-    workflowStatus.value = 'completed';
+    featureStatus.value = 'completed';
   }
 });
 
 // Monitor status
-useWorkflowSubscription({
+useFeatureSubscription({
   executionId: executionId.value || '',
   enabled: !!executionId.value,
   onEvent: (event) => {
-    if (event.type === 'workflow_completed') {
-      workflowStatus.value = 'completed';
-    } else if (event.type === 'workflow_failed') {
-      workflowStatus.value = 'failed';
+    if (event.type === 'feature_completed') {
+      featureStatus.value = 'completed';
+    } else if (event.type === 'feature_failed') {
+      featureStatus.value = 'failed';
     }
   }
 });
 
 const handleStart = () => {
-  startWorkflow({
-    workflow: 'approval-process',
+  startFeature({
+    feature: 'approval-process',
     input: {
       requestId: props.request.id,
       requestData: props.request
@@ -385,7 +385,7 @@ const handleReject = () => {
 </script>
 
 <template>
-  <div class="approval-workflow">
+  <div class="approval-feature">
     <div class="request-details">
       <h3>{{ request.title }}</h3>
       <p>{{ request.description }}</p>
@@ -393,15 +393,15 @@ const handleReject = () => {
     </div>
 
     <button
-      v-if="workflowStatus === 'idle'"
+      v-if="featureStatus === 'idle'"
       @click="handleStart"
       :disabled="isStarting"
     >
       {{ isStarting ? 'Starting...' : 'Start Approval Process' }}
     </button>
 
-    <div v-if="workflowStatus === 'running' && executionId" class="workflow-controls">
-      <WorkflowStatus :execution-id="executionId" />
+    <div v-if="featureStatus === 'running' && executionId" class="feature-controls">
+      <FeatureStatus :execution-id="executionId" />
       <div class="actions">
         <button @click="handleApprove" class="approve">
           Approve
@@ -412,24 +412,24 @@ const handleReject = () => {
       </div>
     </div>
 
-    <div v-if="workflowStatus === 'completed'" class="success">
+    <div v-if="featureStatus === 'completed'" class="success">
       Approval process completed!
     </div>
 
-    <div v-if="workflowStatus === 'failed'" class="error">
+    <div v-if="featureStatus === 'failed'" class="error">
       Approval process failed. Please try again.
     </div>
   </div>
 </template>
 
 <style scoped>
-.approval-workflow {
+.approval-feature {
   padding: 1.5rem;
   border: 1px solid #ddd;
   border-radius: 8px;
 }
 
-.workflow-controls {
+.feature-controls {
   margin-top: 1rem;
 }
 

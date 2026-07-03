@@ -372,9 +372,9 @@ Using a single Ductape instance ensures:
 
 ## Next Steps
 
-- [Add Apps](/docs/apps/getting-started) - Connect third-party APIs
-- [Create Products](/docs/products/overview) - Organize your integrations
-- [Run Actions](/docs/actions/run-actions) - Execute API calls
-- [Configure Auth](/docs/actions/auth-configuration) - Set up credentials and OAuth
-- [Connect Databases](/docs/databases/getting-started) - Work with relational data
-- [Build Workflows](/docs/workflows/overview) - Create multi-step processes
+- [Add Apps](/apps/create-app) - Connect third-party APIs
+- [Create Products](/products/overview) - Organize your integrations
+- [Run Actions](/actions/run-actions) - Execute API calls
+- [Configure Auth](/actions/auth-configuration) - Set up credentials and OAuth
+- [Connect Databases](/databases/relational/getting-started) - Work with relational data
+- [Build Features](/features/overview) - Create multi-step processes

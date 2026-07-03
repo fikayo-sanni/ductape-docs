@@ -132,9 +132,7 @@ Generate canonical executable payload templates from `POST /integrations/v1/payl
 
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
-| `workspace_id` | string | Yes | Workspace ID |
-| `user_id` | string | Yes | User ID |
-| `public_key` | string | Yes | Workspace public key (sent as `x-access-key`) |
+| `publishable_key` | string | Yes | Workspace publishable key for authentication |
 | `product_tag` | string | Yes | Product tag (e.g. `ductape:my-product`) |
 | `env_slug` | string | Yes | Environment slug (`prd`, `stg`, etc.) |
 | `operation_family` | string | Yes | Executable family (see [Code generation](./code-generation#operation-families)) |
@@ -158,9 +156,7 @@ Generate canonical executable payload templates from `POST /integrations/v1/payl
 
 ```json
 {
-  "workspace_id": "ws_abc123",
-  "user_id": "usr_xyz789",
-  "public_key": "pk_...",
+  "publishable_key": "pk_...",
   "product_tag": "ductape:my-product",
   "env_slug": "prd",
   "operation_family": "database",
@@ -200,9 +196,7 @@ Same as `ductape_generate_payload`, plus:
 
 ```json
 {
-  "workspace_id": "ws_abc123",
-  "user_id": "usr_xyz789",
-  "public_key": "pk_...",
+  "publishable_key": "pk_...",
   "product_tag": "ductape:my-product",
   "env_slug": "prd",
   "operation_family": "action",

@@ -5,7 +5,7 @@ title: Building an E-commerce Backend
 
 # Building an E-commerce Backend
 
-Learn how to build a complete e-commerce backend with inventory management, order processing, payment integration, notifications, and automated workflows using Ductape SDK.
+Learn how to build a complete e-commerce backend with inventory management, order processing, payment integration, notifications, and automated features using Ductape SDK.
 
 ## What You'll Build
 
@@ -13,7 +13,7 @@ Learn how to build a complete e-commerce backend with inventory management, orde
 - Shopping cart and order processing
 - Stripe payment integration
 - Email and SMS notifications
-- Order fulfillment workflows
+- Order fulfillment features
 - Inventory tracking and alerts
 - Customer management
 - Order status updates
@@ -301,7 +301,7 @@ async function createOrGetCustomer(customerData: {
 }
 ```
 
-## Order Processing with Workflow
+## Order Processing with Feature
 
 ```typescript
 // Create order
@@ -351,16 +351,16 @@ async function createOrder(orderData: {
     }
   });
 
-  // Start order processing workflow
-  await startOrderWorkflow(order.rows[0]);
+  // Start order processing feature
+  await startOrderFeature(order.rows[0]);
 
   return order.rows[0];
 }
 
-// Order processing workflow
-async function startOrderWorkflow(order: any) {
-  await ductape.workflows.execute({
-    workflow: 'process-order',
+// Order processing feature
+async function startOrderFeature(order: any) {
+  await ductape.features.execute({
+    feature: 'process-order',
     input: {
       order_id: order.id,
       order_number: order.order_number,
@@ -371,9 +371,9 @@ async function startOrderWorkflow(order: any) {
 }
 ```
 
-## Create Order Workflow
+## Create Order Feature
 
-Create a workflow file `workflows/process-order.ts`:
+Create a feature file `features/process-order.ts`:
 
 ```typescript
 import { Ductape } from '@ductape/sdk';
@@ -382,7 +382,7 @@ const ductape = new Ductape({
   apiKey: process.env.DUCTAPE_API_KEY!
 });
 
-export const processOrderWorkflow = {
+export const processOrderFeature = {
   name: 'process-order',
   version: '1.0.0',
   steps: [
@@ -625,10 +625,10 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (r
       });
 
       if (order.row) {
-        // Trigger workflow continuation
-        await ductape.workflows.signal({
-          workflow: 'process-order',
-          executionId: order.row.workflow_execution_id,
+        // Trigger feature continuation
+        await ductape.features.signal({
+          feature: 'process-order',
+          executionId: order.row.feature_execution_id,
           signal: 'payment.confirmed',
           data: {
             payment_intent_id: paymentIntent.id,
@@ -1016,7 +1016,7 @@ app.listen(PORT, () => {
 
 ## Next Steps
 
-- Implement refunds and returns workflow
+- Implement refunds and returns feature
 - Add product reviews and ratings
 - Create discount codes and promotions
 - Set up analytics and reporting

@@ -150,17 +150,17 @@ await ductape.health.define({
 
 Storage probes verify that your object storage (AWS S3, Google Cloud Storage, Azure Blob Storage, etc.) is accessible by attempting to list objects.
 
-### Workflow Probe
+### Feature Probe
 
-Run a workflow to verify end-to-end functionality:
+Run a feature to verify end-to-end functionality:
 
 ```ts
 await ductape.health.define({
-  tag: 'order-workflow-health',
-  name: 'Order Workflow Health',
+  tag: 'order-feature-health',
+  name: 'Order Feature Health',
   handler: async (ctx) => {
-    // Execute a test workflow
-    ctx.probe().workflow('order-processing').input({
+    // Execute a test feature
+    ctx.probe().feature('order-processing').input({
       test_mode: true,
       order_id: 'health-check-order',
     });
@@ -171,7 +171,7 @@ await ductape.health.define({
 });
 ```
 
-Workflow probes execute the specified workflow with the provided input and check if it completes successfully. This is useful for testing end-to-end system functionality.
+Feature probes execute the specified feature with the provided input and check if it completes successfully. This is useful for testing end-to-end system functionality.
 
 ## Configuration Options
 
@@ -367,7 +367,7 @@ The `run` method:
    - **Graph**: Tests graph database connection
    - **Message Broker**: Tests broker connection (connect/disconnect)
    - **Storage**: Tests object storage connectivity (list objects)
-   - **Workflow**: Executes the workflow and checks completion status
+   - **Feature**: Executes the feature and checks completion status
 3. Caches the result in Redis for status tracking
 4. Triggers failure notifications if configured and the check fails
 5. Returns the execution result

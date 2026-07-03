@@ -8,7 +8,7 @@ Learn how to connect third-party apps and integrations to your products.
 
 ## Overview
 
-Apps represent third-party services (like Stripe, SendGrid, Twilio) that your product integrates with. Connecting apps to products allows you to use their actions within your features and workflows.
+Apps represent third-party services (like Stripe, SendGrid, Twilio) that your product integrates with. Connecting apps to products allows you to use their actions within your features and features.
 
 ## Connecting an App
 
@@ -180,7 +180,7 @@ setupProductApps().catch(console.error);
 
 ## Using Connected Apps
 
-Once connected, use apps in your workflows:
+Once connected, use apps in your features:
 
 ```typescript
 // Run an action from a connected app (product/env from Ductape constructor)
@@ -230,5 +230,5 @@ await ductape.product.app.add({
 
 - [Products Overview](./overview) - Product architecture
 - [Apps](/apps/getting-started) - Create and manage apps
-- [Actions](/actions/overview) - Use app actions in workflows
+- [Actions](/actions/overview) - Use app actions in features
 - [Secrets](/secrets/overview) - Manage API credentials

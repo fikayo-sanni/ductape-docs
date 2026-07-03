@@ -52,4 +52,4 @@ Follow these steps to add and configure a new app (e.g., Paystack) in Ductape:
 
 ![Setup Auth](/img/auths.png)
 
-You’ve now added and configured your Paystack app in Ductape! Continue to set up resources, connect to products, and automate workflows as needed.
+You’ve now added and configured your Paystack app in Ductape! Continue to set up resources, connect to products, and automate features as needed.

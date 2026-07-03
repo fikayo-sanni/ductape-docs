@@ -14,7 +14,7 @@ Think of Actions as the building blocks of your integrations:
 
 - **Apps** are collections of endpoints (like the Stripe API)
 - **Actions** are individual endpoints (like "Create Charge" or "Refund Payment")
-- **Products** orchestrate multiple Actions together into workflows
+- **Products** orchestrate multiple Actions together into features
 
 ## Prerequisites
 
@@ -186,7 +186,7 @@ await ductape.api.update('send-email', {
 
 ## Complete Example
 
-Here's a complete workflow showing how to work with Actions:
+Here's a complete feature showing how to work with Actions:
 
 ```ts
 import Ductape from '@ductape/sdk';

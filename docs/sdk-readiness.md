@@ -15,7 +15,7 @@ Comparison for choosing a server SDK in production. TypeScript (`@ductape/sdk`) 
 | **Production readiness** | Reference | Highest | High | Moderate |
 | **Package** | `@ductape/sdk` | Maven `app.ductape:sdk` | `go get github.com/ductape/ductape/sdk/go` | NuGet `Ductape.Sdk` |
 | **Release** | npm | OSSRH → Maven Central | Git tag `sdk/go/vX.Y.Z` | NuGet on GitHub Release |
-| **Workflow/agent engines** | Full TS executors | Local executor seams | Default executors (bounded) | Seams + minimal defaults |
+| **Feature/agent engines** | Full TS executors | Local executor seams | Default executors (bounded) | Seams + minimal defaults |
 
 ## Strengths
 
@@ -27,7 +27,7 @@ Comparison for choosing a server SDK in production. TypeScript (`@ductape/sdk`) 
 
 ## Known gaps (all SDKs)
 
-- Full TS **workflow-executor** and **agent-executor** engines are not ported; use local executors or stay on TypeScript.
+- Full TS **feature-executor** and **agent-executor** engines are not ported; use local executors or stay on TypeScript.
 - Full fluent **ProductBuilder** DSL (~7k TS lines) is deferred; use flat product APIs or TS for builder-heavy setup.
 - Live vector/graph vendor edge cases require credentials and opt-in live tests.
 

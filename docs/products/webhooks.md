@@ -188,4 +188,4 @@ When receiving webhook calls:
 - [Products Overview](./overview) - Product architecture
 - [Connecting Apps](./connecting-apps) - Link apps to products
 - [App Webhooks](/apps/webhooks) - Configure webhooks at the app level
-- [Features](/features/overview) - Process webhook events in workflows
+- [Features](/features/overview) - Process webhook events in features

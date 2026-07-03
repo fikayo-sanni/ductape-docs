@@ -1,0 +1,371 @@
+---
+title: Getting started with Events
+sidebar_label: Getting started
+sidebar_position: 2
+---
+
+# Getting started with Events
+
+There are three steps to working with events in Ductape:
+
+1. **Set up a broker** — connect a message provider to your product
+2. **Define topics** — declare the event streams your services will use
+3. **Produce and consume** — publish and receive events in your application code
+
+---
+
+## Step 1: Set up a broker
+
+### With the CLI (recommended)
+
+After running `ductape init`, open `ductape/events.json`. It contains a placeholder entry you can replace with your real broker configuration:
+
+```json
+[
+  {
+    "tag": "order-events",
+    "name": "Order events",
+    "description": "All order-related events",
+    "envs": [
+      {
+        "slug": "dev",
+        "type": "REDIS",
+        "config": {
+          "host": "localhost",
+          "port": 6379
+        }
+      },
+      {
+        "slug": "prd",
+        "type": "KAFKA",
+        "config": {
+          "brokers": ["kafka.example.com:9092"],
+          "clientId": "order-service",
+          "groupId": "order-consumers",
+          "ssl": true,
+          "sasl": {
+            "mechanism": "scram-sha-256",
+            "username": "prod-user",
+            "password": "prod-password"
+          }
+        }
+      }
+    ]
+  }
+]
+```
+
+Then apply it to your product:
+
+```bash
+ductape apply events
+```
+
+You can have multiple broker entries in the array — `apply events` syncs all of them.
+
+:::tip Environment separation
+Use a lightweight provider (Redis, NATS) for development and your production-grade provider (Kafka, RabbitMQ) for staging and production. The broker tag stays the same across environments; only the `config` inside each `envs` entry changes.
+:::
+
+### With the SDK
+
+```ts
+import Ductape, { MessageBrokerTypes } from '@ductape/sdk';
+
+const ductape = new Ductape({ accessKey: 'your-access-key' });
+
+await ductape.messaging.create({
+  name: 'Order events',
+  tag: 'order-events',
+  description: 'All order-related events',
+  envs: [
+    {
+      slug: 'dev',
+      type: MessageBrokerTypes.REDIS,
+      config: { host: 'localhost', port: 6379 },
+    },
+    {
+      slug: 'prd',
+      type: MessageBrokerTypes.KAFKA,
+      config: {
+        brokers: ['kafka.example.com:9092'],
+        clientId: 'order-service',
+        groupId: 'order-consumers',
+        ssl: true,
+      },
+    },
+  ],
+});
+```
+
+### Provider config reference
+
+**Kafka**
+```ts
+{
+  brokers: string[];
+  clientId: string;
+  groupId: string;
+  ssl?: boolean;
+  sasl?: {
+    mechanism: 'plain' | 'scram-sha-256' | 'scram-sha-512';
+    username: string;
+    password: string;
+  };
+}
+```
+
+**RabbitMQ**
+```ts
+{
+  url: string;   // amqps://user:pass@host/vhost
+}
+```
+
+**Redis**
+```ts
+{
+  host: string;
+  port: number;
+  password?: string;
+}
+```
+
+**AWS SQS**
+```ts
+{
+  region: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+```
+
+**Google Pub/Sub**
+```ts
+{
+  projectId: string;
+  topicName: string;
+  subscriptionName?: string;
+  keyFilename?: string;
+}
+```
+
+**NATS**
+```ts
+{
+  servers: string | string[];
+  user?: string;
+  pass?: string;
+  token?: string;
+}
+```
+
+---
+
+## Step 2: Define topics
+
+Topics are the named event streams within a broker. Create one for each distinct event type your system produces or consumes.
+
+The topic tag must be the full event identifier — `brokerTag:topicTag`:
+
+```ts
+await ductape.messaging.topics.create('my-product', {
+  name: 'Order created',
+  tag: 'order-events:order-created',
+  description: 'Emitted when a new order is placed',
+  sample: {
+    orderId: '12345',
+    customerId: 'cust_789',
+    items: [{ sku: 'PROD-1', qty: 2, price: 49.99 }],
+    total: 99.98,
+    createdAt: '2026-07-03T10:00:00Z',
+  },
+});
+
+await ductape.messaging.topics.create('my-product', {
+  name: 'Order fulfilled',
+  tag: 'order-events:order-fulfilled',
+  description: 'Emitted when an order has been dispatched',
+  sample: {
+    orderId: '12345',
+    dispatchedAt: '2026-07-03T14:00:00Z',
+    trackingRef: 'TRK-9876',
+  },
+});
+```
+
+The `sample` field documents the expected payload shape. It is displayed in the Workbench and can be used for validation tooling.
+
+### List and inspect topics
+
+```ts
+const topics = await ductape.messaging.topics.list('my-product', 'order-events');
+
+const topic = await ductape.messaging.topics.fetch('my-product', 'order-events:order-created');
+console.log(topic.name, topic.sample);
+```
+
+---
+
+## Step 3: Produce and consume
+
+### Producing events
+
+Call `messaging.produce()` with the event string and the message payload:
+
+```ts
+await ductape.messaging.produce({
+  event: 'order-events:order-created',
+  message: {
+    orderId: '12345',
+    customerId: 'cust_789',
+    total: 99.98,
+    createdAt: new Date().toISOString(),
+  },
+});
+```
+
+**With user context** — attach a session token so the event is traceable to the user who triggered it:
+
+```ts
+const session = await ductape.sessions.start({
+  tag: 'user-session',
+  data: { userId: 'u1', email: 'user@example.com' },
+});
+
+await ductape.messaging.produce({
+  event: 'order-events:order-created',
+  message: { orderId: '12345', total: 99.98 },
+  session: `${session.sessionId}:${session.token}`,
+});
+```
+
+### Consuming events
+
+Call `messaging.consume()` with the event string and a callback. The callback receives each message as it arrives:
+
+```ts
+await ductape.messaging.consume({
+  event: 'order-events:order-created',
+  callback: async (message) => {
+    const { orderId, customerId, total } = message;
+
+    await db.orders.update({ id: orderId, status: 'processing' });
+    await sendConfirmationEmail(customerId);
+
+    console.log(`Processed order ${orderId} — total £${total}`);
+  },
+});
+```
+
+If your callback throws, the broker records the failure. Messages that fail repeatedly are moved to the dead-letter queue.
+
+---
+
+## NestJS integration
+
+In a NestJS service, use the `@Messaging.Produce` decorator instead of calling the SDK directly:
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { Messaging } from '@ductape/nestjs';
+
+@Injectable()
+export class OrdersService {
+  @Messaging.Produce({ event: 'order-events:order-created' })
+  emitOrderCreated(payload: { orderId: string; total: number }) {
+    return payload;
+  }
+}
+```
+
+For consuming, wire a service method with `@Messaging.Consume` (or use the SDK `messaging.consume()` in your module's `onModuleInit`):
+
+```ts
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import Ductape from '@ductape/sdk';
+
+@Injectable()
+export class OrderConsumerService implements OnModuleInit {
+  constructor(private readonly ductape: Ductape) {}
+
+  async onModuleInit() {
+    await this.ductape.messaging.consume({
+      event: 'order-events:order-created',
+      callback: async (message) => {
+        await this.handleOrderCreated(message);
+      },
+    });
+  }
+
+  private async handleOrderCreated(message: unknown) {
+    // handler logic
+  }
+}
+```
+
+---
+
+## Observability
+
+Query produced and consumed messages, inspect dead letters, and get throughput stats:
+
+```ts
+// Message history
+const { messages } = await ductape.messaging.messages.query({
+  brokerTag: 'order-events',
+  topicTag: 'order-created',
+  page: 1,
+  limit: 20,
+});
+
+// Dead letters
+const { deadLetters } = await ductape.messaging.messages.getDeadLetters({
+  brokerTag: 'order-events',
+});
+
+// Throughput stats
+const stats = await ductape.messaging.messages.getStats({
+  brokerTag: 'order-events',
+});
+```
+
+Replay a failed event:
+
+```ts
+import { BrokersService } from '@ductape/sdk';
+
+const brokers = new BrokersService({ access_key: 'your-access-key', env_type: 'prd' });
+
+await brokers.replayEvent({ eventId: 'event-abc123', force: true });
+await brokers.reprocessDLQ({ brokerTag: 'order-events' });
+```
+
+---
+
+## Cloud-linked brokers
+
+If your broker lives in a cloud account already connected to Ductape, reference it by its cloud connection tag instead of providing credentials directly:
+
+```ts
+// AWS SQS provisioned from a cloud connection
+await ductape.messaging.create({
+  name: 'Order events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: 'aws_sqs',
+    config: { cloud: 'prod_aws', queueName: 'order-events', region: 'us-east-1' },
+  }],
+});
+```
+
+See [Cloud-linked components](../cloud/cloud-linked-components) for full details on AWS, GCP, and Azure connections.
+
+---
+
+## See also
+
+- [CLI: `ductape apply`](../cli/apply) — declare and sync brokers from `ductape/events.json`
+- [Features](../features/overview) — use event topics as steps in a workflow
+- [Jobs](../jobs/scheduling-jobs) — schedule recurring produce operations

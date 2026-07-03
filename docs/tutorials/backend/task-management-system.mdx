@@ -5,7 +5,7 @@ title: Building a Task Management System
 
 # Building a Task Management System
 
-Learn how to build a comprehensive task management system with scheduled jobs, file storage, team collaboration, quotas, notifications, and automated workflows using Ductape SDK.
+Learn how to build a comprehensive task management system with scheduled jobs, file storage, team collaboration, quotas, notifications, and automated features using Ductape SDK.
 
 ## What You'll Build
 
@@ -14,7 +14,7 @@ Learn how to build a comprehensive task management system with scheduled jobs, f
 - Scheduled tasks and reminders
 - File attachments with storage
 - Task assignments and notifications
-- Automated workflows
+- Automated features
 - Team collaboration features
 - Activity logging
 - Usage quotas and limits
@@ -322,8 +322,8 @@ async function createTask(data: {
     metadata: { title: data.title }
   });
 
-  // Start task workflow
-  await startTaskWorkflow(task.rows[0]);
+  // Start task feature
+  await startTaskFeature(task.rows[0]);
 
   return task.rows[0];
 }
@@ -402,13 +402,13 @@ async function completeTask(taskId: string, userId: string) {
 }
 ```
 
-## Task Workflow
+## Task Feature
 
 ```typescript
-// Task creation workflow
-async function startTaskWorkflow(task: any) {
-  await ductape.workflows.execute({
-    workflow: 'task-lifecycle',
+// Task creation feature
+async function startTaskFeature(task: any) {
+  await ductape.features.execute({
+    feature: 'task-lifecycle',
     input: {
       task_id: task.id,
       workspace_id: task.workspace_id,
@@ -418,8 +418,8 @@ async function startTaskWorkflow(task: any) {
   });
 }
 
-// Create workflow definition
-export const taskLifecycleWorkflow = {
+// Create feature definition
+export const taskLifecycleFeature = {
   name: 'task-lifecycle',
   version: '1.0.0',
   steps: [

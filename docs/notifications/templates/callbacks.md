@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Callback Notifications
 
-Callback notifications in Ductape let you send HTTP requests (webhooks) to external systems when certain events occur. Use callback notifications to trigger workflows or notify other services in real time.
+Callback notifications in Ductape let you send HTTP requests (webhooks) to external systems when certain events occur. Use callback notifications to trigger features or notify other services in real time.
 
 ## What Is a Callback Notification?
 A callback notification is an HTTP request with up to four parts:

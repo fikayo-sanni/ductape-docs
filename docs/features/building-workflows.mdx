@@ -1,28 +1,28 @@
 ---
 sidebar_position: 3
-sidebar_label: Building Workflows
+sidebar_label: Building Features
 ---
 
 import PreviewBanner from '@site/src/components/PreviewBanner';
 
 <PreviewBanner />
 
-# Building Workflows
+# Building Features
 
-This guide covers the complete code-first API for defining workflows using `ductape.workflows.define()`.
+This guide covers the complete code-first API for defining features using `ductape.features.define()`.
 
-## Workflow Definition
+## Feature Definition
 
-Define a workflow by passing a configuration object with a handler function:
+Define a feature by passing a configuration object with a handler function:
 
 ```typescript
-const workflow = await ductape.workflows.define({
+const feature = await ductape.features.define({
   // Target product
-  tag: 'workflow-tag',        // Unique identifier
-  name: 'Workflow Name',      // Display name
+  tag: 'feature-tag',         // Unique identifier
+  name: 'Feature Name',       // Display name
   description: 'Description', // Optional
   handler: async (ctx) => {
-    // Your workflow logic
+    // Your feature logic
     return { result: 'data' };
   },
 });
@@ -33,12 +33,12 @@ const workflow = await ductape.workflows.define({
 ### Basic Properties
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'order-process',
   name: 'Order Processing',
   description: 'Handles complete order fulfillment',
 
-  // Workflow options
+  // Feature options
   options: {
     timeout: 300000,                    // 5 minutes max
     rollback_strategy: 'reverse_all',   // How to handle failures
@@ -69,10 +69,10 @@ When your handler uses **if/early return**, **loops**, or **switch**, the compil
 
 ### Signals
 
-Define signals that external systems can send to the workflow:
+Define signals that external systems can send to the feature:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   // ...
   signals: {
     'approve': { input: { approver_id: 'string', comments: 'string' } },
@@ -89,10 +89,10 @@ await ductape.workflows.define({
 
 ### Queries
 
-Define queries to check workflow state:
+Define queries to check feature state:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   // ...
   queries: {
     'getProgress': {
@@ -118,14 +118,14 @@ The handler runs once at **define time** to record steps. If you use `if`, early
 |--------------|-----|------------------|
 | **If / else on a step result** (e.g. "only run payment if validation passed") | `branchOverrides` | Steps after the branch get a condition like `$Step{validate}{valid} == true`; executor skips them when the condition is false. |
 | **Loop over input** (e.g. process each item in `ctx.input.items`) | `recordInput` | Supply sample input so the loop runs during recording; steps are recorded per iteration. |
-| **If/else or switch on workflow input** (e.g. different steps for `type: 'a'` vs `type: 'b'`) | `recordScenarios` | Handler runs once per scenario; each step gets a condition like `$Input{type} == 'a'` and only runs when input matches. |
+| **If/else or switch on feature input** (e.g. different steps for `type: 'a'` vs `type: 'b'`) | `recordScenarios` | Handler runs once per scenario; each step gets a condition like `$Input{type} == 'a'` and only runs when input matches. |
 
 ### If / else (early return) – branchOverrides
 
 When the handler branches on a **step result** and returns early, later steps are never recorded. Use `branchOverrides` so the compiler "pretends" a step returned a value that keeps the handler running and records those steps. At runtime, those steps get a **condition** so they only run when the real step output matches.
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   // So the handler continues past the if and records process-payment
@@ -164,7 +164,7 @@ By default, recording uses empty input, so a loop like `for (const item of ctx.i
 Use **unique step tags per iteration** (e.g. `` `process-${item.id}` ``).
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'process-orders',
   name: 'Process Orders',
   recordInput: {
@@ -188,10 +188,10 @@ Recording runs with `ctx.input.items = [{ id: '1' }, { id: '2' }]`, so steps `pr
 
 ### If/else or switch on input – recordScenarios
 
-For **if/else or switch** on **workflow input** (e.g. different steps per `type` or `status`), use **recordScenarios**. The handler runs once per scenario (with that scenario as input). Every step recorded in that run gets a **condition** so it only runs when the real input matches (e.g. `$Input{type} == 'a'`). Steps from all runs are merged; if the same step appears in multiple scenarios, conditions are combined with **||**. You can use either `if (ctx.input.type === 'a') { ... } else if (ctx.input.type === 'b') { ... }` or `switch (ctx.input.type) { case 'a': ... }` in the handler.
+For **if/else or switch** on **feature input** (e.g. different steps per `type` or `status`), use **recordScenarios**. The handler runs once per scenario (with that scenario as input). Every step recorded in that run gets a **condition** so it only runs when the real input matches (e.g. `$Input{type} == 'a'`). Steps from all runs are merged; if the same step appears in multiple scenarios, conditions are combined with **||**. You can use either `if (ctx.input.type === 'a') { ... } else if (ctx.input.type === 'b') { ... }` or `switch (ctx.input.type) { case 'a': ... }` in the handler.
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'handle-by-type',
   name: 'Handle by type',
   recordScenarios: [
@@ -220,7 +220,7 @@ await ductape.workflows.define({
 
 ### Step condition syntax
 
-Conditions are evaluated at runtime by the workflow executor. You can combine conditions with **`&&`** (and) and **`||`** (or). Each part can use these operators:
+Conditions are evaluated at runtime by the feature executor. You can combine conditions with **`&&`** (and) and **`||`** (or). Each part can use these operators:
 
 | Operator | Meaning | Example |
 |----------|---------|---------|
@@ -232,7 +232,7 @@ Conditions are evaluated at runtime by the workflow executor. You can combine co
 **Left and right sides** can be:
 
 - **Step output:** `$Step{stepTag}{field}` or `$Step{stepTag}{nested.field}`
-- **Workflow input:** `$Input{field}` or `$Input{nested.field}`
+- **Feature input:** `$Input{field}` or `$Input{nested.field}`
 - **Literals:** `true`, `false`, numbers, or quoted strings (`'a'`, `"draft"`)
 
 Examples:
@@ -250,7 +250,7 @@ $Step{score}{value} >= 80 && $Input{role} != 'guest'
 
 ### The ctx.step() Function
 
-Steps are the building blocks of workflows:
+Steps are the building blocks of features:
 
 ```typescript
 const result = await ctx.step(
@@ -343,7 +343,7 @@ const result = await ctx.action.run({
   event: 'fetch-data',
   input: {
     body: { query: ctx.input.query },
-    headers: { 'X-Request-ID': ctx.workflow_id },
+    headers: { 'X-Request-ID': ctx.feature_id },
   },
   retries: 3,
   timeout: 10000,
@@ -629,13 +629,13 @@ if (fraudCheck.score > 0.8) {
 }
 ```
 
-### ctx.workflow() - Child Workflows
+### ctx.feature() - Child Features
 
 ```typescript
-// Run another workflow as a child
-const paymentResult = await ctx.workflow(
-  'child-payment-123',          // Child workflow ID
-  'payment-processing',         // Workflow tag
+// Run another feature as a child
+const paymentResult = await ctx.feature(
+  'child-payment-123',          // Child feature ID
+  'payment-processing',         // Feature tag
   { amount: ctx.input.amount }, // Input
   {
     timeout: '5m',
@@ -743,10 +743,10 @@ ctx.log.error('Step failed', { error: err.message });
 This example uses **branchOverrides** so the compiler records the payment step even though the handler can early-return when validation fails. At runtime, the payment step runs only when `$Step{validate}{available}` is true.
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
-  description: 'Complete order processing workflow',
+  description: 'Complete order processing feature',
 
   options: {
     timeout: 300000,
@@ -883,4 +883,4 @@ await ductape.workflows.define({
 
 - [Step Types](./step-types) - Detailed reference for all ctx methods
 - [Execution & Rollbacks](./execution) - How execution works
-- [Examples](./examples) - Real-world patterns
+- [Examples](./examples) - Real-world feature patterns

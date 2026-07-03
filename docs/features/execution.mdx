@@ -9,14 +9,14 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Execution & Rollbacks
 
-This guide explains how workflows execute, handle failures, and perform automatic rollbacks.
+This guide explains how features execute, handle failures, and perform automatic rollbacks.
 
-## Executing a Workflow
+## Executing a Feature
 
-Start a workflow using `ductape.workflows.execute()`:
+Start a feature using `ductape.features.execute()`:
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   tag: 'order-fulfillment',
   input: {
     orderId: 'ORD-12345',
@@ -30,12 +30,12 @@ const result = await ductape.workflows.execute({
 ### Execution Options
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   tag: 'order-fulfillment',
   input: { orderId: 'ORD-12345' },
 
   // Optional settings
-  workflow_id: 'custom-id-123',     // Custom execution ID
+  feature_id: 'custom-id-123',      // Custom execution ID
   idempotency_key: 'order-12345',   // Prevent duplicate executions
   timeout: 300000,                   // Overall timeout (ms)
   context: {                         // Additional context
@@ -48,8 +48,8 @@ const result = await ductape.workflows.execute({
 ### Execution Result
 
 ```typescript
-interface WorkflowResult {
-  workflow_id: string;           // Execution ID
+interface FeatureResult {
+  feature_id: string;            // Execution ID
   status: 'completed' | 'failed' | 'rolled_back' | 'running';
   output?: unknown;               // Return value from handler
   error?: {                       // Error details (if failed)
@@ -70,7 +70,7 @@ interface WorkflowResult {
 ### Example: Handling Results
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   tag: 'order-fulfillment',
   input: { orderId: 'ORD-12345' },
 });
@@ -82,12 +82,12 @@ switch (result.status) {
     break;
 
   case 'failed':
-    console.error('Workflow failed at step:', result.failed_step);
+    console.error('Feature failed at step:', result.failed_step);
     console.error('Error:', result.error?.message);
     break;
 
   case 'rolled_back':
-    console.log('Workflow rolled back');
+    console.log('Feature rolled back');
     console.log('Rolled back steps:', result.rollback_result?.rolled_back_steps);
     break;
 }
@@ -95,11 +95,11 @@ switch (result.status) {
 
 ---
 
-## Workflow Lifecycle
+## Feature Lifecycle
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        WORKFLOW EXECUTION                        │
+│                        FEATURE EXECUTION                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   Start                                                         │
@@ -137,8 +137,8 @@ Each step transitions through these states:
 Configure how failures trigger rollbacks:
 
 ```typescript
-await ductape.workflows.define({
-  tag: 'my-workflow',
+await ductape.features.define({
+  tag: 'my-feature',
   options: {
     rollback_strategy: 'reverse_all',  // Default
   },
@@ -160,7 +160,7 @@ await ductape.workflows.define({
 Rolls back every completed step that has a rollback handler:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   options: { rollback_strategy: 'reverse_all' },
   handler: async (ctx) => {
     await ctx.step('step-a', handler, rollbackA);  // Will rollback
@@ -176,7 +176,7 @@ await ductape.workflows.define({
 Only rolls back steps marked as critical:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   options: { rollback_strategy: 'critical_only' },
   handler: async (ctx) => {
     // Payment is critical - always rollback on failure
@@ -198,7 +198,7 @@ await ductape.workflows.define({
 Rolls back only to the most recent checkpoint:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   options: { rollback_strategy: 'to_checkpoint' },
   handler: async (ctx) => {
     await ctx.step('create-user', createHandler, deleteUser);
@@ -219,7 +219,7 @@ await ductape.workflows.define({
 Disable automatic rollbacks entirely:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   options: { rollback_strategy: 'none' },
   handler: async (ctx) => {
     // No automatic rollbacks - handle failures manually
@@ -239,7 +239,7 @@ await ductape.workflows.define({
 
 ### allow_fail
 
-Continue workflow execution even if the step fails:
+Continue feature execution even if the step fails:
 
 ```typescript
 await ctx.step(
@@ -248,7 +248,7 @@ await ctx.step(
     await ctx.notification.email({ /* ... */ });
   },
   null,
-  { allow_fail: true }  // Workflow continues if this fails
+  { allow_fail: true }  // Feature continues if this fails
 );
 ```
 
@@ -401,7 +401,7 @@ const checkpointData = ctx.checkpoint_data;  // { chargeId: '...' }
 
 ## Signals
 
-Wait for external events during workflow execution:
+Wait for external events during feature execution:
 
 ### Waiting for Signals
 
@@ -425,11 +425,11 @@ handler: async (ctx) => {
 
 ### Sending Signals
 
-From outside the workflow, send a signal to continue execution:
+From outside the feature, send a signal to continue execution:
 
 ```typescript
-await ductape.workflows.signal({
-  workflow_id: 'wf-abc123',
+await ductape.features.signal({
+  feature_id: 'wf-abc123',
   signal: 'order-approved',
   payload: {
     approvedBy: 'manager@company.com',
@@ -460,14 +460,14 @@ if (result._signal === 'approved') {
 
 ---
 
-## Querying Workflow Status
+## Querying Feature Status
 
-Check the status of running or completed workflows:
+Check the status of running or completed features:
 
 ```typescript
-// Get workflow status
-const status = await ductape.workflows.status({
-  workflow_id: 'wf-abc123',
+// Get feature status
+const status = await ductape.features.status({
+  feature_id: 'wf-abc123',
 });
 
 console.log('Status:', status.status);
@@ -478,11 +478,11 @@ console.log('State:', status.state);
 
 ### Query Handlers
 
-Define queries in your workflow definition:
+Define queries in your feature definition:
 
 ```typescript
-await ductape.workflows.define({
-  tag: 'order-workflow',
+await ductape.features.define({
+  tag: 'order-feature',
 
   queries: {
     'getProgress': {
@@ -506,21 +506,21 @@ await ductape.workflows.define({
 });
 
 // Query from outside
-const progress = await ductape.workflows.query({
-  workflow_id: 'wf-abc123',
+const progress = await ductape.features.query({
+  feature_id: 'wf-abc123',
   query: 'getProgress',
 });
 ```
 
 ---
 
-## Cancelling Workflows
+## Cancelling Features
 
-Cancel a running workflow:
+Cancel a running feature:
 
 ```typescript
-const result = await ductape.workflows.cancel({
-  workflow_id: 'wf-abc123',
+const result = await ductape.features.cancel({
+  feature_id: 'wf-abc123',
   reason: 'User requested cancellation',
 });
 
@@ -530,16 +530,16 @@ console.log('Rolled back steps:', result.rolled_back_steps);
 
 ---
 
-## Dispatching Workflows
+## Dispatching Features
 
-Dispatch workflows to run on a schedule or at a specific time:
+Dispatch features to run on a schedule or at a specific time:
 
 ### Schedule for Later
 
 ```typescript
-// Run workflow in 1 hour
-const result = await ductape.workflows.dispatch({
-  workflow: 'order-fulfillment',
+// Run feature in 1 hour
+const result = await ductape.features.dispatch({
+  feature: 'order-fulfillment',
   input: { orderId: 'ORD-123' },
   schedule: {
     start_at: Date.now() + 3600000, // 1 hour from now
@@ -554,8 +554,8 @@ console.log('Scheduled for:', result.scheduled_at);
 
 ```typescript
 // Run daily at midnight
-const result = await ductape.workflows.dispatch({
-  workflow: 'daily-report',
+const result = await ductape.features.dispatch({
+  feature: 'daily-report',
   input: { reportType: 'sales' },
   schedule: {
     cron: '0 0 * * *', // Every day at midnight
@@ -567,8 +567,8 @@ const result = await ductape.workflows.dispatch({
 
 ```typescript
 // Run every hour with retry options
-const result = await ductape.workflows.dispatch({
-  workflow: 'sync-inventory',
+const result = await ductape.features.dispatch({
+  feature: 'sync-inventory',
   input: { source: 'warehouse-a' },
   schedule: {
     cron: '0 * * * *', // Every hour
@@ -585,7 +585,7 @@ const result = await ductape.workflows.dispatch({
 
 ## Replay, Restart & Resume
 
-Ductape Workflows track execution state persistently, enabling powerful recovery capabilities:
+Ductape Features track execution state persistently, enabling powerful recovery capabilities:
 
 | Operation | Description | Input | State |
 |-----------|-------------|-------|-------|
@@ -593,26 +593,26 @@ Ductape Workflows track execution state persistently, enabling powerful recovery
 | **Restart** | Re-execute with new/modified input | New/Modified | Fresh |
 | **Resume** | Continue from last state | Original | Preserved |
 
-### Replay Workflow
+### Replay Feature
 
-Re-execute a workflow using the same input from a previous execution:
+Re-execute a feature using the same input from a previous execution:
 
 ```typescript
-// Replay a failed workflow
-const replayResult = await ductape.workflows.replay({
-  workflow_id: 'wf-abc123',
+// Replay a failed feature
+const replayResult = await ductape.features.replay({
+  feature_id: 'wf-abc123',
   reason: 'Debugging payment failure',
 });
 
-console.log(replayResult.workflow_id);    // New workflow ID
+console.log(replayResult.feature_id);     // New feature ID
 console.log(replayResult.replayed_from);  // Original: 'wf-abc123'
 ```
 
 #### Replay with Options
 
 ```typescript
-const replayResult = await ductape.workflows.replay({
-  workflow_id: 'wf-abc123',
+const replayResult = await ductape.features.replay({
+  feature_id: 'wf-abc123',
   options: {
     retries: 5,
     timeout: 120000,
@@ -628,24 +628,24 @@ const replayResult = await ductape.workflows.replay({
 ```typescript
 handler: async (ctx) => {
   if (ctx.is_replay) {
-    ctx.log.info('Replaying workflow', {
+    ctx.log.info('Replaying feature', {
       original_id: ctx.replayed_from,
       reason: ctx.replay_reason,
     });
   }
 
-  // Normal workflow logic...
+  // Normal feature logic...
 }
 ```
 
-### Restart Workflow
+### Restart Feature
 
 Reset and re-execute with new or modified input:
 
 ```typescript
 // Restart with corrected input
-const restartResult = await ductape.workflows.restart({
-  workflow_id: 'wf-abc123',
+const restartResult = await ductape.features.restart({
+  feature_id: 'wf-abc123',
   input: {
     orderId: 'ORD-123',
     email: 'corrected@email.com', // Fixed email
@@ -658,8 +658,8 @@ const restartResult = await ductape.workflows.restart({
 
 ```typescript
 // Only override specific fields, merge with original
-const restartResult = await ductape.workflows.restart({
-  workflow_id: 'wf-abc123',
+const restartResult = await ductape.features.restart({
+  feature_id: 'wf-abc123',
   input_override: {
     email: 'corrected@email.com',
   },
@@ -667,14 +667,14 @@ const restartResult = await ductape.workflows.restart({
 });
 ```
 
-### Resume Workflow
+### Resume Feature
 
-Continue a workflow from where it stopped (paused, failed, or crashed):
+Continue a feature from where it stopped (paused, failed, or crashed):
 
 ```typescript
-// Resume a paused workflow
-const resumeResult = await ductape.workflows.resume({
-  workflow_id: 'wf-abc123',
+// Resume a paused feature
+const resumeResult = await ductape.features.resume({
+  feature_id: 'wf-abc123',
 });
 ```
 
@@ -682,8 +682,8 @@ const resumeResult = await ductape.workflows.resume({
 
 ```typescript
 // Resume from a specific checkpoint
-const resumeResult = await ductape.workflows.resume({
-  workflow_id: 'wf-abc123',
+const resumeResult = await ductape.features.resume({
+  feature_id: 'wf-abc123',
   from_checkpoint: 'payment-complete',
   input: {
     retry_payment: false,
@@ -695,8 +695,8 @@ const resumeResult = await ductape.workflows.resume({
 
 ```typescript
 // Resume from the step that failed
-const resumeResult = await ductape.workflows.resume({
-  workflow_id: 'wf-abc123',
+const resumeResult = await ductape.features.resume({
+  feature_id: 'wf-abc123',
   from_step: 'create-shipment',
   skip_steps: ['send-confirmation'], // Skip problematic step
 });
@@ -707,7 +707,7 @@ const resumeResult = await ductape.workflows.resume({
 ```typescript
 handler: async (ctx) => {
   if (ctx.is_restored) {
-    ctx.log.info('Resuming workflow', {
+    ctx.log.info('Resuming feature', {
       from_checkpoint: ctx.restored_checkpoint?.name,
       completed_steps: ctx.completed_steps,
     });
@@ -737,8 +737,8 @@ handler: async (ctx) => {
 Re-execute starting from a specific step, using state from the original execution:
 
 ```typescript
-const result = await ductape.workflows.replayFromStep({
-  workflow_id: 'wf-abc123',
+const result = await ductape.features.replayFromStep({
+  feature_id: 'wf-abc123',
   from_step: 'create-shipment',
 });
 ```
@@ -747,8 +747,8 @@ const result = await ductape.workflows.replayFromStep({
 
 ```typescript
 // Replay from step with corrected previous step outputs
-const result = await ductape.workflows.replayFromStep({
-  workflow_id: 'wf-abc123',
+const result = await ductape.features.replayFromStep({
+  feature_id: 'wf-abc123',
   from_step: 'process-payment',
   step_outputs: {
     'validate-order': {
@@ -761,35 +761,35 @@ const result = await ductape.workflows.replayFromStep({
 
 ---
 
-## Workflow History
+## Feature History
 
 Get detailed execution history for debugging and auditing:
 
 ### Get Execution History
 
 ```typescript
-const history = await ductape.workflows.history({
-  workflow_id: 'wf-abc123',
+const history = await ductape.features.history({
+  feature_id: 'wf-abc123',
 });
 
 console.log(history.events);
 // [
-//   { type: 'workflow_started', timestamp: 1701936000000, data: { input: {...} } },
+//   { type: 'feature_started', timestamp: 1701936000000, data: { input: {...} } },
 //   { type: 'step_started', timestamp: 1701936001000, data: { step: 'validate-order' } },
 //   { type: 'step_completed', timestamp: 1701936002000, data: { step: 'validate-order', output: {...} } },
 //   { type: 'checkpoint_created', timestamp: 1701936003000, data: { name: 'validation-complete' } },
 //   { type: 'step_started', timestamp: 1701936004000, data: { step: 'process-payment' } },
 //   { type: 'step_failed', timestamp: 1701936005000, data: { step: 'process-payment', error: {...} } },
 //   { type: 'rollback_started', timestamp: 1701936006000, data: {} },
-//   { type: 'workflow_rolled_back', timestamp: 1701936008000, data: {} },
+//   { type: 'feature_rolled_back', timestamp: 1701936008000, data: {} },
 // ]
 ```
 
 ### Get Step Details
 
 ```typescript
-const stepDetail = await ductape.workflows.stepDetail({
-  workflow_id: 'wf-abc123',
+const stepDetail = await ductape.features.stepDetail({
+  feature_id: 'wf-abc123',
   step_tag: 'process-payment',
 });
 
@@ -808,18 +808,18 @@ console.log(stepDetail);
 
 ### List Related Executions
 
-Find all replays, restarts, and resumes of a workflow:
+Find all replays, restarts, and resumes of a feature:
 
 ```typescript
-const related = await ductape.workflows.relatedExecutions({
-  workflow_id: 'wf-abc123',
+const related = await ductape.features.relatedExecutions({
+  feature_id: 'wf-abc123',
 });
 
 console.log(related.executions);
 // [
-//   { workflow_id: 'wf-abc123', type: 'original', status: 'failed' },
-//   { workflow_id: 'wf-def456', type: 'replay', status: 'failed', replayed_from: 'wf-abc123' },
-//   { workflow_id: 'wf-ghi789', type: 'restart', status: 'completed', restarted_from: 'wf-abc123' },
+//   { feature_id: 'wf-abc123', type: 'original', status: 'failed' },
+//   { feature_id: 'wf-def456', type: 'replay', status: 'failed', replayed_from: 'wf-abc123' },
+//   { feature_id: 'wf-ghi789', type: 'restart', status: 'completed', restarted_from: 'wf-abc123' },
 // ]
 ```
 
@@ -828,8 +828,8 @@ console.log(related.executions);
 Compare two executions to see what changed:
 
 ```typescript
-const comparison = await ductape.workflows.compare({
-  workflow_ids: ['wf-abc123', 'wf-ghi789'],
+const comparison = await ductape.features.compare({
+  feature_ids: ['wf-abc123', 'wf-ghi789'],
 });
 
 console.log(comparison.input_diff);
@@ -847,16 +847,16 @@ console.log(comparison.step_diffs);
 
 ---
 
-## Child Workflows
+## Child Features
 
-Run workflows as children of other workflows:
+Run features as children of other features:
 
 ```typescript
 handler: async (ctx) => {
-  // Run payment as a child workflow
-  const paymentResult = await ctx.workflow(
-    'payment-' + ctx.input.orderId,   // Child workflow ID
-    'payment-processing',              // Workflow tag
+  // Run payment as a child feature
+  const paymentResult = await ctx.feature(
+    'payment-' + ctx.input.orderId,   // Child feature ID
+    'payment-processing',              // Feature tag
     {                                  // Input
       amount: ctx.input.amount,
       customerId: ctx.input.customerId,
@@ -876,8 +876,8 @@ handler: async (ctx) => {
 
 | Policy | Description |
 |--------|-------------|
-| `terminate` | Cancel child workflow when parent completes/fails |
-| `abandon` | Let child workflow continue independently |
+| `terminate` | Cancel child feature when parent completes/fails |
+| `abandon` | Let child feature continue independently |
 | `request_cancel` | Request cancellation but don't force it |
 
 ---
@@ -935,10 +935,10 @@ await ctx.step('payment', chargeCard, refundCard);
 await ctx.step('payment', chargeCard);
 ```
 
-### 2. Use Checkpoints for Long Workflows
+### 2. Use Checkpoints for Long Features
 
 ```typescript
-// Break long workflows into phases with checkpoints
+// Break long features into phases with checkpoints
 await ctx.checkpoint('phase-1-complete');
 // ...later steps won't roll back phase 1
 ```
@@ -958,7 +958,7 @@ await ctx.action.run({
   event: 'charge',
   input: {
     body: { amount: 1000 },
-    headers: { 'Idempotency-Key': `${ctx.workflow_id}-payment` },
+    headers: { 'Idempotency-Key': `${ctx.feature_id}-payment` },
   },
 });
 ```
@@ -975,6 +975,6 @@ ctx.log.info('Order status changed', {
 
 ## Next Steps
 
-- [Examples](./examples) - Real-world workflow patterns
-- [Building Workflows](./building-workflows) - Complete API reference
+- [Examples](./examples) - Real-world feature patterns
+- [Building Features](./building-features) - Complete API reference
 - [Context API](./step-types) - All ctx methods

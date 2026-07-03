@@ -7,7 +7,7 @@ description: Configure notification channels so your product can send alerts and
 
 Notifications allow your product to send messages to users or systems through multiple communication channels. You can configure one or more channels such as **Email**, **SMS**, **Push notifications**, or integrations like **Slack** and **Discord**.
 
-Once configured, your product can send notifications through the selected channels during workflows and actions.
+Once configured, your product can send notifications through the selected channels during features and actions.
 
 ---
 

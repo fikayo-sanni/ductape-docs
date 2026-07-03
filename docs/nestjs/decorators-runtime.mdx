@@ -5,11 +5,11 @@ title: Runtime decorators
 
 # Runtime decorators
 
-Beyond core `@Api`, `@Database`, `@Storage`, and `@Webhook`, `@ductape/nestjs` exposes decorators for messaging, workflows, agents, sessions, and resilience. All runtime decorators are executed by **`DuctapeMethodInterceptor`** in integration mode.
+Beyond core `@Api`, `@Database`, `@Storage`, and `@Webhook`, `@ductape/nestjs` exposes decorators for messaging, features, agents, sessions, and resilience. All runtime decorators are executed by **`DuctapeMethodInterceptor`** in integration mode.
 
 The **first method argument** becomes SDK `input` / `message` (same convention as `@Api`).
 
-## Messaging, notifications, cache, graph, vector, workflow, jobs, secrets
+## Messaging, notifications, cache, graph, vector, feature, jobs, secrets
 
 ### Method decorators
 
@@ -19,8 +19,8 @@ The **first method argument** becomes SDK `input` / `message` (same convention a
 | `@Messaging.Dispatch({ broker, event, schedule?, … })` | `messaging.dispatch` |
 | `@Notification.Send({ notification, event?, channel?, … })` | `notifications.send` / channel helpers |
 | `@Notification.Dispatch({ notification, event, schedule?, … })` | `notifications.dispatch` |
-| `@Workflow.Execute({ tag, product?, env? })` | `workflow.execute` |
-| `@Workflow.Dispatch({ tag, schedule?, … })` | `workflow.dispatch` |
+| `@Feature.Execute({ tag, product?, env? })` | `feature.execute` |
+| `@Feature.Dispatch({ tag, schedule?, … })` | `feature.dispatch` |
 | `@Job.Run({ event, retries?, start_at?, … })` | processor `processJob` |
 | `@Secret('KEY')` on constructor param | inject `SecretHandle` (via `DuctapeSecretsModule`) |
 
@@ -43,7 +43,7 @@ export class EventsService {
     return payload;
   }
 
-  @Workflow.Execute({ tag: 'fulfillment' })
+  @Feature.Execute({ tag: 'fulfillment' })
   runFulfillment(input: Record<string, unknown>) {
     return input;
   }

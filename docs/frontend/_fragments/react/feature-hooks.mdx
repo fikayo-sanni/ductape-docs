@@ -1,34 +1,34 @@
 
-React hooks for executing and managing Ductape Workflows.
+React hooks for executing and managing Ductape Features.
 
 :::info Session required (publishable key)
-When using a **publishable key**, include `session` in every workflow call. Example: `import { session } from './config'`.
+When using a **publishable key**, include `session` in every feature call. Example: `import { session } from './config'`.
 :::
 
-## useWorkflowExecution
+## useFeatureExecution
 
-Execute a workflow and track its progress.
+Execute a feature and track its progress.
 
-### Basic Workflow Execution
+### Basic Feature Execution
 
 ```tsx
-import { useWorkflowExecution } from '@ductape/react';
+import { useFeatureExecution } from '@ductape/react';
 import { session } from './config';
 
 function OrderProcessor() {
-  const { mutate, isLoading, data, error } = useWorkflowExecution({
+  const { mutate, isLoading, data, error } = useFeatureExecution({
     onSuccess: (result) => {
-      console.log('Workflow completed:', result);
+      console.log('Feature completed:', result);
       alert('Order processed successfully!');
     },
     onError: (err) => {
-      console.error('Workflow failed:', err);
+      console.error('Feature failed:', err);
     }
   });
 
   const handleProcessOrder = (orderId: string) => {
     mutate({
-      workflow: 'process-order',
+      feature: 'process-order',
       input: {
         orderId,
         priority: 'high'
@@ -49,15 +49,15 @@ function OrderProcessor() {
 }
 ```
 
-### Workflow with Real-time Status
+### Feature with Real-time Status
 
 ```tsx
 import { session } from './config';
 
-function WorkflowRunner() {
+function FeatureRunner() {
   const [executionId, setExecutionId] = useState<string | null>(null);
 
-  const { mutate, isLoading } = useWorkflowExecution({
+  const { mutate, isLoading } = useFeatureExecution({
     onSuccess: (result) => {
       setExecutionId(result.executionId);
     }
@@ -65,7 +65,7 @@ function WorkflowRunner() {
 
   const handleStart = () => {
     mutate({
-      workflow: 'data-pipeline',
+      feature: 'data-pipeline',
       input: {
         source: 'database',
         destination: 's3'
@@ -79,29 +79,29 @@ function WorkflowRunner() {
       <button onClick={handleStart} disabled={isLoading}>
         Start Pipeline
       </button>
-      {executionId && <WorkflowStatus executionId={executionId} />}
+      {executionId && <FeatureStatus executionId={executionId} />}
     </div>
   );
 }
 ```
 
-## useWorkflowStatus
+## useFeatureStatus
 
-Monitor the status of a running workflow.
+Monitor the status of a running feature.
 
 ```tsx
-import { useWorkflowStatus } from '@ductape/react';
+import { useFeatureStatus } from '@ductape/react';
 
-function WorkflowStatus({ executionId }: { executionId: string }) {
-  const { data: status, isLoading } = useWorkflowStatus(executionId, {
+function FeatureStatus({ executionId }: { executionId: string }) {
+  const { data: status, isLoading } = useFeatureStatus(executionId, {
     refetchInterval: 2000 // Poll every 2 seconds
   });
 
   if (isLoading) return <div>Loading status...</div>;
 
   return (
-    <div className="workflow-status">
-      <h3>Workflow Status</h3>
+    <div className="feature-status">
+      <h3>Feature Status</h3>
       <div>
         <strong>Status:</strong> {status?.status}
       </div>
@@ -120,7 +120,7 @@ function WorkflowStatus({ executionId }: { executionId: string }) {
 
       {status?.status === 'completed' && (
         <div className="success">
-          Workflow completed successfully!
+          Feature completed successfully!
         </div>
       )}
 
@@ -134,32 +134,32 @@ function WorkflowStatus({ executionId }: { executionId: string }) {
 }
 ```
 
-## useWorkflowSubscription
+## useFeatureSubscription
 
-Subscribe to real-time workflow events.
+Subscribe to real-time feature events.
 
 ```tsx
-import { useWorkflowSubscription } from '@ductape/react';
+import { useFeatureSubscription } from '@ductape/react';
 
-function LiveWorkflowMonitor({ executionId }: { executionId: string }) {
+function LiveFeatureMonitor({ executionId }: { executionId: string }) {
   const [events, setEvents] = useState<any[]>([]);
 
-  useWorkflowSubscription({
+  useFeatureSubscription({
     executionId,
     onEvent: (event) => {
       setEvents(prev => [...prev, event]);
 
       if (event.type === 'step_completed') {
-        console.log(`Step ${event.step} completed`);
-      } else if (event.type === 'workflow_completed') {
-        console.log('Workflow finished!');
+        console.log(`Step completed`);
+      } else if (event.type === 'feature_completed') {
+        console.log('Feature finished!');
       }
     }
   });
 
   return (
     <div>
-      <h3>Workflow Events</h3>
+      <h3>Feature Events</h3>
       <ul>
         {events.map((event, idx) => (
           <li key={idx}>
@@ -175,15 +175,15 @@ function LiveWorkflowMonitor({ executionId }: { executionId: string }) {
 }
 ```
 
-## useWorkflowSignal
+## useFeatureSignal
 
-Send signals to a running workflow.
+Send signals to a running feature.
 
 ```tsx
-import { useWorkflowSignal } from '@ductape/react';
+import { useFeatureSignal } from '@ductape/react';
 
-function WorkflowController({ executionId }: { executionId: string }) {
-  const { mutate: sendSignal, isLoading } = useWorkflowSignal({
+function FeatureController({ executionId }: { executionId: string }) {
+  const { mutate: sendSignal, isLoading } = useFeatureSignal({
     onSuccess: () => {
       alert('Signal sent successfully');
     }
@@ -221,44 +221,44 @@ function WorkflowController({ executionId }: { executionId: string }) {
 }
 ```
 
-## useWorkflowCancel
+## useFeatureCancel
 
-Cancel a running workflow.
+Cancel a running feature.
 
 ```tsx
-import { useWorkflowCancel } from '@ductape/react';
+import { useFeatureCancel } from '@ductape/react';
 
 function CancelButton({ executionId }: { executionId: string }) {
-  const { mutate: cancel, isLoading } = useWorkflowCancel({
+  const { mutate: cancel, isLoading } = useFeatureCancel({
     onSuccess: () => {
-      alert('Workflow cancelled');
+      alert('Feature cancelled');
     }
   });
 
   const handleCancel = () => {
-    if (confirm('Are you sure you want to cancel this workflow?')) {
+    if (confirm('Are you sure you want to cancel this feature?')) {
       cancel({ executionId });
     }
   };
 
   return (
     <button onClick={handleCancel} disabled={isLoading} className="danger">
-      {isLoading ? 'Cancelling...' : 'Cancel Workflow'}
+      {isLoading ? 'Cancelling...' : 'Cancel Feature'}
     </button>
   );
 }
 ```
 
-## useWorkflowHistory
+## useFeatureHistory
 
-View workflow execution history.
+View feature execution history.
 
 ```tsx
-import { useWorkflowHistory } from '@ductape/react';
+import { useFeatureHistory } from '@ductape/react';
 
-function WorkflowHistory() {
-  const { data, isLoading } = useWorkflowHistory({
-    workflow: 'process-order',
+function FeatureHistory() {
+  const { data, isLoading } = useFeatureHistory({
+    feature: 'process-order',
     limit: 20
   });
 
@@ -266,7 +266,7 @@ function WorkflowHistory() {
 
   return (
     <div>
-      <h2>Workflow History</h2>
+      <h2>Feature History</h2>
       <table>
         <thead>
           <tr>
@@ -296,7 +296,7 @@ function WorkflowHistory() {
 }
 ```
 
-## Complete Approval Workflow Example
+## Complete Approval Feature Example
 
 ```tsx
 interface ApprovalRequest {
@@ -307,41 +307,41 @@ interface ApprovalRequest {
   status: 'pending' | 'approved' | 'rejected';
 }
 
-function ApprovalWorkflow({ request }: { request: ApprovalRequest }) {
+function ApprovalFeature({ request }: { request: ApprovalRequest }) {
   const [executionId, setExecutionId] = useState<string | null>(null);
-  const [workflowStatus, setWorkflowStatus] = useState<string>('idle');
+  const [featureStatus, setFeatureStatus] = useState<string>('idle');
 
-  // Start workflow
-  const { mutate: startWorkflow, isLoading: isStarting } = useWorkflowExecution({
+  // Start feature
+  const { mutate: startFeature, isLoading: isStarting } = useFeatureExecution({
     onSuccess: (result) => {
       setExecutionId(result.executionId);
-      setWorkflowStatus('running');
+      setFeatureStatus('running');
     }
   });
 
   // Send approval signal
-  const { mutate: sendSignal } = useWorkflowSignal({
+  const { mutate: sendSignal } = useFeatureSignal({
     onSuccess: () => {
-      setWorkflowStatus('completed');
+      setFeatureStatus('completed');
     }
   });
 
   // Monitor status
-  useWorkflowSubscription({
+  useFeatureSubscription({
     executionId: executionId || '',
     enabled: !!executionId,
     onEvent: (event) => {
-      if (event.type === 'workflow_completed') {
-        setWorkflowStatus('completed');
-      } else if (event.type === 'workflow_failed') {
-        setWorkflowStatus('failed');
+      if (event.type === 'feature_completed') {
+        setFeatureStatus('completed');
+      } else if (event.type === 'feature_failed') {
+        setFeatureStatus('failed');
       }
     }
   });
 
   const handleStart = () => {
-    startWorkflow({
-      workflow: 'approval-process',
+    startFeature({
+      feature: 'approval-process',
       input: {
         requestId: request.id,
         requestData: request
@@ -373,22 +373,22 @@ function ApprovalWorkflow({ request }: { request: ApprovalRequest }) {
   };
 
   return (
-    <div className="approval-workflow">
+    <div className="approval-feature">
       <div className="request-details">
         <h3>{request.title}</h3>
         <p>{request.description}</p>
         <p>Requested by: {request.requestedBy}</p>
       </div>
 
-      {workflowStatus === 'idle' && (
+      {featureStatus === 'idle' && (
         <button onClick={handleStart} disabled={isStarting}>
           {isStarting ? 'Starting...' : 'Start Approval Process'}
         </button>
       )}
 
-      {workflowStatus === 'running' && executionId && (
-        <div className="workflow-controls">
-          <WorkflowStatus executionId={executionId} />
+      {featureStatus === 'running' && executionId && (
+        <div className="feature-controls">
+          <FeatureStatus executionId={executionId} />
           <div className="actions">
             <button onClick={handleApprove} className="approve">
               Approve
@@ -400,13 +400,13 @@ function ApprovalWorkflow({ request }: { request: ApprovalRequest }) {
         </div>
       )}
 
-      {workflowStatus === 'completed' && (
+      {featureStatus === 'completed' && (
         <div className="success">
           Approval process completed!
         </div>
       )}
 
-      {workflowStatus === 'failed' && (
+      {featureStatus === 'failed' && (
         <div className="error">
           Approval process failed. Please try again.
         </div>

@@ -6,7 +6,7 @@ sidebar_position: 3
 
 Ductape allows you to provision apps and services in multiple environments. For example, a single application can have **production**, **staging**, and **development** environments.
 
-Environments enable seamless development workflows when building products. Ductape also provides default workspace environments that are created each time an application is provisioned. These default environments can be updated in the Ductape web platform under the application or product tabs.
+Environments enable seamless development features when building products. Ductape also provides default workspace environments that are created each time an application is provisioned. These default environments can be updated in the Ductape web platform under the application or product tabs.
 
 ## Creating an App Environment
 

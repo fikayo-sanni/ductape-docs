@@ -22,7 +22,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Backend',
-      collapsed: false,
+      collapsed: true,
       items: [
         // Products - Core Backend Systems
         {
@@ -287,19 +287,19 @@ const sidebars: SidebarsConfig = {
           ],
         },
 
-        // Workflows (Preview)
+        // Features (Preview)
         {
           type: 'category',
-          label: 'Workflows (Preview)',
+          label: 'Features (Preview)',
           collapsed: true,
           items: [
-            'workflows/overview',
-            'workflows/getting-started',
-            'workflows/building-workflows',
-            'workflows/step-types',
-            'workflows/execution',
-            'workflows/examples',
-            // Frontend Usage (client SDK disabled for now - frontend/client/workflows removed)
+            'features/overview',
+            'features/getting-started',
+            'features/building-workflows',
+            'features/step-types',
+            'features/execution',
+            'features/examples',
+            // Frontend Usage (client SDK disabled for now - frontend/client/features removed)
           ],
         },
 
@@ -314,13 +314,14 @@ const sidebars: SidebarsConfig = {
           ],
         },
 
-        // Message Brokers (Preview)
+        // Events (formerly Message Brokers)
         {
           type: 'category',
-          label: 'Message Brokers (Preview)',
+          label: 'Events (Preview)',
           collapsed: true,
           items: [
-            'message-brokers/overview',
+            'events/overview',
+            'events/getting-started',
           ],
         },
 
@@ -366,8 +367,44 @@ const sidebars: SidebarsConfig = {
 
     {
       type: 'category',
+      label: 'CLI',
+      collapsed: true,
+      items: [
+        'cli/index',
+        {
+          type: 'category',
+          label: 'Setup',
+          collapsed: true,
+          items: ['cli/authentication', 'cli/workspaces', 'cli/linking', 'cli/local-platform'],
+        },
+        {
+          type: 'category',
+          label: 'Platform entities',
+          collapsed: true,
+          items: ['cli/products', 'cli/apps'],
+        },
+        {
+          type: 'category',
+          label: 'Components & runtime',
+          collapsed: true,
+          items: [
+            'cli/resources',
+            'cli/cloud',
+            'cli/database',
+            'cli/apply',
+            'cli/graph',
+            'cli/secrets',
+            'cli/generate',
+          ],
+        },
+        'cli/troubleshooting',
+      ],
+    },
+
+    {
+      type: 'category',
       label: 'NestJS',
-      collapsed: false,
+      collapsed: true,
       items: [
         'nestjs/overview',
         'nestjs/getting-started',
@@ -391,7 +428,7 @@ const sidebars: SidebarsConfig = {
         'frontend/client/sessions',
         'frontend/client/databases',
         'frontend/client/storage',
-        'frontend/client/workflows',
+        'frontend/client/features',
         'frontend/client/notifications',
         'frontend/client/actions',
         'frontend/client/resilience',
@@ -401,42 +438,8 @@ const sidebars: SidebarsConfig = {
 
     {
       type: 'category',
-      label: 'CLI',
-      collapsed: false,
-      items: [
-        'cli/index',
-        {
-          type: 'category',
-          label: 'Setup',
-          collapsed: true,
-          items: ['cli/authentication', 'cli/workspaces', 'cli/linking', 'cli/local-platform'],
-        },
-        {
-          type: 'category',
-          label: 'Platform entities',
-          collapsed: true,
-          items: ['cli/products', 'cli/apps'],
-        },
-        {
-          type: 'category',
-          label: 'Components & runtime',
-          collapsed: true,
-          items: [
-            'cli/resources',
-            'cli/cloud',
-            'cli/database',
-            'cli/graph',
-            'cli/secrets',
-            'cli/generate',
-          ],
-        },
-        'cli/troubleshooting',
-      ],
-    },
-    {
-      type: 'category',
       label: 'MCP Server',
-      collapsed: false,
+      collapsed: true,
       items: [
         'mcp-server/overview',
         'mcp-server/getting-started',
@@ -452,7 +455,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Workbench',
-      collapsed: false,
+      collapsed: true,
       items: [
         'workbench/getting-started',
         'workbench/creating-workspace',

@@ -263,7 +263,7 @@ npm run start
 ```
 
 ## **Next Steps**
-- You can now use Ductape’s SDK to trigger Paystack actions, manage resources, and build workflows.
+- You can now use Ductape’s SDK to trigger Paystack actions, manage resources, and build features.
 - Explore the [Ductape documentation](https://docs.ductape.app/) for more advanced features and integrations.
 
 > **Tip:** Store all your sensitive credentials in a `.env` file and never commit it to version control.

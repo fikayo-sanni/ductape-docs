@@ -47,13 +47,7 @@ The key is forwarded to `POST /proxy/v1/sdk-proxy/execute` and validated by the 
 
 ### Payload and snippet tools
 
-`ductape_generate_payload` and `ductape_generate_snippet` require:
-
-- `public_key` — sent as `x-access-key` header
-- `workspace_id`
-- `user_id`
-
-These authenticate against `POST /integrations/v1/payloads/generate`.
+`ductape_generate_payload` and `ductape_generate_snippet` require a `publishable_key` argument, identical to `ductape_execute`. The key is forwarded as the `x-access-key` header to `POST /integrations/v1/payloads/generate` and validated by the backend.
 
 ---
 
@@ -101,14 +95,9 @@ This limits blast radius if an agent hallucinates an invalid SDK call. See [Modu
 The allowlist is enforced server-side
 ---
 
-## Publishable key vs public key
+## Key hygiene
 
-| Key | Used by | Scope |
-|-----|---------|-------|
-| **Publishable Key** | `ductape_execute` | Runtime SDK operations via proxy |
-| **Public Key** | Payload/snippet generation | Schema and template generation API |
-
-Both are workspace-scoped credentials. Treat them as secrets:
+All three tools authenticate with a `publishable_key`. Treat it as a secret:
 
 - Do not commit keys to version control
 - Do not embed keys in MCP server config
@@ -144,12 +133,6 @@ All backend communication uses HTTPS to `https://api.ductape.app`:
 | `/integrations/v1/payloads/generate` | Payload/snippet generation |
 
 The MCP server makes outbound HTTPS requests only. It does not listen on any network port.
-
----
-
-## Local development
-
-When running against a local Ductape stack, the API base URL is hardcoded in `mcp-server/src/proxy-client.ts` as `https://api.ductape.app`. For local backend development, you would need to modify this constant or add environment-based URL override (not currently supported out of the box).
 
 ---
 

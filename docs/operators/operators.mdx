@@ -11,7 +11,7 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 ## What Are Operators?
 
-Operators in Ductape are built-in data transformation functions that enable you to manipulate, format, and combine data within your workflows. They are a core part of Ductape's **declarative data referencing system**, allowing you to transform data without writing custom code.
+Operators in Ductape are built-in data transformation functions that enable you to manipulate, format, and combine data within your features. They are a core part of Ductape's **declarative data referencing system**, allowing you to transform data without writing custom code.
 
 ## Ductape's Data Referencing Philosophy
 
@@ -21,7 +21,7 @@ Ductape uses a **string-based placeholder syntax** for referencing and transform
 
 This approach provides several key benefits:
 
-1. **Platform Independence** - Your workflows are defined as pure data structures (JSON), not executable code. This makes them:
+1. **Platform Independence** - Your features are defined as pure data structures (JSON), not executable code. This makes them:
    - Portable across different environments
    - Easily serializable and storable in databases
    - Inspectable and analyzable without code execution
@@ -30,7 +30,7 @@ This approach provides several key benefits:
 2. **Security** - No arbitrary code execution means:
    - No risk of code injection attacks
    - Controlled transformation operations
-   - Safe to store user-defined workflows
+   - Safe to store user-defined features
    - Auditable data transformations
 
 3. **Predictability** - String-based transformations are:
@@ -40,14 +40,14 @@ This approach provides several key benefits:
    - Simple to understand at a glance
 
 4. **Visual Tooling** - String syntax enables:
-   - Visual workflow builders
+   - Visual feature builders
    - Auto-completion in configuration
    - Validation before execution
    - Clear documentation of data flow
 
 ### The Data Reference System
 
-Ductape provides multiple ways to reference data within your workflows:
+Ductape provides multiple ways to reference data within your features:
 
 | Reference Type | Syntax | Purpose | Example |
 |----------------|--------|---------|---------|
@@ -62,9 +62,9 @@ Ductape provides multiple ways to reference data within your workflows:
 | **Default** | `$Default` | Provide default/fallback values | `$Default` |
 | **Size** | `$Size{reference}` | Get size of object (number of keys) | `$Size{$Input{user}}` |
 | **Length** | `$Length{reference}` | Get length of array or string | `$Length{$Input{items}}` |
-| **Now** | `$Now` or `$Now()` | Current timestamp (ms) at workflow execution | `$Now` |
+| **Now** | `$Now` or `$Now()` | Current timestamp (ms) at feature execution | `$Now` |
 
-These references (and all operators below) are **resolved at runtime** when a workflow or feature runs—e.g. `$Now` becomes the execution-time timestamp, and `$Input{...}` is filled from the run input.
+These references (and all operators below) are **resolved at runtime** when a feature or feature runs—e.g. `$Now` becomes the execution-time timestamp, and `$Input{...}` is filled from the run input.
 
 ### How Operators Fit In
 
@@ -185,7 +185,7 @@ await ductape.features.create({
 }
 ```
 
-### Example 5: Using Secrets and App Auth in Workflows
+### Example 5: Using Secrets and App Auth in Features
 
 ```typescript
 await ductape.features.create({
@@ -240,7 +240,7 @@ Ductape uses declarative operators:
 
 This declarative approach means:
 - Your transformations are configuration, not code
-- Workflows can be stored, versioned, and migrated easily
+- Features can be stored, versioned, and migrated easily
 - Visual tools can understand and edit your logic
 - No deployment needed to change transformations
 - Built-in validation and type safety

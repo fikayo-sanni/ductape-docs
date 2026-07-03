@@ -1,0 +1,62 @@
+---
+title: Events overview
+sidebar_label: Overview
+sidebar_position: 1
+---
+
+# Events
+
+Events let you build event-driven architecture between your services through a unified interface. Declare a **broker** (the connection to your message provider), define **topics** on it, then produce and consume from anywhere in your stack.
+
+:::info SDK naming
+The events API is currently exposed as `ductape.messaging` in the SDK. It will be renamed to `ductape.events` in an upcoming release. All code examples use the current name.
+:::
+
+## Quick example
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({ accessKey: 'your-access-key' });
+
+// Produce
+await ductape.messaging.produce({
+  event: 'order-events:order-created',
+  message: { orderId: '123', total: 99.99 },
+});
+
+// Consume
+await ductape.messaging.consume({
+  event: 'order-events:order-created',
+  callback: async (message) => {
+    await processOrder(message);
+  },
+});
+```
+
+Events use the format `brokerTag:topicTag`. Everything before the colon identifies the broker; everything after identifies the topic within it.
+
+## Three concepts
+
+| Concept | What it is |
+|---------|------------|
+| **Broker** | A configured connection to a message provider (Kafka, RabbitMQ, Redis, SQS, …). One broker per provider setup, with environment-specific credentials. |
+| **Topic** | A named event stream within a broker. You define topics with a tag and an optional sample payload. |
+| **Event** | A message produced to or consumed from a topic. Always referenced as `brokerTag:topicTag`. |
+
+## Supported providers
+
+| Provider | Type constant | Best for |
+|----------|---------------|----------|
+| Kafka | `KAFKA` | High-throughput distributed streaming |
+| RabbitMQ | `RABBITMQ` | Flexible routing, reliable delivery |
+| Redis | `REDIS` | Simple pub/sub, low latency |
+| AWS SQS | `AWS_SQS` | Serverless managed queues |
+| Azure Service Bus | `AZURE_SERVICEBUS` | Azure managed messaging |
+| Google Pub/Sub | `GOOGLE_PUBSUB` | GCP integration |
+| NATS | `NATS` | Lightweight, high-performance messaging |
+
+## Next steps
+
+- [Getting started](./getting-started) — set up a broker, define topics, produce and consume
+- [CLI: `ductape apply`](../cli/apply) — declare and sync your broker config from a file

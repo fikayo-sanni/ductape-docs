@@ -11,7 +11,7 @@ Both call the Ductape backend at `POST /integrations/v1/payloads/generate`, auth
 
 ---
 
-## Workflow
+## Feature
 
 ```mermaid
 sequenceDiagram
@@ -41,7 +41,7 @@ The `operation_family` argument groups SDK calls by component type. Each family 
 | `operation_family` | SDK module | Typical methods |
 |--------------------|------------|-----------------|
 | `action` | `actions` | `run`, `dispatch`, `execute` |
-| `workflow` | `workflow` | `run`, `dispatch`, `execute` |
+| `feature` | `feature` | `run`, `dispatch`, `execute` |
 | `database` | `databases` | `dispatch`, `find`, `insert`, `update`, `delete`, `query`, `upsert`, `count`, `aggregate` |
 | `graph` | `graph` | `dispatch`, `find`, `insert`, `update`, `delete`, `query`, `execute` |
 | `vector` | `vector` | `query`, `find`, `findSimilar`, `upsert`, `insert`, `delete`, `dispatch` |
@@ -67,7 +67,7 @@ Only these method names are valid for `ductape_generate_snippet`:
 ### `action`
 `run`, `dispatch`, `execute`
 
-### `workflow`
+### `feature`
 `run`, `dispatch`, `execute`
 
 ### `database`
@@ -222,7 +222,7 @@ ductape generate payload --help
 ductape generate snippet --help
 ```
 
-See [CLI generate](/cli/generate). The MCP tools expose the same backend API for agent-driven workflows.
+See [CLI generate](/cli/generate). The MCP tools expose the same backend API for agent-driven features.
 
 ---
 

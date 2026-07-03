@@ -1,5 +1,5 @@
 
-The `@ductape/vue` package provides Vue 3 composables and a plugin for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a reactive, Vue-idiomatic way to work with databases, storage, workflows, and more.
+The `@ductape/vue` package provides Vue 3 composables and a plugin for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a reactive, Vue-idiomatic way to work with databases, storage, features, and more.
 
 ## Installation
 
@@ -259,21 +259,21 @@ const handleFileChange = (event: Event) => {
 </template>
 ```
 
-### Execute Workflow
+### Execute Feature
 
 ```vue
 <script setup lang="ts">
-import { useWorkflowExecute } from '@ductape/vue';
+import { useFeatureExecute } from '@ductape/vue';
 
 const props = defineProps<{
   orderId: string;
 }>();
 
-const { mutate, isLoading, data, error } = useWorkflowExecute();
+const { mutate, isLoading, data, error } = useFeatureExecute();
 
 const handleProcess = () => {
   mutate({
-    workflow: 'process-order',
+    feature: 'process-order',
     input: { orderId: props.orderId }
   });
 };
@@ -487,6 +487,6 @@ export default defineComponent({
 
 - [Database Composables](./database-composables)
 - [Storage Composables](./storage-composables)
-- [Workflow Composables](./workflow-composables)
+- [Feature Composables](./feature-composables)
 - [Real-time Subscriptions](./subscriptions)
 - [Session Management](./sessions)

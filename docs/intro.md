@@ -10,14 +10,14 @@ Traditional backend development often means duplicating logic across services, e
 - **Write Once, Run Anywhere:** Define your backend logic once and reuse it across development, staging, and production.
 - **Swap Providers Easily:** Change databases, APIs, or message brokers without rewriting your business logic.
 - **Centralize Configuration:** Manage credentials, endpoints, and environment-specific details in one place.
-- **Debug and Monitor Consistently:** Use unified logs and monitoring for all your backend workflows.
+- **Debug and Monitor Consistently:** Use unified logs and monitoring for all your backend features.
 
 ## How Does Ductape Work?
 
 Ductape organizes your backend into modular building blocks:
 
 - **Apps:** These are collections of APIs from a provider. They can be third-party services or your internal APIs. Ductape turns these endpoints into callable functions. 
-- **Products:** These are containers for your integrations. Each Product connects to one or more Apps and includes all the backend components needed to run workflows. 
+- **Products:** These are containers for your integrations. Each Product connects to one or more Apps and includes all the backend components needed to run features. 
 - **Environments:** Contexts like development, staging, or production.
 - **Actions:** Tasks performed by apps (e.g., send an email, run a query).
 - **Resources:** Databases, message brokers, storage, notifications, and more.
@@ -28,7 +28,7 @@ You define these building blocks in code, configure them for your environments, 
 
 - Teams building complex backend systems that need to scale and adapt quickly.
 - Developers who want to avoid duplicating logic for each environment or provider.
-- Anyone who wants a consistent, testable, and portable way to manage backend workflows.
+- Anyone who wants a consistent, testable, and portable way to manage backend features.
 
 ## What Problems Does Ductape Solve?
 
@@ -42,13 +42,13 @@ You define these building blocks in code, configure them for your environments, 
 ## What Can You Build With Ductape?
 
 - Multi-environment deployments (dev, staging, prod)
-- Workflows that combine APIs, databases, and message queues
+- Features that combine APIs, databases, and message queues
 - Systems that can swap providers (e.g., Twilio to SendGrid) with zero code changes
 - Unified monitoring and debugging for all backend logic
 
 ## Next Steps
 
-- [Quickstart](./getting-started/quickstart.md)
-- [Apps](./apps/getting-started.md)
+- [Quickstart](./getting-started.md)
+- [Apps](./apps/create-app.md)
 - [Features](/features/overview)
 - [Environments](./apps/product-environments.md)

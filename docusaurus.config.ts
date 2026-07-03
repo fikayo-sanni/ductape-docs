@@ -16,9 +16,18 @@ const CLIENT_SDK_REDIRECTS: Record<string, string[]> = {
     '/frontend/react/storage-hooks',
     '/frontend/vue/storage-composables',
   ],
+  '/frontend/client/features': [
+    '/frontend/react/feature-hooks',
+    '/frontend/vue/feature-composables',
+  ],
   '/frontend/client/workflows': [
-    '/frontend/react/workflow-hooks',
-    '/frontend/vue/workflow-composables',
+    '/frontend/client/features',
+  ],
+  '/frontend/react/workflow-hooks': [
+    '/frontend/react/feature-hooks',
+  ],
+  '/frontend/vue/workflow-composables': [
+    '/frontend/vue/feature-composables',
   ],
   '/frontend/client/sessions': [
     '/frontend/react/session-hooks',
@@ -90,7 +99,22 @@ const config: Config = {
     ],
   ],
 
-  plugins: [],
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          { from: '/workflows/overview', to: '/features/overview' },
+          { from: '/workflows/getting-started', to: '/features/getting-started' },
+          { from: '/workflows/building-workflows', to: '/features/building-workflows' },
+          { from: '/workflows/step-types', to: '/features/step-types' },
+          { from: '/workflows/execution', to: '/features/execution' },
+          { from: '/workflows/examples', to: '/features/examples' },
+          { from: '/workflows/agentic-workflows', to: '/features/agentic-features' },
+        ],
+      },
+    ],
+  ],
 
   themes: [
     '@docusaurus/theme-mermaid',

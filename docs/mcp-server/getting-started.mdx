@@ -5,60 +5,62 @@ sidebar_label: Getting started
 
 # Getting started
 
-This guide walks through installing, building, and verifying the Ductape MCP server.
+This guide walks through installing and connecting the Ductape MCP server to your AI client.
 
 ## Prerequisites
 
 - **Node.js 18+**
-- A Ductape account with a workspace **Publishable Key** (from the Workbench or workspace settings)
+- A Ductape account with a workspace **Publishable Key** (from Workbench → workspace settings)
 - Network access to `https://api.ductape.app`
-
-For payload and snippet generation tools, you also need:
-
-- `workspace_id`
-- `user_id`
-- `public_key` (workspace public key, sent as `x-access-key` to the payload API)
 
 ## Install
 
-From the repository root:
+Install the MCP server globally:
 
 ```bash
-cd platform/mcp-server
-npm install
+npm install -g @ductape/mcp
 ```
 
-This installs:
+This makes the `ductape-mcp` binary available in your terminal. Alternatively, you can skip the install and use `npx` directly in your MCP client configuration (see below).
 
-- `@modelcontextprotocol/sdk` (v1, recommended)
-- `@modelcontextprotocol/server` (v2 alpha fallback)
-- `zod` for input validation
+## Verify
 
-## Build
+After installing, confirm the binary is available:
 
 ```bash
-npm run build
+ductape-mcp --version
 ```
 
-This compiles TypeScript to `dist/index.js`, which is the entry point MCP clients invoke.
+The server communicates over **stdio** and is meant to be spawned by an MCP client — it will not produce interactive output when run directly. That is expected.
 
-## Run manually
+## Connect to your MCP client
 
-**Production (compiled):**
+Configure your client to spawn the server. See [Configuration](./configuration) for full instructions.
 
-```bash
-npm run build && npm start
-# equivalent to: node dist/index.js
+**Quick example (Cursor):**
+
+```json
+{
+  "mcpServers": {
+    "ductape": {
+      "command": "ductape-mcp"
+    }
+  }
+}
 ```
 
-**Development (tsx, no build step):**
+Or without installing, using `npx`:
 
-```bash
-npm run dev
-# equivalent to: tsx src/index.ts
+```json
+{
+  "mcpServers": {
+    "ductape": {
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"]
+    }
+  }
+}
 ```
-
-When started, the server waits on **stdio** for MCP messages. It does not open an HTTP port. You will not see interactive output — that is expected. The server is meant to be spawned by an MCP client.
 
 ## Verify in Cursor
 
@@ -79,25 +81,15 @@ Ask the agent to list available MCP tools, or invoke a simple read-only call:
 }
 ```
 
-## Global install (optional)
-
-You can link the binary globally after building:
-
-```bash
-npm link
-```
-
-Then reference `ductape-mcp` in MCP client config instead of an absolute path to `dist/index.js`.
-
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| `Failed to load MCP SDK` | Run `npm install` in `mcp-server/`. Ensure `@modelcontextprotocol/sdk` is present. |
-| Server starts but tools don't appear | Restart the MCP client after config changes. Check that `args[0]` is an absolute path. |
+| `ductape-mcp: command not found` | Run `npm install -g @ductape/mcp` and ensure your global `node_modules/.bin` is in `$PATH`. |
+| Server starts but tools don't appear | Restart the MCP client after config changes. |
 | `Not authenticated` on execute | Pass `publishable_key` in every `ductape_execute` invocation. |
 | Proxy validation error | Check [Modules & methods](./modules-and-methods) — method names are case-sensitive and dot-notation for nested methods (e.g. `environments.create`). |
-| Payload generation 401/403 | Verify `public_key`, `workspace_id`, and `user_id` match your workspace. |
+| Payload generation 401/403 | Verify `publishable_key` is correct and belongs to the target workspace. |
 
 ## Next steps
 

@@ -7,9 +7,9 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 <PreviewBanner />
 
-# Getting Started with Workflows
+# Getting Started with Features
 
-This guide walks you through creating and running your first workflow using the code-first API.
+This guide walks you through creating and running your first feature using the code-first API.
 
 ## Prerequisites
 
@@ -38,12 +38,12 @@ const ductape = new Ductape({
 
 See [SDK runtime defaults](/sdk/runtime-defaults) — `product` and `env` belong on the constructor only.
 
-## Step 3: Define Your First Workflow
+## Step 3: Define Your First Feature
 
-Use `ductape.workflows.define()` to create a workflow with a handler function:
+Use `ductape.features.define()` to create a feature with a handler function:
 
 ```typescript
-const onboardingWorkflow = await ductape.workflows.define({
+const onboardingFeature = await ductape.features.define({
   tag: 'user-onboarding',
   name: 'User Onboarding',
   description: 'Onboards new users with welcome email and audit log',
@@ -91,7 +91,7 @@ const onboardingWorkflow = await ductape.workflows.define({
       });
     });
 
-    // Return workflow output
+    // Return feature output
     return {
       success: true,
       userId: user.id,
@@ -100,10 +100,10 @@ const onboardingWorkflow = await ductape.workflows.define({
 });
 ```
 
-## Step 4: Execute the Workflow
+## Step 4: Execute the Feature
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   tag: 'user-onboarding',
   input: {
     email: 'john@example.com',
@@ -134,8 +134,8 @@ async function main() {
     private_key: 'your-private-key',
   });
 
-  // Define the workflow
-  await ductape.workflows.define({
+  // Define the feature
+  await ductape.features.define({
     tag: 'user-onboarding',
     name: 'User Onboarding',
 
@@ -171,8 +171,8 @@ async function main() {
     },
   });
 
-  // Execute the workflow
-  const result = await ductape.workflows.execute({
+  // Execute the feature
+  const result = await ductape.features.execute({
     tag: 'user-onboarding',
     input: {
       email: 'jane@example.com',
@@ -196,9 +196,9 @@ handler: async (ctx) => {
   ctx.input.email      // Access input fields
   ctx.input.name
 
-  // Workflow metadata
-  ctx.workflow_id      // Unique execution ID
-  ctx.workflow_tag     // 'user-onboarding'
+  // Feature metadata
+  ctx.feature_id       // Unique execution ID
+  ctx.feature_tag      // 'user-onboarding'
   ctx.env              // 'dev', 'staging', 'prd'
   ctx.product          // 'my-product'
 
@@ -232,7 +232,7 @@ The execution result contains:
 ```typescript
 {
   status: 'completed',           // 'completed', 'failed', or 'rolled_back'
-  workflow_id: 'wf_abc123',      // Unique execution ID
+  feature_id: 'wf_abc123',       // Unique execution ID
   execution_time: 1250,          // Total time in milliseconds
   output: {                      // Your handler's return value
     userId: 'usr_123'
@@ -251,10 +251,10 @@ The execution result contains:
 
 If a step fails:
 
-1. **Steps with `allow_fail: true`**: Workflow continues
-2. **Steps without `allow_fail`**: Workflow stops and rolls back
+1. **Steps with `allow_fail: true`**: Feature continues
+2. **Steps without `allow_fail`**: Feature stops and rolls back
 
-For example, if `send-welcome` fails (and has `allow_fail: true`), the workflow continues. If `create-user` fails, the workflow fails immediately.
+For example, if `send-welcome` fails (and has `allow_fail: true`), the feature continues. If `create-user` fails, the feature fails immediately.
 
 ## Adding Rollback Logic
 
@@ -282,11 +282,11 @@ const payment = await ctx.step(
 );
 ```
 
-When the workflow rolls back, it calls each rollback handler with the original step's result.
+When the feature rolls back, it calls each rollback handler with the original step's result.
 
 ## Next Steps
 
-Now that you've created your first workflow:
+Now that you've created your first feature:
 
 - [Step Types](./step-types) - Learn about all available ctx methods
 - [Execution & Rollbacks](./execution) - Understand execution flow
@@ -294,9 +294,9 @@ Now that you've created your first workflow:
 
 ## Troubleshooting
 
-### "Workflow not found"
+### "Feature not found"
 
-Make sure you've defined the workflow with `define()` before executing.
+Make sure you've defined the feature with `define()` before executing.
 
 ### "Step failed"
 

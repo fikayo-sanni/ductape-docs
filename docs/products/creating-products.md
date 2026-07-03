@@ -171,4 +171,4 @@ try {
 
 - [Products Overview](./overview) - Understand product architecture
 - [Apps](/apps/getting-started) - Create apps to connect to products
-- [Features](/features/overview) - Build workflows within products
+- [Features](/features/overview) - Build features within products

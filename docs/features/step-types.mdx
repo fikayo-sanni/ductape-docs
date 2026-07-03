@@ -9,18 +9,18 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Context API Reference
 
-Complete reference for all methods available on the workflow context (`ctx`) object.
+Complete reference for all methods available on the feature context (`ctx`) object.
 
 ## ctx.step()
 
-Define a workflow step with optional rollback.
+Define a feature step with optional rollback.
 
 ```typescript
 const result = await ctx.step<T>(
   tag: string,
   handler: () => Promise<T>,
   rollback?: ((result: T) => Promise<void>) | null,
-  options?: IWorkflowStepOptions
+  options?: IFeatureStepOptions
 ): Promise<T>;
 ```
 
@@ -37,7 +37,7 @@ const result = await ctx.step<T>(
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `allow_fail` | boolean | false | Continue workflow if step fails |
+| `allow_fail` | boolean | false | Continue feature if step fails |
 | `retries` | number | 0 | Number of retry attempts |
 | `retry_delay` | number | 1000 | Milliseconds between retries |
 | `timeout` | number | - | Step timeout in milliseconds |
@@ -115,7 +115,7 @@ const charge = await ctx.action.run({
   input: {
     amount: 1000,
     currency: 'usd',
-    'headers:Idempotency-Key': ctx.workflow_id
+    'headers:Idempotency-Key': ctx.feature_id
   },
   retries: 3,
   timeout: 10000,
@@ -448,7 +448,7 @@ const status = await ctx.healthcheck.getStatus(tag: string): Promise<{
 
 ### ctx.sleep()
 
-Pause workflow execution.
+Pause feature execution.
 
 ```typescript
 await ctx.sleep(duration: number | string): Promise<void>;
@@ -497,12 +497,12 @@ const result = await ctx.triggerRollback(reason: string): Promise<{
 }>;
 ```
 
-### ctx.workflow()
+### ctx.feature()
 
-Run a child workflow.
+Run a child feature.
 
 ```typescript
-const result = await ctx.workflow<TInput, TOutput>(
+const result = await ctx.feature<TInput, TOutput>(
   childId: string,
   tag: string,
   input: TInput,
@@ -535,7 +535,7 @@ const value = ctx.getState<T>(key: string): T | undefined;
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ctx.state` | object | All workflow state |
+| `ctx.state` | object | All feature state |
 | `ctx.steps` | object | Results from completed steps |
 | `ctx.completed_steps` | string[] | Tags of completed steps |
 | `ctx.current_step` | string \| null | Currently executing step |
@@ -546,7 +546,7 @@ const value = ctx.getState<T>(key: string): T | undefined;
 
 ### ctx.input
 
-Read-only workflow input data.
+Read-only feature input data.
 
 ```typescript
 const email = ctx.input.email;
@@ -624,8 +624,8 @@ ctx.log.error(message: string, data?: Record<string, unknown>): void;
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `ctx.workflow_id` | string | Unique execution ID |
-| `ctx.workflow_tag` | string | Workflow tag |
+| `ctx.feature_id` | string | Unique execution ID |
+| `ctx.feature_tag` | string | Feature tag |
 | `ctx.env` | string | Environment (dev, staging, prd) |
 | `ctx.product` | string | Product tag |
 | `ctx.context` | object | Additional metadata |
@@ -636,16 +636,16 @@ ctx.log.error(message: string, data?: Record<string, unknown>): void;
 
 ## Replay, Restart & Resume Properties
 
-Properties for detecting and handling replayed, restarted, or resumed workflows:
+Properties for detecting and handling replayed, restarted, or resumed features:
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `ctx.is_replay` | boolean | Whether this is a replay execution |
 | `ctx.is_restart` | boolean | Whether this is a restart execution |
 | `ctx.is_restored` | boolean | Whether this is a resumed execution |
-| `ctx.replayed_from` | string \| undefined | Original workflow ID (if replay) |
-| `ctx.restarted_from` | string \| undefined | Original workflow ID (if restart) |
-| `ctx.resumed_from` | string \| undefined | Original workflow ID (if resume) |
+| `ctx.replayed_from` | string \| undefined | Original feature ID (if replay) |
+| `ctx.restarted_from` | string \| undefined | Original feature ID (if restart) |
+| `ctx.resumed_from` | string \| undefined | Original feature ID (if resume) |
 | `ctx.replay_reason` | string \| undefined | Reason for replay |
 | `ctx.restart_reason` | string \| undefined | Reason for restart |
 | `ctx.restored_checkpoint` | object \| undefined | Checkpoint info (if resumed) |
@@ -657,14 +657,14 @@ Properties for detecting and handling replayed, restarted, or resumed workflows:
 handler: async (ctx) => {
   // Log execution context
   if (ctx.is_replay) {
-    ctx.log.info('Replaying workflow', {
+    ctx.log.info('Replaying feature', {
       original_id: ctx.replayed_from,
       reason: ctx.replay_reason,
     });
   }
 
   if (ctx.is_restart) {
-    ctx.log.info('Restarted workflow', {
+    ctx.log.info('Restarted feature', {
       original_id: ctx.restarted_from,
       reason: ctx.restart_reason,
       original_input: ctx.original_input,
@@ -672,7 +672,7 @@ handler: async (ctx) => {
   }
 
   if (ctx.is_restored) {
-    ctx.log.info('Resuming workflow', {
+    ctx.log.info('Resuming feature', {
       original_id: ctx.resumed_from,
       checkpoint: ctx.restored_checkpoint?.name,
       completed_steps: ctx.completed_steps,
@@ -684,60 +684,60 @@ handler: async (ctx) => {
     }
   }
 
-  // Workflow logic...
+  // Feature logic...
 }
 ```
 
 ---
 
-## SDK Workflow Methods
+## SDK Feature Methods
 
-Methods available on `ductape.workflows` for managing workflows outside of the handler context.
+Methods available on `ductape.features` for managing features outside of the handler context.
 
-### ductape.workflows.define()
+### ductape.features.define()
 
-Define and register a workflow:
+Define and register a feature:
 
 ```typescript
-const workflow = await ductape.workflows.define({
+const feature = await ductape.features.define({
   product: string,
   tag: string,
   name: string,
   description?: string,
-  options?: IWorkflowOptions,
+  options?: IFeatureOptions,
   signals?: Record<string, { input: Record<string, string> }>,
   queries?: Record<string, { handler: (ctx) => unknown }>,
   envs?: Array<{ slug: string; active: boolean }>,
-  handler: (ctx: IWorkflowContext) => Promise<TOutput>,
+  handler: (ctx: IFeatureContext) => Promise<TOutput>,
 });
 ```
 
-### ductape.workflows.execute()
+### ductape.features.execute()
 
-Execute a workflow immediately:
+Execute a feature immediately:
 
 ```typescript
-const result = await ductape.workflows.execute({
+const result = await ductape.features.execute({
   product: string,
   env: string,
   tag: string,
   input: Record<string, unknown>,
-  workflow_id?: string,
+  feature_id?: string,
   idempotency_key?: string,
   timeout?: number,
   context?: Record<string, unknown>,
 });
 ```
 
-### ductape.workflows.dispatch()
+### ductape.features.dispatch()
 
-Schedule a workflow for later execution:
+Schedule a feature for later execution:
 
 ```typescript
-const result = await ductape.workflows.dispatch({
+const result = await ductape.features.dispatch({
   product: string,
   env: string,
-  workflow: string,
+  feature: string,
   input: Record<string, unknown>,
   schedule?: {
     start_at?: number | string,    // When to start
@@ -754,7 +754,7 @@ const result = await ductape.workflows.dispatch({
 });
 
 // Returns
-interface IWorkflowDispatchResult {
+interface IFeatureDispatchResult {
   job_id: string;
   status: 'scheduled' | 'queued';
   scheduled_at: number;
@@ -763,15 +763,15 @@ interface IWorkflowDispatchResult {
 }
 ```
 
-### ductape.workflows.replay()
+### ductape.features.replay()
 
-Re-execute a workflow with the same input:
+Re-execute a feature with the same input:
 
 ```typescript
-const result = await ductape.workflows.replay({
+const result = await ductape.features.replay({
   product: string,
   env: string,
-  workflow_id: string,              // Original workflow ID
+  feature_id: string,               // Original feature ID
   options?: {
     retries?: number,
     timeout?: number,
@@ -782,42 +782,42 @@ const result = await ductape.workflows.replay({
 });
 
 // Returns
-interface IWorkflowReplayResult extends IWorkflowResult {
-  replayed_from: string;            // Original workflow ID
+interface IFeatureReplayResult extends IFeatureResult {
+  replayed_from: string;            // Original feature ID
 }
 ```
 
-### ductape.workflows.restart()
+### ductape.features.restart()
 
-Re-execute a workflow with new or modified input:
+Re-execute a feature with new or modified input:
 
 ```typescript
-const result = await ductape.workflows.restart({
+const result = await ductape.features.restart({
   product: string,
   env: string,
-  workflow_id: string,              // Original workflow ID
+  feature_id: string,               // Original feature ID
   input?: Record<string, unknown>,  // New input (replaces original)
   input_override?: Record<string, unknown>,  // Partial override
   merge_input?: boolean,            // Merge with original input
   reason?: string,
-  options?: IWorkflowOptions,
+  options?: IFeatureOptions,
 });
 
 // Returns
-interface IWorkflowRestartResult extends IWorkflowResult {
-  restarted_from: string;           // Original workflow ID
+interface IFeatureRestartResult extends IFeatureResult {
+  restarted_from: string;           // Original feature ID
 }
 ```
 
-### ductape.workflows.resume()
+### ductape.features.resume()
 
-Continue a paused or failed workflow:
+Continue a paused or failed feature:
 
 ```typescript
-const result = await ductape.workflows.resume({
+const result = await ductape.features.resume({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   from_checkpoint?: string,         // Resume from checkpoint
   from_step?: string,               // Resume from step
   skip_steps?: string[],            // Steps to skip
@@ -825,21 +825,21 @@ const result = await ductape.workflows.resume({
 });
 
 // Returns
-interface IWorkflowResumeResult extends IWorkflowResult {
-  resumed_from: string;             // Original workflow ID
+interface IFeatureResumeResult extends IFeatureResult {
+  resumed_from: string;             // Original feature ID
   resumed_checkpoint?: string;
 }
 ```
 
-### ductape.workflows.replayFromStep()
+### ductape.features.replayFromStep()
 
 Re-execute starting from a specific step:
 
 ```typescript
-const result = await ductape.workflows.replayFromStep({
+const result = await ductape.features.replayFromStep({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   from_step: string,                // Step to start from
   step_outputs?: Record<string, unknown>,  // Override previous step outputs
   debug?: {
@@ -850,48 +850,48 @@ const result = await ductape.workflows.replayFromStep({
 });
 ```
 
-### ductape.workflows.signal()
+### ductape.features.signal()
 
-Send a signal to a running workflow:
+Send a signal to a running feature:
 
 ```typescript
-await ductape.workflows.signal({
+await ductape.features.signal({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   signal: string,                   // Signal name
   payload: Record<string, unknown>, // Signal data
 });
 ```
 
-### ductape.workflows.query()
+### ductape.features.query()
 
-Query a running workflow's state:
+Query a running feature's state:
 
 ```typescript
-const result = await ductape.workflows.query<T>({
+const result = await ductape.features.query<T>({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   query: string,                    // Query handler name
 });
 ```
 
-### ductape.workflows.status()
+### ductape.features.status()
 
-Get workflow execution status:
+Get feature execution status:
 
 ```typescript
-const status = await ductape.workflows.status({
+const status = await ductape.features.status({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
 });
 
 // Returns
-interface IWorkflowStatus {
-  workflow_id: string;
-  workflow_tag: string;
+interface IFeatureStatus {
+  feature_id: string;
+  feature_tag: string;
   status: 'running' | 'completed' | 'failed' | 'rolled_back' | 'cancelled';
   current_step?: string;
   completed_steps: string[];
@@ -901,59 +901,59 @@ interface IWorkflowStatus {
 }
 ```
 
-### ductape.workflows.cancel()
+### ductape.features.cancel()
 
-Cancel a running workflow:
+Cancel a running feature:
 
 ```typescript
-const result = await ductape.workflows.cancel({
+const result = await ductape.features.cancel({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   reason?: string,
 });
 
 // Returns
-interface IWorkflowCancelResult {
+interface IFeatureCancelResult {
   cancelled: boolean;
   rolled_back_steps: string[];
 }
 ```
 
-### ductape.workflows.history()
+### ductape.features.history()
 
-Get workflow execution history:
+Get feature execution history:
 
 ```typescript
-const history = await ductape.workflows.history({
+const history = await ductape.features.history({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   include_step_details?: boolean,
   include_rollback_details?: boolean,
 });
 
 // Returns
-interface IWorkflowHistory {
-  workflow_id: string;
-  workflow_tag: string;
-  status: WorkflowStatus;
-  events: IWorkflowEvent[];
+interface IFeatureHistory {
+  feature_id: string;
+  feature_tag: string;
+  status: FeatureStatus;
+  events: IFeatureEvent[];
   checkpoints: ICheckpoint[];
   replays?: string[];
   restarts?: string[];
 }
 ```
 
-### ductape.workflows.stepDetail()
+### ductape.features.stepDetail()
 
 Get detailed information about a step:
 
 ```typescript
-const detail = await ductape.workflows.stepDetail({
+const detail = await ductape.features.stepDetail({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
   step_tag: string,
 });
 
@@ -973,24 +973,24 @@ interface IStepDetail {
 }
 ```
 
-### ductape.workflows.relatedExecutions()
+### ductape.features.relatedExecutions()
 
 List all related executions (replays, restarts, resumes):
 
 ```typescript
-const related = await ductape.workflows.relatedExecutions({
+const related = await ductape.features.relatedExecutions({
   product: string,
   env: string,
-  workflow_id: string,
+  feature_id: string,
 });
 
 // Returns
 interface IRelatedExecutions {
   original: string;
   executions: Array<{
-    workflow_id: string;
+    feature_id: string;
     type: 'original' | 'replay' | 'restart' | 'resume';
-    status: WorkflowStatus;
+    status: FeatureStatus;
     created_at: number;
     replayed_from?: string;
     restarted_from?: string;
@@ -999,29 +999,29 @@ interface IRelatedExecutions {
 }
 ```
 
-### ductape.workflows.compare()
+### ductape.features.compare()
 
-Compare two workflow executions:
+Compare two feature executions:
 
 ```typescript
-const comparison = await ductape.workflows.compare({
+const comparison = await ductape.features.compare({
   product: string,
   env: string,
-  workflow_ids: string[],           // Two workflow IDs to compare
+  feature_ids: string[],            // Two feature IDs to compare
 });
 
 // Returns
 interface IExecutionComparison {
-  workflows: string[];
+  features: string[];
   input_diff: Record<string, unknown[]>;
   step_diffs: Array<{
     step: string;
-    [workflow_id: string]: {
+    [feature_id: string]: {
       status: StepStatus;
       output?: Record<string, unknown>;
       error?: string;
     };
   }>;
-  outcome_diff: Record<string, { status: WorkflowStatus; output?: unknown }>;
+  outcome_diff: Record<string, { status: FeatureStatus; output?: unknown }>;
 }
 ```

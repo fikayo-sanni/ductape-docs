@@ -9,14 +9,14 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Examples
 
-Real-world workflow patterns using the code-first API. For conditionals, loops, and switch (e.g. `branchOverrides`, `recordInput`, `recordScenarios`), see [Building Workflows - Conditionals, loops, and switch](./building-workflows#conditionals-loops-and-switch).
+Real-world feature patterns using the code-first API. For conditionals, loops, and switch (e.g. `branchOverrides`, `recordInput`, `recordScenarios`), see [Building Features - Conditionals, loops, and switch](./building-features#conditionals-loops-and-switch).
 
 ## E-Commerce Order Fulfillment
 
-A complete order processing workflow with payment, inventory, and notifications. Because the handler returns early when validation fails, use **branchOverrides** so the compiler records the payment and later steps; at runtime those steps run only when the condition holds.
+A complete order processing feature with payment, inventory, and notifications. Because the handler returns early when validation fails, use **branchOverrides** so the compiler records the payment and later steps; at runtime those steps run only when the condition holds.
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   description: 'Process customer orders from payment to delivery',
@@ -225,7 +225,7 @@ await ductape.workflows.define({
 Multi-step user registration with email verification:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'user-onboarding',
   name: 'User Onboarding',
 
@@ -351,7 +351,7 @@ await ductape.workflows.define({
 Process uploaded documents with OCR and classification:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'document-pipeline',
   name: 'Document Processing Pipeline',
 
@@ -507,7 +507,7 @@ await ductape.workflows.define({
 Recurring subscription billing with retry logic:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'subscription-billing',
   name: 'Subscription Billing',
 
@@ -587,7 +587,7 @@ await ductape.workflows.define({
                 },
               },
               headers: {
-                'Idempotency-Key': `sub-${subscriptionId}-${ctx.workflow_id}-${paymentAttempt}`,
+                'Idempotency-Key': `sub-${subscriptionId}-${ctx.feature_id}-${paymentAttempt}`,
               },
             },
           });
@@ -733,12 +733,12 @@ await ductape.workflows.define({
 
 ---
 
-## Approval Workflow
+## Approval Feature
 
 Multi-level approval process with escalation:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'expense-approval',
   name: 'Expense Approval',
 
@@ -999,12 +999,12 @@ await ductape.workflows.define({
 
 ---
 
-## Data Sync Workflow
+## Data Sync Feature
 
 Synchronize data between systems with conflict resolution:
 
 ```typescript
-await ductape.workflows.define({
+await ductape.features.define({
   tag: 'data-sync',
   name: 'Data Synchronization',
 
@@ -1153,7 +1153,7 @@ await ductape.workflows.define({
 
 ---
 
-## Tips for Building Workflows
+## Tips for Building Features
 
 ### 1. Design for Failure
 
@@ -1163,9 +1163,9 @@ Always assume steps can fail. Define rollback handlers for critical operations:
 await ctx.step('critical-op', doWork, undoWork, { critical: true });
 ```
 
-### 2. Use Checkpoints for Long Workflows
+### 2. Use Checkpoints for Long Features
 
-Break long workflows into phases:
+Break long features into phases:
 
 ```typescript
 await ctx.checkpoint('phase-1-complete');
@@ -1203,7 +1203,7 @@ await ctx.action.run({
   app: 'stripe',
   event: 'charge',
   input: {
-    headers: { 'Idempotency-Key': `${ctx.workflow_id}-payment` },
+    headers: { 'Idempotency-Key': `${ctx.feature_id}-payment` },
   },
 });
 ```

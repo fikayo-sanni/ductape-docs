@@ -1,6 +1,6 @@
 # Database Triggers
 
-Triggers are automated actions that execute in response to database events. They integrate seamlessly with Ductape primitives including storage, actions, notifications, brokers, workflows, cache, quotas, fallbacks, and more.
+Triggers are automated actions that execute in response to database events. They integrate seamlessly with Ductape primitives including storage, actions, notifications, brokers, features, cache, quotas, fallbacks, and more.
 
 Triggers are stored on the Ductape backend, allowing them to be managed across your team and environments.
 
@@ -11,7 +11,7 @@ Triggers allow you to:
 - Send notifications when data changes
 - Publish events to message brokers
 - Update cache entries
-- Execute workflows
+- Execute features
 - Run AI agents
 - Make HTTP calls
 - Persist trigger configurations to the backend
@@ -194,17 +194,17 @@ Trigger.cache.invalidate('redis-cache', 'user:*');
 Trigger.cache.delete('redis-cache', 'user:{{record.id}}');
 ```
 
-### Workflow Actions
+### Feature Actions
 
 ```typescript
-// Execute workflow and wait for completion
-Trigger.workflow.execute('onboarding-workflow', {
+// Execute feature and wait for completion
+Trigger.feature.execute('onboarding-feature', {
   userId: '{{record.id}}',
   email: '{{record.email}}',
 });
 
-// Dispatch workflow asynchronously
-Trigger.workflow.dispatch('background-sync', {
+// Dispatch feature asynchronously
+Trigger.feature.dispatch('background-sync', {
   recordId: '{{record.id}}',
 });
 ```
@@ -495,7 +495,7 @@ db.triggers.register('orders', {
 
     // 2. Update inventory
     {
-      ...Trigger.workflow.dispatch('update-inventory', {
+      ...Trigger.feature.dispatch('update-inventory', {
         orderId: '{{record.id}}',
         items: '{{record.items}}',
       }),
@@ -550,7 +550,7 @@ db.triggers.register('orders', {
     }),
 
     // Restore inventory
-    Trigger.workflow.execute('restore-inventory', {
+    Trigger.feature.execute('restore-inventory', {
       orderId: '{{record.id}}',
       items: '{{record.items}}',
     }),

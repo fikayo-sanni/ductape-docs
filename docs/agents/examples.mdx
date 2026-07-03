@@ -559,63 +559,63 @@ Always cite your sources and note any limitations in the available information.`
 
 ## Task Automation Agent
 
-An agent that automates workflows and integrations:
+An agent that automates features and integrations:
 
 ```typescript
 const automationAgent = await ductape.agents.define({
-  tag: 'workflow-agent',
-  name: 'Workflow Automation Agent',
+  tag: 'feature-agent',
+  name: 'Feature Automation Agent',
   model: {
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
     temperature: 0.3,
   },
-  systemPrompt: `You are a workflow automation assistant.
+  systemPrompt: `You are a feature automation assistant.
 
 You can help users:
-- Create and run automated workflows
+- Create and run automated features
 - Connect different services
 - Schedule recurring tasks
-- Monitor workflow status
+- Monitor feature status
 
-Always confirm before executing workflows that modify data.`,
+Always confirm before executing features that modify data.`,
 
   tools: [
     {
-      tag: 'list-workflows',
-      description: 'List available workflows',
+      tag: 'list-features',
+      description: 'List available features',
       parameters: {
         status: { type: 'string', enum: ['active', 'inactive', 'all'] },
       },
       handler: async (ctx, params) => {
         return ctx.database.query({
-          database: 'workflows-db',
-          event: 'list-workflows',
+          database: 'features-db',
+          event: 'list-features',
           params: { status: params.status || 'all' },
         });
       },
     },
     {
-      tag: 'run-workflow',
-      description: 'Execute a workflow',
+      tag: 'run-feature',
+      description: 'Execute a feature',
       requiresConfirmation: true,
       parameters: {
-        workflowTag: { type: 'string', required: true },
-        input: { type: 'object', description: 'Input parameters for the workflow' },
+        featureTag: { type: 'string', required: true },
+        input: { type: 'object', description: 'Input parameters for the feature' },
       },
       handler: async (ctx, params) => {
         return ctx.feature.run({
-          feature: params.workflowTag,
+          feature: params.featureTag,
           input: params.input,
         });
       },
     },
     {
-      tag: 'schedule-workflow',
-      description: 'Schedule a workflow to run at a specific time or interval',
+      tag: 'schedule-feature',
+      description: 'Schedule a feature to run at a specific time or interval',
       requiresConfirmation: true,
       parameters: {
-        workflowTag: { type: 'string', required: true },
+        featureTag: { type: 'string', required: true },
         schedule: { type: 'string', description: 'Cron expression or ISO date' },
         input: { type: 'object' },
       },
@@ -624,7 +624,7 @@ Always confirm before executing workflows that modify data.`,
           database: 'schedules-db',
           event: 'create-schedule',
           data: {
-            workflowTag: params.workflowTag,
+            featureTag: params.featureTag,
             schedule: params.schedule,
             input: params.input,
             status: 'active',
@@ -634,18 +634,18 @@ Always confirm before executing workflows that modify data.`,
       },
     },
     {
-      tag: 'get-workflow-history',
-      description: 'Get execution history for a workflow',
+      tag: 'get-feature-history',
+      description: 'Get execution history for a feature',
       parameters: {
-        workflowTag: { type: 'string', required: true },
+        featureTag: { type: 'string', required: true },
         limit: { type: 'number', default: 10 },
       },
       handler: async (ctx, params) => {
         return ctx.database.query({
-          database: 'workflows-db',
+          database: 'features-db',
           event: 'execution-history',
           params: {
-            workflowTag: params.workflowTag,
+            featureTag: params.featureTag,
             limit: params.limit,
           },
         });
@@ -684,7 +684,7 @@ Always confirm before executing workflows that modify data.`,
 
   humanInLoop: {
     enabled: true,
-    alwaysRequireApproval: ['run-workflow', 'schedule-workflow'],
+    alwaysRequireApproval: ['run-feature', 'schedule-feature'],
     approvalTimeout: 120000,
   },
 });
@@ -720,4 +720,4 @@ const researchResult = await ductape.agents.run({
 - [Overview](./overview) - Agent fundamentals
 - [Tools](./tools) - Creating custom tools
 - [Memory](./memory) - Configure agent memory
-- [Human-in-the-Loop](./human-in-loop) - Add approval workflows
+- [Human-in-the-Loop](./human-in-loop) - Add approval features

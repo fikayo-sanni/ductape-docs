@@ -104,14 +104,14 @@ ctx.provider('primary-db')
   .action('write');
 ```
 
-#### Workflow
+#### Feature
 
-Route to a workflow:
+Route to a feature:
 
 ```ts
 ctx.provider('standard-flow')
   .weight(90)
-  .workflow('order-processing')
+  .feature('order-processing')
   .input({ priority: 'normal' });
 ```
 

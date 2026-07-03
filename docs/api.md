@@ -16,7 +16,7 @@ Ductape is primarily consumed through the **SDK** and **Workbench**. HTTP APIs a
 | Products | [Products overview](/products/overview) |
 | Apps | [Apps getting started](/apps/getting-started) |
 | Databases | [Relational databases](/databases/relational/getting-started) |
-| Workflows | [Workflows overview](/workflows/overview) |
+| Features | [Features overview](/features/overview) |
 | Jobs | [Jobs overview](/jobs/overview) |
 
 ## SDK surface

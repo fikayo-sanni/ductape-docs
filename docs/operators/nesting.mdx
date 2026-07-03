@@ -8,14 +8,14 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 <PreviewBanner />
 # Nesting Operators
 
-Operators in Ductape can be **nested** to perform complex data transformations in a single expression. This enables powerful data manipulation while keeping your workflow definitions declarative and inspectable.
+Operators in Ductape can be **nested** to perform complex data transformations in a single expression. This enables powerful data manipulation while keeping your feature definitions declarative and inspectable.
 
 ## Why Nest Operators?
 
 Nesting allows you to:
 - **Chain transformations** - Apply multiple operations in sequence
 - **Build complex logic** - Combine simple operators to solve complex problems
-- **Keep workflows concise** - Avoid intermediate steps and temporary values
+- **Keep features concise** - Avoid intermediate steps and temporary values
 - **Maintain readability** - Express intent clearly with composed operations
 
 ## How Nesting Works
@@ -240,7 +240,7 @@ userId: '$Substring($Sequence{main}{create-user}{id}, 0, 8)'
 activeUsers: '$Filter($Sequence{main}{fetch-users}{users}, "==", "active")'
 ```
 
-### 4. Use Comments in Complex Workflows
+### 4. Use Comments in Complex Features
 
 Document your transformations, especially nested operators:
 
@@ -320,7 +320,7 @@ await ductape.features.create({
 
  **Validate data types** - Ensure operations match the data type (strings, numbers, arrays)
 
- **Consider sequence order** - Reference events that have already executed in the workflow
+ **Consider sequence order** - Reference events that have already executed in the feature
 
  **Keep transformations pure** - Operators should not have side effects
 
@@ -338,5 +338,5 @@ When a nested operator doesn't produce expected results:
 
 - [Understanding Operators](./operators) - Complete operator reference and data referencing guide
 - [Features Output](../features/output) - How to use operators in feature outputs
-- [Features Overview](../features/overview) - Building workflows with events and sequences
+- [Features Overview](../features/overview) - Building features with events and sequences
 

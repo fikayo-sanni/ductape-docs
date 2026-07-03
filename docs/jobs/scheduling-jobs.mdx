@@ -48,7 +48,7 @@ Each namespace has its own `dispatch()` method for scheduling operations as jobs
 | Namespace | Method | Description |
 |-----------|--------|-------------|
 | `ductape.api` | `dispatch()` | Schedule app actions |
-| `ductape.workflows` | `dispatch()` | Schedule workflow execution |
+| `ductape.features` | `dispatch()` | Schedule feature execution |
 | `ductape.notifications` | `dispatch()` | Schedule notifications |
 | `ductape.storage` | `dispatch()` | Schedule storage operations |
 | `ductape.events` | `dispatch()` | Schedule message broker publishes |
@@ -120,8 +120,8 @@ const job = await ductape.api.dispatch({
 
 ```ts
 // Run every day at 9 AM
-const job = await ductape.workflows.dispatch({
-  workflow: 'generate_daily_report',
+const job = await ductape.features.dispatch({
+  feature: 'generate_daily_report',
   input: {},
   retries: 2,
   schedule: {
@@ -193,4 +193,4 @@ For a complete guide on cron expressions, see [Cron Expressions](./cron-expressi
 
 * [Processing Overview](../processing-overview)
 * [Sessions](../sessions/overview)
-* [Workflows](../workflows/overview)
+* [Features](../features/overview)

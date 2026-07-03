@@ -192,23 +192,23 @@ Kafka, RabbitMQ, Redis Streams, and SQS messaging.
 
 ---
 
-## Workflows
+## Features
 
-Multi-step durable workflows with signals, queries, and scheduling.
+Multi-step durable features with signals, queries, and scheduling.
 
 | Task | Module | Example method |
 |------|--------|----------------|
-| Define workflows | `workflow` | `create`, `define` |
-| Execute a workflow | `workflow` | `execute` |
-| Schedule workflow runs | `workflow` | `dispatch` |
-| Send signals | `workflow` | `signal` |
-| Query workflow state | `workflow` | `query`, `status` |
-| Cancel / replay / resume | `workflow` | `cancel`, `replay`, `resume` |
-| Execution history | `workflow` | `history`, `stepDetail` |
+| Define features | `feature` | `create`, `define` |
+| Execute a feature | `feature` | `execute` |
+| Schedule feature runs | `feature` | `dispatch` |
+| Send signals | `feature` | `signal` |
+| Query feature state | `feature` | `query`, `status` |
+| Cancel / replay / resume | `feature` | `cancel`, `replay`, `resume` |
+| Execution history | `feature` | `history`, `stepDetail` |
 
-Step types include actions, database ops, graph queries, notifications, storage, messaging, child workflows, sleep, and wait-for-signal.
+Step types include actions, database ops, graph queries, notifications, storage, messaging, child features, sleep, and wait-for-signal.
 
-**Example agent prompt:** *"Run the order-fulfillment workflow with order ID 12345 and show me the execution status."*
+**Example agent prompt:** *"Run the order-fulfillment feature with order ID 12345 and show me the execution status."*
 
 ---
 
@@ -319,7 +319,7 @@ Query application and product logs.
 
 ---
 
-## Agent workflow patterns
+## Agent feature patterns
 
 ### 1. Explore → execute
 
@@ -372,7 +372,7 @@ The MCP server complements [Ductape Agents](/agents/overview). Agents defined in
 | **Stdio only** | No built-in HTTP/SSE transport; must be spawned by an MCP client |
 | **Proxy allowlist** | Only validated module/method pairs execute; see [Modules & methods](./modules-and-methods) |
 | **No streaming SDK callbacks** | Long-running streams (e.g. `logs.stream`, `messageBrokers.consume` with live callbacks) may not map cleanly to request/response MCP tools |
-| **Workflow `define` handler** | Code-based workflow handlers cannot be passed as JSON through MCP; use declarative `workflow.create` with steps instead |
+| **Feature `define` handler** | Code-based feature handlers cannot be passed as JSON through MCP; use declarative `feature.create` with steps instead |
 | **Snippet coverage** | Not all SDK methods have snippet generation; see [Code generation](./code-generation#supported-snippet-operations) |
 
 For operations outside the allowlist, use the SDK directly in application code or request proxy validator updates.

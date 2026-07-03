@@ -19,7 +19,7 @@ ductape unlink
 
 ## Config file
 
-`.ductape/config.json`:
+`ductape/config.json`:
 
 ```json
 {
@@ -34,16 +34,16 @@ Use **workspace_tag** (workspace name or slug from `ductape workspaces list`) â€
 
 ## Using the same values in `@ductape/sdk`
 
-The CLI stores `product_tag` and `env_slug` in `.ductape/config.json`. In application code, set the matching values **only on the Ductape constructor** (not via `configure()` or `DUCTAPE_*` env vars for defaults):
+The CLI stores `product_tag` and `env_slug` in `ductape/config.json`. In application code, set the matching values **only on the Ductape constructor** (not via `configure()` or `DUCTAPE_*` env vars for defaults):
 
 ```ts
 const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-  product: 'my-product', // same as product_tag in .ductape/config.json
+  product: 'my-product', // same as product_tag in ductape/config.json
   env: 'dev',            // same as env_slug
 });
 ```
 
 See [SDK runtime defaults](/sdk/runtime-defaults).
 
-`ductape init` also creates `.env.ductape.example`, a language example file, and `.ductape/README.md`.
+`ductape init` also creates `.env.ductape.example`, a language example file, `ductape/README.md`, and scaffolds `ductape/database/schema.json` with `ductape/database/migrations/` for [database schema management](./database).

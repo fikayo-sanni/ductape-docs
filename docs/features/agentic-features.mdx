@@ -1,29 +1,29 @@
 ---
 sidebar_position: 7
-sidebar_label: Agentic Workflows
+sidebar_label: Agentic Features
 ---
 
 import PreviewBanner from '@site/src/components/PreviewBanner';
 
 <PreviewBanner />
 
-# Agentic Workflows (RFC)
+# Agentic Features (RFC)
 
 :::caution
-This is a **Request for Comments (RFC)** document describing a proposed feature. Agentic Workflows are not yet implemented in Ductape. This document outlines the technical design and API for community feedback.
+This is a **Request for Comments (RFC)** document describing a proposed feature. Agentic Features are not yet implemented in Ductape. This document outlines the technical design and API for community feedback.
 :::
 
-Agentic Workflows extend Ductape's workflow engine to support AI-driven, autonomous multi-step processes where a Large Language Model (LLM) dynamically decides the next action based on observations and reasoning.
+Agentic Features extend Ductape's feature engine to support AI-driven, autonomous multi-step processes where a Large Language Model (LLM) dynamically decides the next action based on observations and reasoning.
 
 ---
 
 ## Overview
 
-Traditional Ductape workflows are **deterministic** - steps execute in a predefined order. Agentic workflows are **dynamic** - an LLM observes the current state, reasons about what to do next, and selects from available tools until a goal is achieved.
+Traditional Ductape features are **deterministic** - steps execute in a predefined order. Agentic features are **dynamic** - an LLM observes the current state, reasons about what to do next, and selects from available tools until a goal is achieved.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AGENTIC WORKFLOW                         │
+│                    AGENTIC FEATURE                          │
 │                                                             │
 │   ┌─────────┐    ┌─────────┐    ┌─────────┐               │
 │   │ Observe │───▶│  Think  │───▶│   Act   │               │
@@ -43,9 +43,9 @@ Traditional Ductape workflows are **deterministic** - steps execute in a predefi
 
 ---
 
-## When to Use Agentic Workflows
+## When to Use Agentic Features
 
-Use **Agentic Workflows** when you need:
+Use **Agentic Features** when you need:
 
 - **Dynamic decision making** - The next step depends on LLM reasoning
 - **Natural language understanding** - Processing unstructured input
@@ -54,7 +54,7 @@ Use **Agentic Workflows** when you need:
 - **Complex reasoning** - Multi-step problem solving
 - **Human-like interactions** - Conversational or intelligent assistants
 
-Use **Traditional Workflows** when:
+Use **Traditional Features** when:
 
 - Steps are known upfront and don't change
 - Deterministic execution is required
@@ -234,7 +234,7 @@ An agent is defined with:
 
 ### 2. The Agent Loop
 
-Each iteration of an agentic workflow follows this pattern:
+Each iteration of an agentic feature follows this pattern:
 
 ```
 1. OBSERVE  → Gather current state (conversation, tool results, memory)
@@ -704,10 +704,10 @@ if (approval.decision === 'approve') {
 }
 ```
 
-### Approval Workflow Integration
+### Approval Feature Integration
 
 ```typescript
-// External approval via workflow signal
+// External approval via feature signal
 await ductape.agents.requestApproval({
   agentRunId: 'run-12345',
   approval: {
@@ -1152,6 +1152,6 @@ const stream = await ductape.agents.stream({
 
 ## See Also
 
-- [Workflows](./overview) - Traditional deterministic workflows
+- [Features](./overview) - Traditional deterministic features
 - [Message Brokers](../message-brokers/overview) - Event-driven communication
 - [Vector Stores](../vector-stores/overview) - Long-term memory storage

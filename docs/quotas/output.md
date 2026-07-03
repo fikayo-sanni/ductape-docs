@@ -17,7 +17,7 @@ output: {
 ```
 
 ## Referencing Quota Outputs
-You can reference the output of a quota event in subsequent workflow steps using the quota tag and the correct variable syntax:
+You can reference the output of a quota event in subsequent feature steps using the quota tag and the correct variable syntax:
 
 ```typescript
 const nextEvent = {
@@ -30,5 +30,5 @@ const nextEvent = {
 ```
 
 ## Best Practices
-- Use output fields to make decisions in your workflow (e.g., block actions if quota is exceeded).
+- Use output fields to make decisions in your feature (e.g., block actions if quota is exceeded).
 - Document the output structure for each quota for clarity and maintainability. 

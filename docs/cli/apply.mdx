@@ -1,0 +1,250 @@
+---
+title: ductape apply
+sidebar_position: 11
+---
+
+# ductape apply
+
+`ductape apply` syncs declared resource configurations to your linked product. Declare sessions, notification channels, and event brokers as JSON arrays in your project folder, then apply them to any environment with a single command.
+
+```bash
+ductape apply                  # sync all resource types
+ductape apply sessions         # sync session configs only
+ductape apply notifications    # sync notification channels only
+ductape apply events           # sync event brokers only
+ductape apply --dry-run        # preview without making any changes
+```
+
+Requires a [linked project](./linking). Uses `product_tag` and `env_slug` from `ductape/config.json`.
+
+---
+
+## How it works
+
+For each item in a declaration file, `apply` checks whether a resource with that `tag` already exists in your product:
+
+- **Not found** → creates it
+- **Already exists** → updates it
+
+Running `apply` multiple times is safe. Resources in your product that are not in the declaration file are left untouched — there are no implicit deletes.
+
+---
+
+## Sessions — `ductape/sessions.json`
+
+Declares user session configurations for your product.
+
+```json
+[
+  {
+    "tag": "user-session",
+    "name": "User session",
+    "description": "Standard authenticated user session",
+    "expiry": 604800,
+    "refresh_expiry": 2592000
+  },
+  {
+    "tag": "admin-session",
+    "name": "Admin session",
+    "description": "Short-lived elevated session for admin operations",
+    "expiry": 3600,
+    "refresh_expiry": 86400
+  }
+]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tag` | string | Unique identifier. Used to create or update the session. |
+| `name` | string | Human-readable label shown in Workbench. |
+| `description` | string | Optional. |
+| `expiry` | number | Session token lifetime in seconds. |
+| `refresh_expiry` | number | Refresh token lifetime in seconds. |
+
+Apply:
+
+```bash
+ductape apply sessions
+```
+
+Use sessions in code:
+
+```ts
+const session = await ductape.sessions.start({
+  tag: 'user-session',
+  data: { userId: 'u1', email: 'user@example.com' },
+});
+
+const verified = await ductape.sessions.verify({
+  tag: 'user-session',
+  token: session.token,
+});
+```
+
+---
+
+## Notifications — `ductape/notifications.json`
+
+Declares notification channel configurations. Each entry is a channel (email sender, push provider, SMS gateway) with environment-specific credentials.
+
+```json
+[
+  {
+    "tag": "transactional-email",
+    "name": "Transactional email",
+    "description": "Email channel for order confirmations and alerts",
+    "envs": [
+      {
+        "slug": "dev",
+        "emails": {
+          "host": "smtp.mailtrap.io",
+          "port": 587,
+          "user": "your-mailtrap-user",
+          "pass": "your-mailtrap-pass",
+          "sender": "no-reply@example.com"
+        }
+      },
+      {
+        "slug": "prd",
+        "emails": {
+          "host": "smtp.postmarkapp.com",
+          "port": 587,
+          "user": "your-postmark-user",
+          "pass": "your-postmark-pass",
+          "sender": "no-reply@example.com"
+        }
+      }
+    ]
+  },
+  {
+    "tag": "push-alerts",
+    "name": "Push notifications",
+    "description": "Firebase push notifications for mobile",
+    "envs": [
+      {
+        "slug": "prd",
+        "push_notifications": {
+          "type": "FIREBASE",
+          "databaseUrl": "https://your-project.firebaseio.com",
+          "credentials": {
+            "type": "service_account",
+            "project_id": "your-project"
+          }
+        }
+      }
+    ]
+  }
+]
+```
+
+Apply:
+
+```bash
+ductape apply notifications
+```
+
+:::caution Credentials in files
+`notifications.json` contains provider credentials. Do not commit real credentials to version control. Use environment variable placeholders or keep a `.gitignore`d local override file for development.
+:::
+
+---
+
+## Events — `ductape/events.json`
+
+Declares event broker configurations. Each entry is a broker (a named connection to a message provider) with environment-specific credentials.
+
+```json
+[
+  {
+    "tag": "order-events",
+    "name": "Order events",
+    "description": "All order lifecycle events",
+    "envs": [
+      {
+        "slug": "dev",
+        "type": "REDIS",
+        "config": {
+          "host": "localhost",
+          "port": 6379
+        }
+      },
+      {
+        "slug": "prd",
+        "type": "KAFKA",
+        "config": {
+          "brokers": ["kafka.example.com:9092"],
+          "clientId": "order-service",
+          "groupId": "order-consumers",
+          "ssl": true,
+          "sasl": {
+            "mechanism": "scram-sha-256",
+            "username": "prod-user",
+            "password": "prod-password"
+          }
+        }
+      }
+    ]
+  }
+]
+```
+
+Apply:
+
+```bash
+ductape apply events
+```
+
+Once your broker is applied, create topics and start producing/consuming:
+
+```ts
+// Create a topic on the broker
+await ductape.messaging.topics.create('my-product', {
+  name: 'Order created',
+  tag: 'order-events:order-created',
+  sample: { orderId: '123', total: 99.99 },
+});
+
+// Produce
+await ductape.messaging.produce({
+  event: 'order-events:order-created',
+  message: { orderId: '123', total: 99.99 },
+});
+
+// Consume
+await ductape.messaging.consume({
+  event: 'order-events:order-created',
+  callback: async (message) => {
+    await processOrder(message);
+  },
+});
+```
+
+See [Events: Getting started](../events/getting-started) for the full walkthrough.
+
+---
+
+## Applying to a specific environment
+
+`apply` uses the `env_slug` from `ductape/config.json` by default. To target a different environment, change the linked env first or run `ductape link --env staging` to switch.
+
+---
+
+## Committing declaration files
+
+All three declaration files should be committed to version control alongside your application code. This makes resource configuration reviewable in pull requests and reproducible across developer machines and CI.
+
+```bash
+git add ductape/sessions.json ductape/notifications.json ductape/events.json
+git commit -m "configure sessions, notifications and event brokers"
+```
+
+After merging, run `ductape apply` in each environment to sync.
+
+---
+
+## See also
+
+- [Database migrations](./database) — `ductape db schema generate` and `ductape db migrate` for the equivalent schema management workflow
+- [Events: Getting started](../events/getting-started) — produce and consume events after setting up a broker
+- [Notifications: Overview](../notifications/overview) — send notifications via the SDK after setting up a channel
+- [Sessions: Overview](../sessions/overview) — use sessions in your application

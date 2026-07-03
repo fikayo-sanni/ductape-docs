@@ -1,5 +1,5 @@
 
-The `@ductape/react` package provides React hooks and components for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a React-idiomatic way to work with databases, storage, workflows, and more.
+The `@ductape/react` package provides React hooks and components for building real-time applications with Ductape. Built on top of `@ductape/client`, it offers a React-idiomatic way to work with databases, storage, features, and more.
 
 ## Installation
 
@@ -324,19 +324,19 @@ function FileUploader() {
 }
 ```
 
-### Execute Workflow
+### Execute Feature
 
 ```tsx
-import { useWorkflowExecute } from '@ductape/react';
+import { useFeatureExecute } from '@ductape/react';
 import { useAuth } from './auth';
 
 function ProcessOrder({ orderId }: { orderId: string }) {
   const { sessionToken } = useAuth();
-  const { mutate, isLoading, data, error } = useWorkflowExecute();
+  const { mutate, isLoading, data, error } = useFeatureExecute();
 
   const handleProcess = () => {
     mutate({
-      workflow: 'process-order',
+      feature: 'process-order',
       input: { orderId },
       session: sessionToken,
     });
@@ -472,6 +472,6 @@ function UsersList() {
 
 - [Database Hooks](./database-hooks)
 - [Storage Hooks](./storage-hooks)
-- [Workflow Hooks](./workflow-hooks)
+- [Feature Hooks](./feature-hooks)
 - [Real-time Subscriptions](./subscriptions)
 - [Session Hooks](./session-hooks) (backend/access-key only; with publishable key, pass `session` in every request)

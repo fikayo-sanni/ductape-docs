@@ -7,6 +7,8 @@ sidebar_label: Configuration
 
 The Ductape MCP server uses **stdio transport** and requires **no environment variables**. Configure your MCP client to spawn the server as a child process.
 
+The examples below assume you have installed the server globally (`npm install -g @ductape/mcp`). If you prefer not to install globally, replace `"command": "ductape-mcp"` with `"command": "npx", "args": ["-y", "@ductape/mcp"]` in any config block.
+
 ## Cursor
 
 Add the server in MCP settings. Config file locations:
@@ -18,39 +20,20 @@ Add the server in MCP settings. Config file locations:
 {
   "mcpServers": {
     "ductape": {
-      "command": "node",
-      "args": ["/absolute/path/to/Ductape/platform/mcp-server/dist/index.js"]
+      "command": "ductape-mcp"
     }
   }
 }
 ```
 
-**Important:** Use an **absolute path** for `args[0]`. Relative paths may fail depending on the client's working directory.
-
-### Development mode
-
-Point to `tsx` for live reload during server development:
+**Using `npx` (no global install required):**
 
 ```json
 {
   "mcpServers": {
     "ductape": {
       "command": "npx",
-      "args": ["tsx", "/absolute/path/to/Ductape/platform/mcp-server/src/index.ts"]
-    }
-  }
-}
-```
-
-### Global binary
-
-If you ran `npm link` in `platform/mcp-server/`:
-
-```json
-{
-  "mcpServers": {
-    "ductape": {
-      "command": "ductape-mcp"
+      "args": ["-y", "@ductape/mcp"]
     }
   }
 }
@@ -76,8 +59,7 @@ On Windows:
 {
   "mcpServers": {
     "ductape": {
-      "command": "node",
-      "args": ["/absolute/path/to/Ductape/platform/mcp-server/dist/index.js"]
+      "command": "ductape-mcp"
     }
   }
 }
@@ -91,26 +73,19 @@ Any client that supports stdio MCP servers can use the same pattern:
 
 | Field | Value |
 |-------|-------|
-| `command` | `node` (or `ductape-mcp` if linked globally) |
-| `args` | `["/absolute/path/to/platform/mcp-server/dist/index.js"]` |
+| `command` | `ductape-mcp` (global install) or `npx` |
+| `args` | omit for global binary; `["-y", "@ductape/mcp"]` for npx |
 | Transport | stdio (default for spawned processes) |
 
 Clients that support MCP over SSE or HTTP would need a separate adapter — the Ductape MCP server ships **stdio only**.
 
 ## Credentials
 
-The server itself stores **no credentials**. Pass them per tool call:
+The server itself stores **no credentials**. Every tool call requires a `publishable_key` argument — all three tools (`ductape_execute`, `ductape_generate_payload`, `ductape_generate_snippet`) use the same key.
 
-| Tool | Credential |
-|------|------------|
-| `ductape_execute` | `publishable_key` (required on every call) |
-| `ductape_generate_payload` | `public_key`, `workspace_id`, `user_id` |
-| `ductape_generate_snippet` | Same as payload generation |
+### Where to find your publishable key
 
-### Where to find keys
-
-- **Publishable Key** — Workbench → workspace settings, or SDK access panel
-- **Public Key / Workspace ID / User ID** — Same workspace settings; used for payload generation and direct SDK initialization
+Workbench → workspace settings → SDK access panel.
 
 See [Security](./security) for why credentials are per-request rather than in server config.
 
@@ -121,26 +96,4 @@ See [Security](./security) for why credentials are per-request rather than in se
 | **User-wide** (`~/.cursor/mcp.json`) | Personal development across all projects |
 | **Project-scoped** (`.cursor/mcp.json`) | Team-shared config committed to the repo |
 
-For team repos, consider documenting the required absolute path in a README and using project-scoped config with a path each developer adjusts locally, or a wrapper script that resolves the monorepo path.
-
-## Wrapper script (optional)
-
-If absolute paths are awkward across machines, use a small launcher:
-
-```bash
-#!/usr/bin/env bash
-# save as ~/bin/ductape-mcp-launch.sh
-exec node "$(dirname "$0")/../../Ductape/platform/mcp-server/dist/index.js"
-```
-
-Then in MCP config:
-
-```json
-{
-  "mcpServers": {
-    "ductape": {
-      "command": "/Users/you/bin/ductape-mcp-launch.sh"
-    }
-  }
-}
-```
+For team repos, using `npx` in the config avoids any machine-specific paths and works out of the box for everyone.

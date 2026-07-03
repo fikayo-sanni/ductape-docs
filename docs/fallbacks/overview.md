@@ -244,7 +244,7 @@ await ductape.fallback.update('payment-fallback', {
 
 ## Using Fallbacks in Features
 
-Integrate fallbacks into feature workflows:
+Integrate fallbacks into feature features:
 
 ```typescript
 import { FeatureEventTypes, DataTypes } from '@ductape/sdk/types';
@@ -440,5 +440,5 @@ await ductape.fallback.create({
 ## See Also
 
 - [Healthchecks](/apps/healthchecks) - Monitor provider availability
-- [Features](/features/overview) - Integrate fallbacks into workflows
+- [Features](/features/overview) - Integrate fallbacks into features
 - [Actions](/actions/overview) - Create provider actions for fallback options
