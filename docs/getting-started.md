@@ -1,380 +1,226 @@
 ---
 sidebar_position: 2
+title: Getting Started
 ---
 
-# Getting Started
+# Getting Started with Ductape
 
-This guide walks you through setting up Ductape in your project and making your first API call.
+This guide covers the four tools you use day-to-day: the Workbench, the CLI, the TypeScript SDK, and the MCP server.
 
-Code examples below use tabs for **TypeScript**, **Java**, **Go**, and **.NET** where the raw `@ductape/sdk` applies. **NestJS** examples ([NestJS docs](/nestjs/overview)) are **TypeScript only**.
+## Prerequisites
+- Node.js 18 or later
+- A Ductape account (sign up at [cloud.ductape.app](https://cloud.ductape.app))
 
-## CLI
 
-For local development, login, linking a project, and managing resources from the terminal, see the **[Ductape CLI](./cli)** (`ductape login`, `ductape resources storage list`, `ductape start`).
 
-## Installation
+## 1. Workbench
 
-Install the Ductape SDK for your language:
+Everything starts in the Workbench. You create your product, configure environments, and add or provision the resources your application will use. The CLI and SDK read from what you configure here.
+
+### Sign up
+
+Go to [cloud.ductape.app](https://cloud.ductape.app) and create an account. After signing in you will land in your default workspace.
+
+### Create a product
+
+A product is the top-level container for your environments, resources, features, and access keys. Give it a name and a tag (lowercase, no spaces). See the [Products docs](https://docs.ductape.app/products/creating-products) for details.
+
+### Add environments
+
+Add at least two environments inside your product, for example `dev` and `prd`. Each environment holds its own resource connections and access keys. See [Environments](https://docs.ductape.app/products/environments).
+
+### Add and provision resources
+
+From your product, add the resources your application needs:
+
+- **Databases** (PostgreSQL, MySQL, MongoDB) — [docs](https://docs.ductape.app/databases/relational/getting-started)
+- **Graphs** (Neo4j) — [docs](https://docs.ductape.app/databases/graphs/getting-started)
+- **Storage** (AWS S3, GCS, Azure Blob) — [docs](https://docs.ductape.app/storage/overview)
+- **Message brokers** (Kafka, SQS, RabbitMQ, Redis, Pub/Sub, NATS)
+- **Vector stores** (Pinecone, Qdrant, Weaviate)
+
+To provision resources through a cloud account (AWS, GCP, Azure, MongoDB Atlas, Neo4j Aura), set up a cloud connection first. See [Cloud Connections](https://docs.ductape.app/cloud/connections) and [Cloud-linked resources](https://docs.ductape.app/cloud/cloud-linked-components).
+
+### Copy your access key
+
+Go to **Settings > API Keys** inside your workspace and copy the access key. You will need it when initializing the SDK and logging in from the CLI.
+
+
+
+## 2. CLI
+
+The CLI lets you manage resources, generate code snippets, and interact with the proxy from your terminal.
+
+### Install
 
 ```bash
-npm install @ductape/sdk@0.1.8
+npm install --global @ductape/cli
 ```
 
-## Initialize the SDK
+### Login
 
-Create a Ductape instance with your workspace credentials. Set **product** and **env** on the constructor so you do not repeat them on every call (see [SDK runtime defaults](/sdk/runtime-defaults)):
+```bash
+ductape login              # authenticates against cloud.ductape.app
+ductape whoami             # confirm active user and workspace
+ductape workspaces list    # switch workspace if needed
+```
+
+### Link your project folder
+
+Run this inside the folder that contains your application code. It associates the folder with a product in your workspace.
+
+```bash
+ductape init --link
+```
+
+### Common commands
+
+```bash
+ductape resources storage list
+ductape resources databases list
+ductape cloud connections list
+ductape cloud resources list --connection <tag>
+ductape generate snippet storage upload -l typescript
+ductape secrets list
+ductape products list
+```
+
+Full command reference: [CLI docs](https://docs.ductape.app/cli).
+
+
+
+## 3. TypeScript SDK
+
+The SDK is the runtime integration layer in your application. It connects to the databases, storage, brokers, sessions, and other resources you configured in the Workbench. Server-side only; Node.js 18 or later required.
+
+### Install
+
+```bash
+npm install @ductape/sdk
+```
+
+### Initialize
 
 ```ts
 import Ductape from '@ductape/sdk';
 
 const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-  product: 'my-product',
-  env: 'dev',
+  product:   'my-product',  // product tag from the Workbench
+  env:       'prd',         // environment slug
 });
 ```
 
-You can find your access key in the Ductape dashboard under **Settings > API Keys**.
+### Connect data stores at startup
 
-## Your First Action
-
-Once you've [added an app](/docs/apps/getting-started) and connected it to a [product](/docs/products/overview), you can run actions:
+Call these once when your application starts. The SDK reuses connections across all subsequent requests.
 
 ```ts
+await ductape.databases.connect({ database: 'main-db' });
+await ductape.graph.connect({ graph: 'main-graph' });
+```
+
+### Examples
+
+```ts
+// Database query
+const rows = await ductape.databases.query({
+  table: 'orders',
+  where: { status: 'pending' },
+  limit: 50,
+});
+
+// File upload
+await ductape.storage.upload({
+  storage:  'main-storage',
+  fileName: 'reports/q1.pdf',
+  buffer:   fileBuffer,
+  mimeType: 'application/pdf',
+});
+
+// Session
+const session = await ductape.sessions.start({
+  tag:  'user-session',
+  data: { userId: 'u1' },
+});
+
+// Third-party app action
 const result = await ductape.api.run({
-  app: 'stripe',
+  app:    'stripe',
   action: 'create-charge',
-  input: {
-    amount: 1000,
-    currency: 'usd',
-  }
-});
-
-console.log(result);
-```
-
-## Project Setup
-
-For real applications, initialize Ductape once and share the instance across your project. This ensures credentials, OAuth tokens, and database connections are available everywhere.
-
-### Create a Ductape Module
-
-```ts title="src/lib/ductape.ts"
-import Ductape from '@ductape/sdk';
-
-const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
-
-// Create a single instance — product/env defaults live on the constructor only
-export const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-  product: 'my-product',
-  env,
-});
-
-// Configure action credentials once at startup
-ductape.api.config({
-  app: 'stripe',
-  credentials: {
-    'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-  }
-});
-
-ductape.api.config({
-  app: 'twilio',
-  credentials: {
-    'headers:Authorization': '$Secret{TWILIO_AUTH_TOKEN}',
-  }
+  input:  { amount: 1000, currency: 'usd' },
 });
 ```
 
-### Use It Anywhere
+### Available namespaces
 
-Import the shared instance in any file:
+| Namespace | Description |
+|---|---|
+| `ductape.databases` | Relational and document databases |
+| `ductape.graph` | Graph databases (Neo4j) |
+| `ductape.vector` | Vector search (Pinecone, Qdrant, Weaviate) |
+| `ductape.storage` | File storage (S3, GCS, Azure Blob) |
+| `ductape.events` | Message brokers (Kafka, SQS, RabbitMQ, Redis, Pub/Sub, NATS) |
+| `ductape.sessions` | JWT sessions: start, verify, refresh, revoke |
+| `ductape.caches` | Cache get, set, and invalidate |
+| `ductape.notifications` | Email, SMS, and push notifications |
+| `ductape.jobs` | Background jobs |
+| `ductape.agents` | LLM agents with tools and memory |
+| `ductape.models` | LLM inference |
+| `ductape.api` | Third-party app actions |
+| `ductape.feature` | Multi-step product features |
+| `ductape.secrets` | Secrets per environment |
+| `ductape.warehouse` | Unified query across relational, graph, and vector |
 
-```ts title="src/services/payment.service.ts"
-import { ductape } from '../lib/ductape';
+Full SDK reference: [SDK docs](https://docs.ductape.app/products/overview).
 
-export async function createCharge(amount: number, currency: string) {
-  return ductape.api.run({
-    app: 'stripe',
-    action: 'create-charge',
-    input: { amount, currency }
-  });
-}
-```
 
-```ts title="src/services/notification.service.ts"
-import { ductape } from '../lib/ductape';
 
-export async function sendSMS(to: string, message: string) {
-  return ductape.api.run({
-    app: 'twilio',
-    action: 'send-sms',
-    input: { to, body: message }
-  });
-}
-```
+## 4. MCP Server
 
-## Connecting Data Stores
+The MCP server exposes Ductape SDK operations as tools that an MCP client such as Cursor can call. It is stateless and requires your **Publishable Key** on every request.
 
-Ductape supports relational databases, graph databases, and vector databases. Establish connections at application startup:
-
-```ts title="src/lib/ductape.ts"
-import Ductape from '@ductape/sdk';
-
-export const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-  product: 'my-product',
-  env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
-});
-
-const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
-
-export async function initializeDuctape() {
-  // Configure API credentials
-  ductape.api.config({
-    app: 'stripe',
-    credentials: {
-      'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-    }
-  });
-
-  // Connect to relational database
-  await ductape.databases.connect({
-    database: 'users-db',
-  });
-
-  // Connect to graph database
-  await ductape.graph.connect({
-    graph: 'social-graph',
-  });
-
-  // Connect to vector database
-  await ductape.vector.connect({
-    tag: 'embeddings',
-  });
-}
-```
-
-Then use them in your services:
-
-```ts title="src/services/user.service.ts"
-import { ductape } from '../lib/ductape';
-
-export async function getActiveUsers() {
-  return ductape.databases.find({
-    table: 'users',
-    where: { status: 'active' },
-    limit: 100,
-  });
-}
-
-export async function createUser(name: string, email: string) {
-  return ductape.databases.insert({
-    table: 'users',
-    records: [{ name, email, status: 'active', created_at: new Date() }],
-    returning: true,
-  });
-}
-```
-
-```ts title="src/services/social.service.ts"
-import { ductape } from '../lib/ductape';
-
-export async function getUserConnections(userId: string) {
-  return ductape.graph.traverse({
-    startNodeId: userId,
-    direction: 'OUTGOING',
-    relationshipTypes: ['FRIENDS_WITH', 'FOLLOWS'],
-    maxDepth: 1,
-  });
-}
-```
-
-```ts title="src/services/search.service.ts"
-import { ductape } from '../lib/ductape';
-
-export async function searchSimilarProducts(queryEmbedding: number[]) {
-  return ductape.vector.query({
-    tag: 'embeddings',
-    vector: queryEmbedding,
-    topK: 10,
-    includeMetadata: true,
-  });
-}
-```
-
-## Framework Examples
-
-### Express.js
-
-```ts title="src/ductape.ts"
-import Ductape from '@ductape/sdk';
-
-const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
-
-export const ductape = new Ductape({
-  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-  product: 'my-product',
-  env,
-});
-
-export async function initializeDuctape() {
-  ductape.api.config({
-    app: 'stripe',
-    credentials: {
-      'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-    }
-  });
-
-  await ductape.databases.connect({
-    database: 'users-db',
-  });
-
-  console.log('Ductape initialized');
-}
-```
-
-```ts title="src/app.ts"
-import express from 'express';
-import { initializeDuctape } from './ductape';
-
-const app = express();
-
-initializeDuctape().then(() => {
-  app.listen(3000, () => {
-    console.log('Server running on port 3000');
-  });
-});
-```
-
-### NestJS
-
-Use the official **`@ductape/nestjs`** integration package for decorators and modules instead of wrapping the SDK manually. Full docs: [NestJS overview](/nestjs/overview). Examples below are **TypeScript only**.
+### Install
 
 ```bash
-npm install @ductape/nestjs @ductape/sdk
+npm install @ductape/mcp
 ```
 
-```ts title="app.module.ts"
-import { Module } from '@nestjs/common';
-import { DuctapeModule, DuctapeDatabaseModule } from '@ductape/nestjs';
-import { PaymentsModule } from './payments/payments.module';
+### Configure in Cursor
 
-@Module({
-  imports: [
-    DuctapeModule.forIntegration({
-      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-      product: 'my-product',
-      env: process.env.NODE_ENV === 'production' ? 'prd' : 'dev',
-    }),
-    DuctapeDatabaseModule.register({ tags: ['users-db'] }),
-    PaymentsModule,
-  ],
-})
-export class AppModule {}
-```
+Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cursor after saving.
 
-```ts title="payments/payments.service.ts"
-import { Injectable } from '@nestjs/common';
-import { Api, ApiConfig } from '@ductape/nestjs';
-
-@Injectable()
-@ApiConfig({
-  product: 'my-product',
-  app: 'stripe',
-  env: 'prd',
-  credentials: {
-    'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-  },
-})
-export class PaymentsService {
-  @Api({ app: 'stripe', action: 'create-charge' })
-  createCharge(input: { amount: number; currency: string }) {
-    return input;
+```json
+{
+  "mcpServers": {
+    "ductape": {
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"]
+    }
   }
 }
 ```
 
-### Next.js
+Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Pass it as `publishable_key` on every tool call.
 
-```ts title="src/lib/ductape.ts"
-import Ductape from '@ductape/sdk';
+### Tools exposed
 
-const env = process.env.NODE_ENV === 'production' ? 'prd' : 'dev';
+| Tool | What it does |
+|---|---|
+| `ductape_execute` | Calls any SDK module method (databases, storage, vector, and others) via the backend proxy. Requires `publishable_key`, `module`, `method`, and `params`. |
+| `ductape_generate_payload` | Returns an executable payload template with schema metadata for a given product action. |
+| `ductape_generate_snippet` | Returns a ready-to-copy SDK snippet in TypeScript or Python alongside the payload. |
 
-let ductapeInstance: Ductape | null = null;
-let initialized = false;
+Full reference: [MCP Server docs](https://docs.ductape.app/mcp-server/getting-started).
 
-export function getDuctape(): Ductape {
-  if (!ductapeInstance) {
-    ductapeInstance = new Ductape({
-      accessKey: process.env.DUCTAPE_ACCESS_KEY!,
-      product: 'my-product',
-      env,
-    });
 
-    ductapeInstance.api.config({
-      app: 'stripe',
-      credentials: {
-        'headers:Authorization': '$Secret{STRIPE_API_KEY}',
-      }
-    });
-  }
 
-  return ductapeInstance;
-}
+## Typical first-project flow
 
-export async function initializeDuctape(): Promise<Ductape> {
-  const ductape = getDuctape();
-
-  if (!initialized) {
-    await ductape.databases.connect({
-      database: 'users-db',
-    });
-
-    initialized = true;
-  }
-
-  return ductape;
-}
-```
-
-```ts title="src/app/api/payments/route.ts"
-import { getDuctape } from '@/lib/ductape';
-import { NextResponse } from 'next/server';
-
-export async function POST(request: Request) {
-  const { amount, currency } = await request.json();
-  const ductape = getDuctape();
-
-  const result = await ductape.api.run({
-    app: 'stripe',
-    action: 'create-charge',
-    input: { amount, currency }
-  });
-
-  return NextResponse.json(result);
-}
-```
-
-## Why Use a Singleton?
-
-Using a single Ductape instance ensures:
-
-1. **Credentials persist** - Settings from `actions.config()` and `actions.oauth()` are available for all action calls.
-
-2. **Connections are reused** - Database, graph, and vector connections established at startup are reused across all requests.
-
-3. **OAuth tokens stay fresh** - The SDK tracks token expiry and refreshes automatically.
-
-4. **Efficient resource usage** - One instance means one set of connections and one credential store.
-
-## Next Steps
-
-- [Add Apps](/apps/create-app) - Connect third-party APIs
-- [Create Products](/products/overview) - Organize your integrations
-- [Run Actions](/actions/run-actions) - Execute API calls
-- [Configure Auth](/actions/auth-configuration) - Set up credentials and OAuth
-- [Connect Databases](/databases/relational/getting-started) - Work with relational data
-- [Build Features](/features/overview) - Create multi-step processes
+1. Sign up at [cloud.ductape.app](https://cloud.ductape.app) and create a workspace.
+2. Create a product with at least one environment (`dev` and `prd` are a good start).
+3. Add databases, storage, graphs, or brokers and link them to each environment via cloud connections or manual credentials.
+4. Copy your access key from **Settings > API Keys**.
+5. Install the CLI: `npm install --global @ductape/cli`, then `ductape login` and `ductape init --link` in your project folder.
+6. Install the SDK: `npm install @ductape/sdk`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
+7. Add the MCP server to Cursor: `npm install @ductape/mcp` and configure `~/.cursor/mcp.json`. Use `ductape_generate_snippet` to get ready-to-use code as you build.

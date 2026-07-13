@@ -1,169 +1,223 @@
 ---
 sidebar_position: 1
+title: Getting Started
 ---
-# Start
 
-This guide will walk you through your first Ductape project, step by step. By the end, you'll have created a product, added an app, set up environments, and run your first action.
+# Getting Started with Ductape
 
-Use the **TypeScript**, **Java**, **Go**, or **.NET** tabs in each code block for your SDK.
+This guide covers the four tools you use day-to-day: the Workbench, the CLI, the TypeScript SDK, and the MCP server.
 
-## Step 1: Install the SDK
+---
+
+## Prerequisites
+
+- Node.js 18 or later
+- A Ductape account (sign up at [cloud.ductape.app](https://cloud.ductape.app))
+
+---
+
+## 1. Workbench
+
+Everything starts in the Workbench. You create your product, configure environments, and add or provision the resources your application will use. The CLI and SDK read from what you configure here.
+
+### Sign up
+
+Go to [cloud.ductape.app](https://cloud.ductape.app) and create an account. After signing in you will land in your default workspace.
+
+### Create a product
+
+A product is the top-level container for your environments, resources, features, and access keys. Give it a name and a tag (lowercase, no spaces). See [Products](../products/creating-products) for details.
+
+### Add environments
+
+Add at least two environments inside your product, for example `dev` and `prd`. Each environment holds its own resource connections and access keys. See [Environments](../products/environments).
+
+### Add and provision resources
+
+From your product, add the resources your application needs:
+
+- **Databases** (PostgreSQL, MySQL, MongoDB) — [docs](../databases/relational/getting-started)
+- **Graphs** (Neo4j)
+- **Storage** (AWS S3, GCS, Azure Blob) — [docs](../storage/overview)
+- **Message brokers** (Kafka, SQS, RabbitMQ, Redis, Pub/Sub, NATS)
+- **Vector stores** (Pinecone, Qdrant, Weaviate) — [docs](../vectors/overview)
+
+To provision resources through a cloud account (AWS, GCP, Azure, MongoDB Atlas, Neo4j Aura), set up a cloud connection from the Workbench sidebar.
+
+### Copy your access key
+
+Go to **Settings > API Keys** inside your workspace and copy the access key. You will need it when initializing the SDK and logging in from the CLI.
+
+---
+
+## 2. CLI
+
+The CLI lets you manage resources, generate code snippets, and interact with the proxy from your terminal.
+
+### Install
 
 ```bash
-npm install @ductape/sdk@0.1.8
+npm install --global @ductape/cli
 ```
 
-## Step 2: Create a Product
-A Product is where you group and manage your integrations in Ductape.
+### Login
 
-| Field         | Type           | Required | Default | Description                                 | Example           |
-|---------------|----------------|----------|---------|---------------------------------------------|-------------------|
-| name          | string         | Yes      |         | Name of the product                         | Payments Service  |
-| description   | string         | No       |         | Description of the product                  | Handles payments  |
+```bash
+ductape login              # authenticates against cloud.ductape.app
+ductape whoami             # confirm active user and workspace
+ductape workspaces list    # switch workspace if needed
+```
 
-**Example:**
-```typescript
-const product = await ductape.product.create({
-  name: "Payments Service",
-  description: "Handles all payment processing"
+### Link your project folder
+
+Run this inside the folder that contains your application code. It associates the folder with a product in your workspace.
+
+```bash
+ductape init --link
+```
+
+### Common commands
+
+```bash
+ductape resources storage list
+ductape resources databases list
+ductape cloud connections list
+ductape cloud resources list --connection <tag>
+ductape generate snippet storage upload -l typescript
+ductape secrets list
+ductape products list
+```
+
+---
+
+## 3. TypeScript SDK
+
+The SDK is the runtime integration layer in your application. It connects to the databases, storage, brokers, sessions, and other resources you configured in the Workbench. Server-side only; Node.js 18 or later required.
+
+### Install
+
+```bash
+npm install @ductape/sdk
+```
+
+### Initialize
+
+```ts
+import Ductape from '@ductape/sdk';
+
+const ductape = new Ductape({
+  accessKey: process.env.DUCTAPE_ACCESS_KEY!,
+  product:   'my-product',  // product tag from the Workbench
+  env:       'prd',         // environment slug
 });
 ```
 
-## Step 3: Add an App
-Apps are collections of endpoints from a 3rd party provider or internal service.
+### Connect data stores at startup
 
-| Field         | Type           | Required | Default | Description                                 | Example           |
-|---------------|----------------|----------|---------|---------------------------------------------|-------------------|
-| access_tag    | string         | Yes      |         | Unique tag for app access                   | email_app     |
-| envs          | array          | Yes      |         | List of environment configurations          | See below         |
+Call these once when your application starts. The SDK reuses connections across all subsequent requests.
 
-**Example:**
-```typescript
-const appAccess = await ductape.product.app.connect("email_app");
-await ductape.product.app.add({
-  access_tag: appAccess.access_tag,
-  envs: [
-    {
-      app_env_slug: "dev",
-      product_env_slug: "dev",
-      variables: [{ key: "api_key", value: "dev-key" }],
-      auth: [{ auth_tag: "api_auth", data: { token: "dev-token" } }]
-    }
-  ]
-});
+```ts
+await ductape.databases.connect({ database: 'main-db' });
+await ductape.graph.connect({ graph: 'main-graph' });
 ```
 
-## Step 4: Add an Environment
-Environments let you run the same logic in different contexts (dev, staging, prod).
+### Examples
 
-| Field         | Type           | Required | Default | Description                                 | Example           |
-|---------------|----------------|----------|---------|---------------------------------------------|-------------------|
-| env_name      | string         | Yes      |         | Name of the environment                     | Development       |
-| slug          | string         | Yes      |         | Unique identifier (lowercase, 3+ chars)     | dev               |
-| description   | string         | No       |         | Description of the environment              | Dev environment   |
-
-**Example:**
-```typescript
-const environment = await ductape.product.environment.create({
-  env_name: "Development",
-  slug: "dev",
-  description: "Development environment"
+```ts
+// Database query
+const rows = await ductape.databases.query({
+  table: 'orders',
+  where: { status: 'pending' },
+  limit: 50,
 });
-```
 
-## Step 4.5: Enable Caching (Optional but Recommended)
-
-Caching in Ductape allows you to store and quickly retrieve the results of expensive operations, such as API calls or database queries. This improves performance, reduces costs, and is essential for efficient job processing and reliable healthchecks.
-
-### Why Enable Caching?
-- **Performance:** Avoids repeating expensive operations by reusing cached results.
-- **Jobs:** Scheduled/background jobs can use cached data to avoid redundant work and speed up processing.
-- **Healthchecks:** Caching helps track the health and responsiveness of your system by storing recent results and reducing load on critical services.
-
-### How to Enable Caching
-To enable caching, you need to create a cache resource for your product and reference its tag when running actions or jobs.
-
-| Field      | Type   | Required | Default | Description                        | Example        |
-|------------|--------|----------|---------|------------------------------------|----------------|
-| name       | string | Yes      |         | Name of the cache                  | Main Cache     |
-| tag        | string | Yes      |         | Unique identifier for the cache    | main_cache     |
-| expiry     | number | Yes      |         | Expiry time in milliseconds        | 60000          |
-| description| string | No       |         | Description of the cache           | For API calls  |
-
-**Example:**
-```typescript
-const cache = await ductape.cache.create({
-  name: "Main Cache",
-  tag: "main_cache",
-  expiry: 60000, // 1 minute
-  description: "Cache for API call results"
+// File upload
+await ductape.storage.upload({
+  storage:  'main-storage',
+  fileName: 'reports/q1.pdf',
+  buffer:   fileBuffer,
+  mimeType: 'application/pdf',
 });
-```
 
-To use the cache when running an action, include the `cache` field in your `IActionProcessorInput`:
+// Session
+const session = await ductape.sessions.start({
+  tag:  'user-session',
+  data: { userId: 'u1' },
+});
 
-```typescript
+// Third-party app action
 const result = await ductape.api.run({
-  app: "email_app",
-  event: "send_email",
-  cache: "main_cache", // Enable caching for this action
-  input: {
-    body: {
-      to: "user@example.com",
-      subject: "Hello from Ductape!",
-      body: "This is a test email."
+  app:    'stripe',
+  action: 'create-charge',
+  input:  { amount: 1000, currency: 'usd' },
+});
+```
+
+### Available namespaces
+
+| Namespace | Description |
+|---|---|
+| `ductape.databases` | Relational and document databases |
+| `ductape.graph` | Graph databases (Neo4j) |
+| `ductape.vector` | Vector search (Pinecone, Qdrant, Weaviate) |
+| `ductape.storage` | File storage (S3, GCS, Azure Blob) |
+| `ductape.events` | Message brokers (Kafka, SQS, RabbitMQ, Redis, Pub/Sub, NATS) |
+| `ductape.sessions` | JWT sessions: start, verify, refresh, revoke |
+| `ductape.caches` | Cache get, set, and invalidate |
+| `ductape.notifications` | Email, SMS, and push notifications |
+| `ductape.jobs` | Background jobs |
+| `ductape.agents` | LLM agents with tools and memory |
+| `ductape.models` | LLM inference |
+| `ductape.api` | Third-party app actions |
+| `ductape.feature` | Multi-step product features |
+| `ductape.secrets` | Secrets per environment |
+| `ductape.warehouse` | Unified query across relational, graph, and vector |
+
+---
+
+## 4. MCP Server
+
+The MCP server exposes Ductape SDK operations as tools that an MCP client such as Cursor can call. It is stateless and requires your **Publishable Key** on every request.
+
+### Install
+
+```bash
+npm install @ductape/mcp
+```
+
+### Configure in Cursor
+
+Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cursor after saving.
+
+```json
+{
+  "mcpServers": {
+    "ductape": {
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"]
     }
   }
-});
+}
 ```
 
-**Tip:**
-- Use caching for any operation that is expensive, slow, or called frequently.
-- For jobs and healthchecks, caching helps avoid unnecessary retries and provides a reliable snapshot of recent system state.
+Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Pass it as `publishable_key` on every tool call.
 
-## Step 5: Run an Action
+### Tools exposed
 
-To run an action, use the `ductape.api.run` method. Set **product** and **env** on the `Ductape` constructor; each call then needs **app**, **event** (action tag), and **input**.
+| Tool | What it does |
+|---|---|
+| `ductape_execute` | Calls any SDK module method (databases, storage, vector, and others) via the backend proxy. Requires `publishable_key`, `module`, `method`, and `params`. |
+| `ductape_generate_payload` | Returns an executable payload template with schema metadata for a given product action. |
+| `ductape_generate_snippet` | Returns a ready-to-copy SDK snippet in TypeScript or Python alongside the payload. |
 
-### IActionProcessorInput
-| Field   | Type   | Required | Default | Description | Example |
-|---------|--------|----------|---------|-------------|---------|
-| product | string | No*      | constructor | Product tag (inherits from `new Ductape({ product, env })`) | payments_service |
-| env     | string | No*      | constructor | Environment slug (inherits from constructor) | dev |
-| app     | string | Yes      |         | App access tag | email_app |
-| event   | string | Yes      |         | Action tag (as defined in the app) | send_email |
-| input   | object | Yes      |         | Action input (see below) | `{"body": {"to": "user@example.com"}}` |
-| cache   | string | No       |         | Cache tag (if using caching) |   |
-| retries | number | No       |         | Number of retries |   |
-| session | object | No       |         | Session info (tag, token) |   |
+---
 
-### IActionRequest (input field)
-| Field   | Type   | Required | Default | Description | Example |
-|---------|--------|----------|---------|-------------|---------|
-| query   | object | No       |         | Query parameters | `{"page": 1}` |
-| params  | object | No       |         | URL parameters | `{"id": 123}` |
-| body    | object | No       |         | Request body | `{"to": "user@example.com", "subject": "Hello", "body": "Welcome!"}` |
-| headers | object | No       |         | HTTP headers | `{"Authorization": "Bearer token"}` |
-| input   | object | No       |         | Additional input | `{"meta": "value"}` |
+## Typical first-project flow
 
-**Example:**
-```typescript
-const result = await ductape.api.run({
-  app: "email_app",
-  event: "send_email",
-  input: {
-    body: {
-      to: "user@example.com",
-      subject: "Hello from Ductape!",
-      body: "This is a test email."
-    }
-  }
-});
-```
-
-This executes `send_email` for the configured app, using the product and environment from the constructor.
-
-## Next Steps
-- [Products](../features/overview.md)
-- [Apps](../apps/getting-started.md)
-- [Environments](../apps/product-environments.md)
+1. Sign up at [cloud.ductape.app](https://cloud.ductape.app) and create a workspace.
+2. Create a product with at least one environment (`dev` and `prd` are a good start).
+3. Add databases, storage, graphs, or brokers and link them to each environment via cloud connections or manual credentials.
+4. Copy your access key from **Settings > API Keys**.
+5. Install the CLI: `npm install --global @ductape/cli`, then `ductape login` and `ductape init --link` in your project folder.
+6. Install the SDK: `npm install @ductape/sdk`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
+7. Add the MCP server to Cursor: `npm install @ductape/mcp` and configure `~/.cursor/mcp.json`. Use `ductape_generate_snippet` to get ready-to-use code as you build.

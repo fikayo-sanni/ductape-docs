@@ -74,7 +74,7 @@ import Ductape, { MessageBrokerTypes } from '@ductape/sdk';
 
 const ductape = new Ductape({ accessKey: 'your-access-key' });
 
-await ductape.messaging.create({
+await ductape.events.create({
   name: 'Order events',
   tag: 'order-events',
   description: 'All order-related events',
@@ -169,7 +169,7 @@ Topics are the named event streams within a broker. Create one for each distinct
 The topic tag must be the full event identifier — `brokerTag:topicTag`:
 
 ```ts
-await ductape.messaging.topics.create('my-product', {
+await ductape.events.topics.create('my-product', {
   name: 'Order created',
   tag: 'order-events:order-created',
   description: 'Emitted when a new order is placed',
@@ -182,7 +182,7 @@ await ductape.messaging.topics.create('my-product', {
   },
 });
 
-await ductape.messaging.topics.create('my-product', {
+await ductape.events.topics.create('my-product', {
   name: 'Order fulfilled',
   tag: 'order-events:order-fulfilled',
   description: 'Emitted when an order has been dispatched',
@@ -199,9 +199,9 @@ The `sample` field documents the expected payload shape. It is displayed in the 
 ### List and inspect topics
 
 ```ts
-const topics = await ductape.messaging.topics.list('my-product', 'order-events');
+const topics = await ductape.events.topics.list('my-product', 'order-events');
 
-const topic = await ductape.messaging.topics.fetch('my-product', 'order-events:order-created');
+const topic = await ductape.events.topics.fetch('my-product', 'order-events:order-created');
 console.log(topic.name, topic.sample);
 ```
 
@@ -211,10 +211,10 @@ console.log(topic.name, topic.sample);
 
 ### Producing events
 
-Call `messaging.produce()` with the event string and the message payload:
+Call `events.produce()` with the event string and the message payload:
 
 ```ts
-await ductape.messaging.produce({
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: {
     orderId: '12345',
@@ -233,7 +233,7 @@ const session = await ductape.sessions.start({
   data: { userId: 'u1', email: 'user@example.com' },
 });
 
-await ductape.messaging.produce({
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: { orderId: '12345', total: 99.98 },
   session: `${session.sessionId}:${session.token}`,
@@ -242,10 +242,10 @@ await ductape.messaging.produce({
 
 ### Consuming events
 
-Call `messaging.consume()` with the event string and a callback. The callback receives each message as it arrives:
+Call `events.consume()` with the event string and a callback. The callback receives each message as it arrives:
 
 ```ts
-await ductape.messaging.consume({
+await ductape.events.consume({
   event: 'order-events:order-created',
   callback: async (message) => {
     const { orderId, customerId, total } = message;
@@ -279,7 +279,7 @@ export class OrdersService {
 }
 ```
 
-For consuming, wire a service method with `@Messaging.Consume` (or use the SDK `messaging.consume()` in your module's `onModuleInit`):
+For consuming, wire a service method with `@Events.Consume` (or use the SDK `events.consume()` in your module's `onModuleInit`):
 
 ```ts
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -290,7 +290,7 @@ export class OrderConsumerService implements OnModuleInit {
   constructor(private readonly ductape: Ductape) {}
 
   async onModuleInit() {
-    await this.ductape.messaging.consume({
+    await this.ductape.events.consume({
       event: 'order-events:order-created',
       callback: async (message) => {
         await this.handleOrderCreated(message);
@@ -312,7 +312,7 @@ Query produced and consumed messages, inspect dead letters, and get throughput s
 
 ```ts
 // Message history
-const { messages } = await ductape.messaging.messages.query({
+const { messages } = await ductape.events.messages.query({
   brokerTag: 'order-events',
   topicTag: 'order-created',
   page: 1,
@@ -320,12 +320,12 @@ const { messages } = await ductape.messaging.messages.query({
 });
 
 // Dead letters
-const { deadLetters } = await ductape.messaging.messages.getDeadLetters({
+const { deadLetters } = await ductape.events.messages.getDeadLetters({
   brokerTag: 'order-events',
 });
 
 // Throughput stats
-const stats = await ductape.messaging.messages.getStats({
+const stats = await ductape.events.messages.getStats({
   brokerTag: 'order-events',
 });
 ```
@@ -349,7 +349,7 @@ If your broker lives in a cloud account already connected to Ductape, reference 
 
 ```ts
 // AWS SQS provisioned from a cloud connection
-await ductape.messaging.create({
+await ductape.events.create({
   name: 'Order events',
   tag: 'order-events',
   envs: [{

@@ -9,7 +9,7 @@ sidebar_position: 1
 Events let you build event-driven architecture between your services through a unified interface. Declare a **broker** (the connection to your message provider), define **topics** on it, then produce and consume from anywhere in your stack.
 
 :::info SDK naming
-The events API is currently exposed as `ductape.messaging` in the SDK. It will be renamed to `ductape.events` in an upcoming release. All code examples use the current name.
+The events API is exposed as `ductape.events` in the SDK.
 :::
 
 ## Quick example
@@ -20,13 +20,13 @@ import Ductape from '@ductape/sdk';
 const ductape = new Ductape({ accessKey: 'your-access-key' });
 
 // Produce
-await ductape.messaging.produce({
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: { orderId: '123', total: 99.99 },
 });
 
 // Consume
-await ductape.messaging.consume({
+await ductape.events.consume({
   event: 'order-events:order-created',
   callback: async (message) => {
     await processOrder(message);
