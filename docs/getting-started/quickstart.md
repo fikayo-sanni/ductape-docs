@@ -194,13 +194,16 @@ Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cur
   "mcpServers": {
     "ductape": {
       "command": "npx",
-      "args": ["-y", "@ductape/mcp"]
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
     }
   }
 }
 ```
 
-Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Pass it as `publishable_key` on every tool call.
+Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Setting it in `env` means you never need to pass it on individual tool calls.
 
 ### Tools exposed
 

@@ -5,9 +5,9 @@ sidebar_label: Configuration
 
 # Configuration
 
-The Ductape MCP server uses **stdio transport** and requires **no environment variables**. Configure your MCP client to spawn the server as a child process.
+The Ductape MCP server uses **stdio transport**. Configure your MCP client to spawn the server as a child process and supply your Publishable Key via the `env` block so you never have to pass it on individual tool calls.
 
-The examples below assume you have installed the server globally (`npm install -g @ductape/mcp`). If you prefer not to install globally, replace `"command": "ductape-mcp"` with `"command": "npx", "args": ["-y", "@ductape/mcp"]` in any config block.
+The examples below use `npx` (no global install needed). If you have installed globally (`npm install -g @ductape/mcp`), replace `"command": "npx", "args": ["-y", "@ductape/mcp"]` with `"command": "ductape-mcp"`.
 
 ## Cursor
 
@@ -20,20 +20,11 @@ Add the server in MCP settings. Config file locations:
 {
   "mcpServers": {
     "ductape": {
-      "command": "ductape-mcp"
-    }
-  }
-}
-```
-
-**Using `npx` (no global install required):**
-
-```json
-{
-  "mcpServers": {
-    "ductape": {
       "command": "npx",
-      "args": ["-y", "@ductape/mcp"]
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
     }
   }
 }
@@ -43,7 +34,7 @@ After editing config, **restart Cursor** or reload MCP servers from the MCP sett
 
 ## Claude Desktop
 
-Claude Desktop uses a similar JSON config. On macOS:
+Claude Desktop uses the same JSON format. On macOS:
 
 ```
 ~/Library/Application Support/Claude/claude_desktop_config.json
@@ -59,7 +50,11 @@ On Windows:
 {
   "mcpServers": {
     "ductape": {
-      "command": "ductape-mcp"
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
     }
   }
 }
@@ -67,27 +62,42 @@ On Windows:
 
 Restart Claude Desktop after saving.
 
+## Claude Code
+
+Add to your Claude Code MCP settings (`.claude/settings.json` or via `/mcp add`):
+
+```json
+{
+  "mcpServers": {
+    "ductape": {
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
+    }
+  }
+}
+```
+
 ## Other MCP clients
 
 Any client that supports stdio MCP servers can use the same pattern:
 
 | Field | Value |
 |-------|-------|
-| `command` | `ductape-mcp` (global install) or `npx` |
-| `args` | omit for global binary; `["-y", "@ductape/mcp"]` for npx |
+| `command` | `npx` (or `ductape-mcp` with global install) |
+| `args` | `["-y", "@ductape/mcp"]` for npx; omit for global binary |
+| `env.DUCTAPE_PUBLISHABLE_KEY` | Your workspace publishable key |
 | Transport | stdio (default for spawned processes) |
 
 Clients that support MCP over SSE or HTTP would need a separate adapter — the Ductape MCP server ships **stdio only**.
 
-## Credentials
+## Publishable key
 
-The server itself stores **no credentials**. Every tool call requires a `publishable_key` argument — all three tools (`ductape_execute`, `ductape_generate_payload`, `ductape_generate_snippet`) use the same key.
+Your Publishable Key is in **Workbench → Settings → API Keys**.
 
-### Where to find your publishable key
-
-Workbench → workspace settings → SDK access panel.
-
-See [Security](./security) for why credentials are per-request rather than in server config.
+Set it in the `env` block of your MCP config. The server reads `DUCTAPE_PUBLISHABLE_KEY` at startup and uses it for every tool call automatically. You can still override it per-call by passing `publishable_key` as a tool argument — useful in multi-tenant or multi-workspace setups.
 
 ## Project-scoped vs user-wide config
 
@@ -96,4 +106,4 @@ See [Security](./security) for why credentials are per-request rather than in se
 | **User-wide** (`~/.cursor/mcp.json`) | Personal development across all projects |
 | **Project-scoped** (`.cursor/mcp.json`) | Team-shared config committed to the repo |
 
-For team repos, using `npx` in the config avoids any machine-specific paths and works out of the box for everyone.
+For project-scoped config committed to a repo, avoid hardcoding the key. Instead, reference a shell variable or leave the `env` block out and pass `publishable_key` per call during shared team sessions.

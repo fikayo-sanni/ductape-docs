@@ -43,24 +43,17 @@ Configure your client to spawn the server. See [Configuration](./configuration) 
 {
   "mcpServers": {
     "ductape": {
-      "command": "ductape-mcp"
-    }
-  }
-}
-```
-
-Or without installing, using `npx`:
-
-```json
-{
-  "mcpServers": {
-    "ductape": {
       "command": "npx",
-      "args": ["-y", "@ductape/mcp"]
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
     }
   }
 }
 ```
+
+Your Publishable Key is in **Workbench → Settings → API Keys**. Setting it in `env` means the server authenticates automatically — no need to pass it on every tool call.
 
 ## Verify in Cursor
 
@@ -74,12 +67,13 @@ Ask the agent to list available MCP tools, or invoke a simple read-only call:
 
 ```json
 {
-  "publishable_key": "your-publishable-key",
   "module": "product",
   "method": "fetch",
   "params": ["your-product-tag"]
 }
 ```
+
+If `DUCTAPE_PUBLISHABLE_KEY` is set in the server env config, no `publishable_key` field is needed. You can still pass it explicitly to override the env var.
 
 ## Troubleshooting
 
@@ -87,7 +81,7 @@ Ask the agent to list available MCP tools, or invoke a simple read-only call:
 |-------|-----|
 | `ductape-mcp: command not found` | Run `npm install -g @ductape/mcp` and ensure your global `node_modules/.bin` is in `$PATH`. |
 | Server starts but tools don't appear | Restart the MCP client after config changes. |
-| `Not authenticated` on execute | Pass `publishable_key` in every `ductape_execute` invocation. |
+| `Not authenticated` on execute | Set `DUCTAPE_PUBLISHABLE_KEY` in the server `env` config, or pass `publishable_key` explicitly on the tool call. |
 | Proxy validation error | Check [Modules & methods](./modules-and-methods) — method names are case-sensitive and dot-notation for nested methods (e.g. `environments.create`). |
 | Payload generation 401/403 | Verify `publishable_key` is correct and belongs to the target workspace. |
 

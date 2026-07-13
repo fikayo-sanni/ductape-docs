@@ -89,9 +89,9 @@ Full command reference: [CLI docs](https://docs.ductape.app/cli).
 
 
 
-## 3. TypeScript SDK
+## 3. SDK
 
-The SDK is the runtime integration layer in your application. It connects to the databases, storage, brokers, sessions, and other resources you configured in the Workbench. Server-side only; Node.js 18 or later required.
+The SDK is the runtime integration layer in your application. It connects to the databases, storage, brokers, sessions, and other resources you configured in the Workbench. Server-side only; For Typescript Node.js 18 or later required.
 
 ### Install
 
@@ -195,13 +195,16 @@ Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cur
   "mcpServers": {
     "ductape": {
       "command": "npx",
-      "args": ["-y", "@ductape/mcp"]
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+      }
     }
   }
 }
 ```
 
-Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Pass it as `publishable_key` on every tool call.
+Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Setting it in `env` means you never need to pass it on individual tool calls.
 
 ### Tools exposed
 

@@ -13,59 +13,68 @@ The Ductape MCP server is designed for safe multi-tenant use in AI agent environ
 
 The MCP server process:
 
-- Holds **no workspace credentials** in memory between requests
 - Loads **no SDK** locally — all execution happens on the Ductape backend
-- Requires **no environment variables** at startup
 - Stores **no database or filesystem state**
+- Holds a single optional environment variable (`DUCTAPE_PUBLISHABLE_KEY`) scoped to one workspace
 
 Each tool invocation is independent. Restarting the server loses nothing because there is nothing to lose.
 
 ---
 
-## Per-request authentication
+## Authentication
 
-### `ductape_execute`
+### Recommended: env config
 
-Every call requires a `publishable_key` argument:
+Set `DUCTAPE_PUBLISHABLE_KEY` in the `env` block of your MCP client config. The server reads it at startup and uses it for every tool call automatically:
 
 ```json
 {
-  "publishable_key": "pk_your_workspace_key",
+  "mcpServers": {
+    "ductape": {
+      "command": "npx",
+      "args": ["-y", "@ductape/mcp"],
+      "env": {
+        "DUCTAPE_PUBLISHABLE_KEY": "pk_your_workspace_key"
+      }
+    }
+  }
+}
+```
+
+### Per-call override
+
+Pass `publishable_key` as a tool argument to override the env var for that call. This is useful in multi-workspace setups where different calls target different workspaces:
+
+```json
+{
+  "publishable_key": "pk_other_workspace_key",
   "module": "databases",
   "method": "query",
   "params": [...]
 }
 ```
 
-If `publishable_key` is missing or empty, the server returns:
+If neither the env var nor a per-call key is present, the server returns:
 
 ```
-Not authenticated. Please provide the `publishable_key` in your tool invocation arguments.
+Not authenticated. Set DUCTAPE_PUBLISHABLE_KEY in your MCP server env config, or pass publishable_key on every tool call.
 ```
 
-The key is forwarded to `POST /proxy/v1/sdk-proxy/execute` and validated by the backend. The MCP server never caches or logs keys.
-
-### Payload and snippet tools
-
-`ductape_generate_payload` and `ductape_generate_snippet` require a `publishable_key` argument, identical to `ductape_execute`. The key is forwarded as the `x-access-key` header to `POST /integrations/v1/payloads/generate` and validated by the backend.
+The key is forwarded to the Ductape backend and validated there. The MCP server never caches or logs keys.
 
 ---
 
-## Why credentials are not in MCP config
+## Config vs per-call keys
 
-MCP client config files (e.g. `~/.cursor/mcp.json`) are often:
+Use the env config approach (`DUCTAPE_PUBLISHABLE_KEY`) for personal development — it is the simplest setup and means the AI client never needs to know or pass the key.
 
-- Committed to project repos (project-scoped config)
-- Shared across team members
-- Visible in IDE settings UI
+Use the per-call `publishable_key` argument when:
 
-Storing publishable keys in server config would mean:
+- A single MCP server instance serves **multiple users** (each user supplies their own key)
+- You need to target **different workspaces** in the same session
+- You are building an **agent orchestration layer** that manages keys dynamically
 
-1. **All agent sessions share one workspace identity** — no per-user isolation
-2. **Keys appear in config files** — higher exposure risk
-3. **Multi-tenant SSE deployments would leak** — one server thread serving multiple users could not distinguish tenants
-
-The per-request model lets the **AI agent or orchestration layer** supply the correct key for the current user context.
+For project-scoped config that is committed to a shared repo, avoid hardcoding the key. Either leave the `env` block out and pass keys per call, or reference a shell variable if your MCP client supports it.
 
 ---
 
@@ -97,12 +106,11 @@ The allowlist is enforced server-side
 
 ## Key hygiene
 
-All three tools authenticate with a `publishable_key`. Treat it as a secret:
+Treat your Publishable Key as a secret:
 
-- Do not commit keys to version control
-- Do not embed keys in MCP server config
+- Do not commit keys to version control (keep project-scoped MCP configs key-free when shared in repos)
 - Rotate keys if exposed
-- Use environment-specific keys where possible
+- Use environment-specific keys where possible (separate keys for dev and production workspaces)
 
 ---
 

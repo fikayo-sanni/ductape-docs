@@ -17,10 +17,12 @@ Execute any allowed Ductape SDK operation via the backend proxy at `POST /proxy/
 
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
-| `publishable_key` | string | Yes | Workspace publishable key for authentication |
+| `publishable_key` | string | No* | Workspace publishable key. Omit if `DUCTAPE_PUBLISHABLE_KEY` is set in the server env config. |
 | `module` | enum | Yes | SDK module name (see [Modules & methods](./modules-and-methods)) |
 | `method` | string | Yes | Method name; use dot notation for nested methods (e.g. `schema.create`, `messages.query`) |
 | `params` | array | No | Positional arguments matching the SDK signature. Defaults to `[]`. |
+
+\* Required if `DUCTAPE_PUBLISHABLE_KEY` is not set in the server environment.
 
 ### Response
 
@@ -32,7 +34,6 @@ Returns the SDK method result as formatted JSON. On failure, returns `Error: <me
 
 ```json
 {
-  "publishable_key": "pk_...",
   "module": "product",
   "method": "fetch",
   "params": ["ductape:my-product"]
@@ -43,7 +44,6 @@ Returns the SDK method result as formatted JSON. On failure, returns `Error: <me
 
 ```json
 {
-  "publishable_key": "pk_...",
   "module": "databases",
   "method": "query",
   "params": [{
@@ -61,7 +61,6 @@ Returns the SDK method result as formatted JSON. On failure, returns `Error: <me
 
 ```json
 {
-  "publishable_key": "pk_...",
   "module": "actions",
   "method": "run",
   "params": [{
@@ -81,7 +80,6 @@ Returns the SDK method result as formatted JSON. On failure, returns `Error: <me
 
 ```json
 {
-  "publishable_key": "pk_...",
   "module": "vector",
   "method": "findSimilar",
   "params": [{
@@ -98,7 +96,6 @@ Returns the SDK method result as formatted JSON. On failure, returns `Error: <me
 
 ```json
 {
-  "publishable_key": "pk_...",
   "module": "product",
   "method": "environments.list",
   "params": ["ductape:my-product"]
@@ -132,7 +129,7 @@ Generate canonical executable payload templates from `POST /integrations/v1/payl
 
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
-| `publishable_key` | string | Yes | Workspace publishable key for authentication |
+| `publishable_key` | string | No* | Workspace publishable key. Omit if `DUCTAPE_PUBLISHABLE_KEY` is set in the server env config. |
 | `product_tag` | string | Yes | Product tag (e.g. `ductape:my-product`) |
 | `env_slug` | string | Yes | Environment slug (`prd`, `stg`, etc.) |
 | `operation_family` | string | Yes | Executable family (see [Code generation](./code-generation#operation-families)) |
@@ -156,7 +153,6 @@ Generate canonical executable payload templates from `POST /integrations/v1/payl
 
 ```json
 {
-  "publishable_key": "pk_...",
   "product_tag": "ductape:my-product",
   "env_slug": "prd",
   "operation_family": "database",
@@ -196,7 +192,6 @@ Same as `ductape_generate_payload`, plus:
 
 ```json
 {
-  "publishable_key": "pk_...",
   "product_tag": "ductape:my-product",
   "env_slug": "prd",
   "operation_family": "action",
@@ -228,7 +223,7 @@ All tools catch exceptions and return text content with `isError: true`. Common 
 
 | Error | Cause |
 |-------|-------|
-| `Not authenticated. Please provide the publishable_key...` | Missing `publishable_key` on execute |
+| `Not authenticated...` | `DUCTAPE_PUBLISHABLE_KEY` not set in server env and `publishable_key` not passed on the tool call |
 | `Proxy request failed: 4xx` | Invalid module/method or params rejected by proxy |
 | `Unsupported snippet operation "family.method"` | Snippet tool called with unsupported operation family/method pair |
 | `Payload generation request failed` | Invalid workspace credentials or backend validation error |
