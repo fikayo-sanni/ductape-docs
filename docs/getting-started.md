@@ -33,8 +33,8 @@ Add at least two environments inside your product, for example `dev` and `prd`. 
 
 From your product, add the resources your application needs:
 
-- **Databases** (PostgreSQL, MySQL, MongoDB) — [docs](https://docs.ductape.app/databases/relational/getting-started)
-- **Graphs** (Neo4j) — [docs](https://docs.ductape.app/databases/graphs/getting-started)
+- **Databases** (PostgreSQL, MySQL, MongoDB, DynamoDB) — [docs](https://docs.ductape.app/databases/relational/getting-started)
+- **Graphs** (Neo4j, Neptune, ArrangoDB, Memgraph) — [docs](https://docs.ductape.app/databases/graphs/getting-started)
 - **Storage** (AWS S3, GCS, Azure Blob) — [docs](https://docs.ductape.app/storage/overview)
 - **Message brokers** (Kafka, SQS, RabbitMQ, Redis, Pub/Sub, NATS)
 - **Vector stores** (Pinecone, Qdrant, Weaviate)
@@ -220,7 +220,7 @@ Full reference: [MCP Server docs](https://docs.ductape.app/mcp-server/getting-st
 1. Sign up at [cloud.ductape.app](https://cloud.ductape.app) and create a workspace.
 2. Create a product with at least one environment (`dev` and `prd` are a good start).
 3. Add databases, storage, graphs, or brokers and link them to each environment via cloud connections or manual credentials.
-4. Copy your access key from **Settings > API Keys**.
+4. Copy your access key from **Tokens > SDK Access Keys**.
 5. Install the CLI: `npm install --global @ductape/cli`, then `ductape login` and `ductape init --link` in your project folder.
 6. Install the SDK: `npm install @ductape/sdk`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
 7. Add the MCP server to Cursor: `npm install @ductape/mcp` and configure `~/.cursor/mcp.json`. Use `ductape_generate_snippet` to get ready-to-use code as you build.
