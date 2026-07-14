@@ -71,7 +71,14 @@ await ductape.graph.create({
 });
 ```
 
-**Cloud-linked graphs** — provision or import from AWS Neptune, GCP Spanner Graph, or Azure Cosmos DB (Gremlin):
+**Cloud-linked graphs** — provision or import from AWS Neptune, GCP Spanner Graph, or Azure Cosmos DB (Gremlin).
+
+Check tiers before provisioning Neptune or Aura instances:
+
+```ts
+const tiers = await ductape.cloud.tiers.list({ provider: 'aws', resource_type: 'graph' });
+// tiers[0].tiers → [{ name: 'db.r5.large', label: 'R5 Large — 2 vCPU, 16 GB RAM', … }, …]
+```
 
 ```ts
 // AWS Neptune
@@ -83,6 +90,7 @@ await ductape.graph.create({
     slug: 'prd',
     cloud: 'prod_aws',
     instance: 'my-neptune-cluster',
+    tier: 'db.r5.large',   // from cloud.tiers.list()
     region: 'us-east-1',
   }],
 });
@@ -114,7 +122,7 @@ await ductape.graph.create({
 });
 ```
 
-See [Cloud-linked components](../../cloud/cloud-linked-components).
+See [Cloud-linked components](../../cloud/cloud-linked-components) for the full tier reference and service matrix.
 
 ### Graph Database Configuration Fields
 

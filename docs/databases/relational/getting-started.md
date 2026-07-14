@@ -67,6 +67,13 @@ await ductape.databases.create({
 
 You can also link a managed PostgreSQL instance from a workspace cloud account by tag — Ductape imports or provisions the instance and stores the connection URL as a secret.
 
+Check available tiers before provisioning to control cost:
+
+```ts
+const tiers = await ductape.cloud.tiers.list({ provider: 'aws', resource_type: 'database', db_type: 'postgresql' });
+// tiers[0].tiers → [{ name: 'db.t3.micro', label: 'Micro — 2 vCPU, 1 GB', est_cost_per_month: 11.68, free_tier: true }, …]
+```
+
 **AWS RDS:**
 
 ```ts
@@ -79,6 +86,7 @@ await ductape.databases.create({
     slug: 'prd',
     cloud: 'prod_aws',
     instance: 'my-rds-instance',
+    tier: 'db.t3.micro',   // from cloud.tiers.list()
     region: 'us-east-1',
   }],
 });
@@ -96,6 +104,7 @@ await ductape.databases.create({
     slug: 'prd',
     cloud: 'gcp_prod',
     instance: 'my-cloudsql-instance',
+    tier: 'db-n1-standard-2',
     region: 'us-central1',
   }],
 });
@@ -113,12 +122,13 @@ await ductape.databases.create({
     slug: 'prd',
     cloud: 'prod_azure',
     instance: 'my-pg-server',
+    tier: 'Standard_B1ms',
     region: 'eastus',
   }],
 });
 ```
 
-See [Cloud-linked components](../../cloud/cloud-linked-components) for the full AWS / GCP / Azure matrix and setup steps.
+See [Cloud-linked components](../../cloud/cloud-linked-components) for the full AWS / GCP / Azure matrix, tier reference, and setup steps.
 
 ### Database Configuration Fields
 

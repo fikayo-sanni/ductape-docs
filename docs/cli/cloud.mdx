@@ -261,4 +261,99 @@ See [AWS networking](../cloud/aws-networking) for IAM policy, ports, and RDS vs 
 
 Requires a linked project and login.
 
+## Provision resources
+
+Provisioning creates a new cloud resource and links it to a product component. Always check available tiers first.
+
+### 1. List tiers
+
+```bash
+# All tiers for a provider / resource type
+ductape cloud tiers list --provider aws --type database --db-type postgresql
+ductape cloud tiers list --provider gcp --type database --db-type mysql
+ductape cloud tiers list --provider azure --type database
+ductape cloud tiers list --provider mongodb_atlas
+ductape cloud tiers list --provider neo4j_aura --type graph
+```
+
+Pick the `name` value from a tier entry — that is your `--tier` argument.
+
+### 2. Provision
+
+`provision.json` must contain `service`, `type`, `product`, `component`, and `env`. Pass `--tier` on the command line or include it in the JSON.
+
+**Database — AWS RDS (PostgreSQL):**
+
+```bash
+cat provision.json
+# { "cloud": "prod_aws", "service": "rds", "type": "databases",
+#   "product": "my-product", "component": "app-db", "env": "prd",
+#   "region": "us-east-1", "dbName": "myapp" }
+
+ductape cloud resources provision -f provision.json --tier db.t3.micro
+```
+
+**Database — GCP Cloud SQL:**
+
+```bash
+# { "cloud": "gcp_prod", "service": "cloudsql", "type": "databases",
+#   "product": "my-product", "component": "app-db", "env": "prd",
+#   "region": "us-central1" }
+ductape cloud resources provision -f provision.json --tier db-n1-standard-2
+```
+
+**Database — Azure Flexible Server:**
+
+```bash
+# { "cloud": "prod_azure", "service": "postgresql", "type": "databases",
+#   "product": "my-product", "component": "app-db", "env": "prd",
+#   "region": "eastus" }
+ductape cloud resources provision -f provision.json --tier Standard_B1ms
+```
+
+**Storage (no tier needed — class is set via the JSON or defaults):**
+
+```bash
+# { "cloud": "prod_aws", "service": "s3", "type": "storage",
+#   "product": "my-product", "component": "uploads", "env": "prd",
+#   "bucketName": "my-app-uploads", "region": "us-east-1" }
+ductape cloud resources provision -f provision.json
+```
+
+**Message broker — AWS SQS:**
+
+```bash
+# { "cloud": "prod_aws", "service": "sqs", "type": "messageBrokers",
+#   "product": "my-product", "component": "order-events", "env": "prd",
+#   "queueName": "order-events", "region": "us-east-1" }
+ductape cloud resources provision -f provision.json
+```
+
+**Graph — AWS Neptune:**
+
+```bash
+# { "cloud": "prod_aws", "service": "neptune", "type": "graphs",
+#   "product": "my-product", "component": "social-graph", "env": "prd",
+#   "region": "us-east-1" }
+ductape cloud resources provision -f provision.json --tier db.r5.large
+```
+
+**Vector — AWS OpenSearch:**
+
+```bash
+# { "cloud": "prod_aws", "service": "opensearch", "type": "vectors",
+#   "product": "my-product", "component": "product-vectors", "env": "prd",
+#   "region": "us-east-1" }
+ductape cloud resources provision -f provision.json --tier t3.small.search
+```
+
+`--tier` is merged into the JSON body at send time. You can also include `"tier": "db.t3.micro"` directly in `provision.json`.
+
+To skip waiting for the resource to be ready (databases can take several minutes):
+
+```bash
+ductape cloud resources provision -f provision.json --tier db.t3.micro
+# add "waitForReady": false in the JSON to return immediately
+```
+
 See [Link components](../cloud/cloud-linked-components) and [Cloud overview](../cloud/overview) for provisioning and linking from the SDK (TypeScript, Go, Java, .NET).

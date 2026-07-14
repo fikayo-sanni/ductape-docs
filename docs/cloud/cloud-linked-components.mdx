@@ -146,6 +146,40 @@ await ductape.vector.create({
 
 Ductape stores `endpoint` and `apiKey` from the link draft as encrypted secrets.
 
+## Choosing a tier
+
+Before provisioning a new database, graph, or vector store, check what tiers are available for your provider. The tier catalogue is public and requires no auth.
+
+```ts
+// List all tiers for a provider and resource type
+const tiers = await ductape.cloud.tiers.list({
+  provider: 'aws',
+  resource_type: 'database',
+  db_type: 'postgresql',
+});
+// tiers[0].tiers → [{ name: 'db.t3.micro', label: 'Micro — 2 vCPU, 1 GB RAM', est_cost_per_month: 11.68, free_tier: true, … }, …]
+```
+
+Pass the `name` value as `tier` on your provision call. The same API works from the CLI:
+
+```bash
+# List available tiers
+ductape cloud tiers list --provider aws --type database --db-type postgresql
+
+# Then provision with the chosen tier
+ductape cloud resources provision -f provision.json --tier db.t3.micro
+```
+
+Tier names map directly to each provider's instance class:
+
+| Provider | Example tier names |
+|----------|--------------------|
+| AWS RDS | `db.t3.micro`, `db.t3.medium`, `db.r6g.large` |
+| GCP Cloud SQL | `db-f1-micro`, `db-n1-standard-2`, `db-n1-highmem-4` |
+| Azure Flexible Server | `Standard_B1ms`, `Standard_D2ds_v4`, `Standard_E4ds_v4` |
+| MongoDB Atlas | `M0`, `M10`, `M30`, `M50` |
+| Neo4j Aura | `aura-free`, `aura-professional-2`, `aura-professional-4` |
+
 ## Import vs provision
 
 | Situation | What happens |
@@ -164,7 +198,7 @@ Use `ductape.cloud.resources` when you need explicit control:
 // List what's in the account
 const { resources } = await ductape.cloud.resources.list({
   cloud: 'prod_aws',
-  service: 'postgresql',
+  service: 'rds',
   region: 'us-east-1',
 });
 
@@ -179,7 +213,44 @@ await ductape.cloud.resources.import({
   resource: 'my-pg-server',
 });
 
-// Provision a new topic
+// Provision a new RDS instance — pick a tier first
+await ductape.cloud.resources.provision({
+  cloud: 'prod_aws',
+  service: 'rds',
+  type: 'databases',
+  product: 'my-product',
+  component: 'app-db',
+  env: 'prd',
+  tier: 'db.t3.micro',   // from cloud.tiers.list()
+  region: 'us-east-1',
+  dbName: 'myapp',
+});
+
+// Provision a GCP Cloud SQL instance
+await ductape.cloud.resources.provision({
+  cloud: 'gcp_prod',
+  service: 'cloudsql',
+  type: 'databases',
+  product: 'my-product',
+  component: 'app-db',
+  env: 'prd',
+  tier: 'db-n1-standard-2',
+  region: 'us-central1',
+});
+
+// Provision an Azure PostgreSQL server
+await ductape.cloud.resources.provision({
+  cloud: 'prod_azure',
+  service: 'postgresql',
+  type: 'databases',
+  product: 'my-product',
+  component: 'app-db',
+  env: 'prd',
+  tier: 'Standard_B1ms',
+  region: 'eastus',
+});
+
+// Provision a message broker topic
 await ductape.cloud.resources.provision({
   cloud: 'gcp_prod',
   service: 'pubsub',
@@ -190,9 +261,48 @@ await ductape.cloud.resources.provision({
   topicName: 'order-events',
   region: 'us-central1',
 });
+
+// Provision a Neptune graph
+await ductape.cloud.resources.provision({
+  cloud: 'prod_aws',
+  service: 'neptune',
+  type: 'graphs',
+  product: 'my-product',
+  component: 'social-graph',
+  env: 'prd',
+  tier: 'db.r5.large',
+  region: 'us-east-1',
+});
+
+// Provision an OpenSearch vector index
+await ductape.cloud.resources.provision({
+  cloud: 'prod_aws',
+  service: 'opensearch',
+  type: 'vectors',
+  product: 'my-product',
+  component: 'product-vectors',
+  env: 'prd',
+  tier: 't3.small.search',
+  region: 'us-east-1',
+});
 ```
 
-All cloud APIs take **`cloud`** (the connection tag).
+All cloud APIs take **`cloud`** (the connection tag). Omit `tier` to get a provider default; set it explicitly to control cost.
+
+### `tier` field reference
+
+| Component type | Relevant `tier` examples |
+|----------------|--------------------------|
+| `databases` (RDS) | `db.t3.micro`, `db.t3.medium`, `db.r6g.large` |
+| `databases` (Cloud SQL) | `db-f1-micro`, `db-n1-standard-2`, `db-n1-highmem-4` |
+| `databases` (Azure) | `Standard_B1ms`, `Standard_D2ds_v4`, `Standard_E4ds_v4` |
+| `databases` (Atlas) | `M0`, `M10`, `M30`, `M50` |
+| `graphs` (Neptune) | `db.r5.large`, `db.r5.xlarge` |
+| `graphs` (Aura) | `aura-free`, `aura-professional-2`, `aura-professional-4` |
+| `vectors` (OpenSearch) | `t3.small.search`, `r6g.large.search` |
+| `storage` | storage is class-based (e.g. `s3-standard`, `gcs-standard`) — use `tier` for storage class |
+
+Use `ductape.cloud.tiers.list({ provider, resource_type, db_type })` to get current values with cost estimates before provisioning.
 
 ## Service reference
 

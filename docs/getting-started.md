@@ -197,22 +197,24 @@ Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cur
       "command": "npx",
       "args": ["-y", "@ductape/mcp"],
       "env": {
-        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
       }
     }
   }
 }
 ```
 
-Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Setting it in `env` means you never need to pass it on individual tool calls.
+Both values are under **Tokens → Publishable key** in the Workbench. Setting them in `env` means the server is authenticated and workspace-scoped — no per-call credential passing needed.
 
 ### Tools exposed
 
 | Tool | What it does |
 |---|---|
-| `ductape_execute` | Calls any SDK module method (databases, storage, vector, and others) via the backend proxy. Requires `publishable_key`, `module`, `method`, and `params`. |
+| `ductape_execute` | Calls any SDK module method (databases, storage, vector, and others) via the backend proxy. Runtime operations only. |
 | `ductape_generate_payload` | Returns an executable payload template with schema metadata for a given product action. |
 | `ductape_generate_snippet` | Returns a ready-to-copy SDK snippet in TypeScript or Python alongside the payload. |
+| `ductape_cli` | Runs any Ductape CLI command for administrative operations (create/update products, apps, environments, apply sessions/notifications/events, run DB migrations). Uses the user's local CLI session — no key required. |
 
 Full reference: [MCP Server docs](https://docs.ductape.app/mcp-server/getting-started).
 

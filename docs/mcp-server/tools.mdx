@@ -5,7 +5,7 @@ sidebar_label: Tools reference
 
 # Tools reference
 
-The Ductape MCP server exposes **three tools**. All responses are JSON text in MCP content blocks. Errors return `isError: true` with a message string.
+The Ductape MCP server exposes **four tools**. All responses are JSON text in MCP content blocks. Errors return `isError: true` with a message string.
 
 ---
 
@@ -207,15 +207,118 @@ Not every SDK method has snippet support. The server validates against an allowl
 
 ---
 
+## `ductape_cli`
+
+Run a Ductape CLI command for administrative operations. The CLI uses the user's local logged-in session (`ductape login`) — no key required.
+
+If the CLI is not installed, the tool returns install instructions automatically:
+
+```
+The Ductape CLI is not installed or not in PATH.
+
+Install it with:
+  npm install --global @ductape/cli
+
+Then log in:
+  ductape login
+```
+
+### When to use this tool
+
+Use `ductape_cli` for any operation that **creates or modifies platform configuration**, and for **syncing declarative resource configs or running database migrations**. These require an access key and will fail with `Authentication failed` if attempted via `ductape_execute`.
+
+**Product and resource management:**
+
+| Operation | CLI command |
+|---|---|
+| List products | `products list` |
+| Create a product | `products create --name "My Product" --tag my-product` |
+| List apps | `apps list` |
+| Create an app | `apps create -f app.json` |
+| Import app from Postman v2.1 | `apps import collection.json -t postman` |
+| Import app from OpenAPI 3.0 | `apps import openapi.yaml -t openapi` |
+| Update existing app from file | `apps import v2.json -t postman --app-tag my-workspace:stripe --update` |
+| List resources | `resources storage list` |
+| Create a resource | `resources database create -f db.json` |
+| Link project to product | `link --product my-product --env dev` |
+| List cloud connections | `cloud connections list` |
+| List cloud resources | `cloud resources list --connection <tag>` |
+| Provision a cloud resource | `cloud resources provision -f provision.json` |
+| Provision with a specific tier | `cloud resources provision -f provision.json --tier db.t3.micro` |
+| List all available tiers | `cloud tiers list` |
+| List tiers for a provider | `cloud tiers list --provider gcp` |
+| List tiers by resource type | `cloud tiers list --provider aws --type database --db-type postgresql` |
+| List secrets | `secrets list` |
+| List workspace info | `whoami` |
+| Switch API profile | `profiles list`, `profiles use cloud` |
+
+:::info Workbench-managed configuration
+Environments, app actions, auths, features, quotas, fallbacks, and jobs are configured in the [Workbench](https://cloud.ductape.app) — the CLI does not have commands for them.
+:::
+
+**Declarative sync — `ductape apply`:**
+
+Sync sessions, notifications, and event brokers declared as JSON files in `ductape/` to your product. Requires a [linked project](https://docs.ductape.app/cli/linking).
+
+| Operation | CLI command |
+|---|---|
+| Sync all (sessions + notifications + events) | `apply` |
+| Sync sessions only | `apply sessions` |
+| Sync notifications only | `apply notifications` |
+| Sync event brokers only | `apply events` |
+| Preview without making changes | `apply --dry-run` |
+
+**Database schema and migrations — `ductape db`:**
+
+Manage database schema evolution with migration files generated from `ductape/database/schema.json`. See [CLI: Database runtime & migrations](https://docs.ductape.app/cli/database).
+
+| Operation | CLI command |
+|---|---|
+| Generate migration files from schema.json | `db schema generate` |
+| Include drop operations for removed fields | `db schema generate --destructive` |
+| Apply all pending migrations | `db migrate` |
+| Apply to a specific environment | `db migrate --env prd` |
+| Preview without applying | `db migrate --dry-run` |
+| Show applied vs pending migrations | `db migrate status` |
+| Machine-readable status | `db migrate status --json` |
+| Roll back the last migration | `db migrate rollback` |
+| Roll back the last N migrations | `db migrate rollback -n 3` |
+
+### Arguments
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | Yes | The CLI command to run, without the leading `ductape` word. |
+
+### Example
+
+```json
+{
+  "command": "product create --name \"Payments Service\" --tag payments-service"
+}
+```
+
+---
+
 ## Tool selection guide
+
+The key split: **`ductape_cli` for anything that creates or modifies configuration. `ductape_execute` for anything that runs or reads at runtime.**
 
 | Goal | Tool |
 |------|------|
-| Run a live operation now | `ductape_execute` |
-| Understand payload shape before coding | `ductape_generate_payload` |
-| Hand an engineer copy-paste SDK code | `ductape_generate_snippet` |
-| Agent explores data / mutates platform state | `ductape_execute` |
-| Copilot scaffolds integration boilerplate | `ductape_generate_snippet` |
+| Create or update a product or app | `ductape_cli` (`products create/update`, `apps create/update`) |
+| Create or update resources (DB, storage, graph, vector, cache…) | `ductape_cli` (`resources <type> create/update`) |
+| Manage cloud connections and cloud-linked resources | `ductape_cli` (`cloud connections`, `cloud resources`) |
+| Browse available tiers before provisioning | `ductape_cli` (`cloud tiers list --provider <p> --type <rt>`) |
+| Manage workspace secrets | `ductape_cli` (`secrets`) |
+| Link project folder to a product | `ductape_cli` (`link`) |
+| Sync sessions, notifications, or event brokers from declaration files | `ductape_cli` (`apply`) |
+| Generate or apply database migration files | `ductape_cli` (`db schema generate`, `db migrate`) |
+| Check migration status or roll back | `ductape_cli` (`db migrate status`, `db migrate rollback`) |
+| Configure environments, app actions, auths, features, quotas, fallbacks, jobs | Workbench UI |
+| Run a feature, action, query, upload, dispatch | `ductape_execute` |
+| Get payload shape before a runtime call | `ductape_generate_payload` |
+| Generate copy-paste SDK code for an engineer | `ductape_generate_snippet` |
 
 ## Error handling
 

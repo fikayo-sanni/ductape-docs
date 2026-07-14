@@ -437,7 +437,9 @@ Common codes: `BROKER_NOT_FOUND`, `BROKER_ENV_NOT_FOUND`, `TOPIC_NOT_FOUND`, `PU
 
 ## Cloud-linked brokers
 
-Provision or import queues/topics from a workspace cloud connection (`cloud: '<tag>'`). Supported on AWS, GCP, and Azure:
+Provision or import queues/topics from a workspace cloud connection (`cloud: '<tag>'`). Supported on AWS, GCP, and Azure.
+
+Brokers are priced by usage rather than instance size — no tier selection is needed. The `tier` field applies to databases, graphs, and vectors:
 
 ```ts
 // AWS SQS
@@ -465,7 +467,7 @@ await ductape.messaging.create({
 });
 ```
 
-See [Cloud-linked components](../cloud/cloud-linked-components) for databases, graphs, vectors, and direct `cloud.resources.provision` / `.import` APIs.
+See [Cloud-linked components](../cloud/cloud-linked-components) for databases, graphs, vectors, the tier reference, and direct `cloud.resources.provision` / `.import` APIs.
 
 ---
 

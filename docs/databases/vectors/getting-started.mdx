@@ -70,7 +70,13 @@ await ductape.vector.create({
 });
 ```
 
-**Cloud-linked vectors** — provision or import from AWS OpenSearch, GCP Vertex AI Vector Search, or Azure AI Search:
+**Cloud-linked vectors** — provision or import from AWS OpenSearch, GCP Vertex AI Vector Search, or Azure AI Search.
+
+Check available tiers for OpenSearch before provisioning:
+
+```ts
+const tiers = await ductape.cloud.tiers.list({ provider: 'aws', resource_type: 'vector' });
+```
 
 ```typescript
 // AWS OpenSearch
@@ -83,6 +89,7 @@ await ductape.vector.create({
     slug: 'prd',
     cloud: 'prod_aws',
     instance: 'my-opensearch-domain',
+    tier: 't3.small.search',   // from cloud.tiers.list()
     region: 'us-east-1',
   }],
 });
@@ -116,7 +123,7 @@ await ductape.vector.create({
 });
 ```
 
-See [Cloud-linked components](../../cloud/cloud-linked-components).
+See [Cloud-linked components](../../cloud/cloud-linked-components) for the full tier reference and service matrix.
 
 ### Configuration Fields
 

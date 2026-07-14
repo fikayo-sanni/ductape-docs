@@ -197,7 +197,14 @@ await ductape.storage.delete('my-product', 'app-storage');
 
 ## Creating Storage Configurations
 
-Create storage with manual credentials **or** link a workspace cloud account by tag:
+Create storage with manual credentials **or** link a workspace cloud account by tag.
+
+For cloud-linked storage, check available storage classes first:
+
+```ts
+const tiers = await ductape.cloud.tiers.list({ provider: 'aws', resource_type: 'storage' });
+// tiers[0].tiers → [{ name: 's3-standard', label: 'Standard', est_cost_per_month: 0.023 }, …]
+```
 
 ```ts
 import { StorageProviders } from '@ductape/sdk/types';
@@ -214,6 +221,7 @@ await ductape.storage.create({
       cloud: 'prod_aws',
       bucketName: 'my-prod-bucket',
       region: 'us-east-1',
+      tier: 's3-standard',   // from cloud.tiers.list() — controls storage class
     },
   }],
 });
@@ -237,7 +245,7 @@ await ductape.storage.create({
 });
 ```
 
-See [Cloud-linked components](../cloud/cloud-linked-components) for the full AWS / GCP / Azure provisioning matrix and update flows.
+See [Cloud-linked components](../cloud/cloud-linked-components) for the full AWS / GCP / Azure provisioning matrix, tier reference, and update flows.
 
 ### Updating Storage
 

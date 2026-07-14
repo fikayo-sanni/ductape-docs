@@ -23,7 +23,8 @@ Add the server in MCP settings. Config file locations:
       "command": "npx",
       "args": ["-y", "@ductape/mcp"],
       "env": {
-        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
       }
     }
   }
@@ -53,7 +54,8 @@ On Windows:
       "command": "npx",
       "args": ["-y", "@ductape/mcp"],
       "env": {
-        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
       }
     }
   }
@@ -73,7 +75,8 @@ Add to your Claude Code MCP settings (`.claude/settings.json` or via `/mcp add`)
       "command": "npx",
       "args": ["-y", "@ductape/mcp"],
       "env": {
-        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
       }
     }
   }
@@ -89,15 +92,31 @@ Any client that supports stdio MCP servers can use the same pattern:
 | `command` | `npx` (or `ductape-mcp` with global install) |
 | `args` | `["-y", "@ductape/mcp"]` for npx; omit for global binary |
 | `env.DUCTAPE_PUBLISHABLE_KEY` | Your workspace publishable key |
+| `env.DUCTAPE_WORKSPACE` | Your workspace ID (scopes CLI operations) |
 | Transport | stdio (default for spawned processes) |
 
 Clients that support MCP over SSE or HTTP would need a separate adapter — the Ductape MCP server ships **stdio only**.
 
-## Publishable key
+## Environment variables
 
-Your Publishable Key is in **Workbench → Settings → API Keys**.
+### `DUCTAPE_PUBLISHABLE_KEY`
 
-Set it in the `env` block of your MCP config. The server reads `DUCTAPE_PUBLISHABLE_KEY` at startup and uses it for every tool call automatically. You can still override it per-call by passing `publishable_key` as a tool argument — useful in multi-tenant or multi-workspace setups.
+Your Publishable Key is in **Workbench → Tokens → Publishable key**.
+
+Set it in the `env` block of your MCP config. The server reads it at startup and uses it for every tool call automatically. You can still override it per-call by passing `publishable_key` as a tool argument.
+
+### `DUCTAPE_WORKSPACE`
+
+Your Workspace ID is shown directly below the publishable key on the same page in the Workbench.
+
+Set this so the MCP server automatically scopes `ductape_cli` operations to the correct workspace. Without it, the CLI uses whichever workspace was last active on the machine — which may not match your publishable key's workspace.
+
+When set, the server:
+- Checks login state once per process (no repeated `whoami` calls)
+- Switches to this workspace once at startup (before the first `ductape_cli` call)
+- Injects `--workspace <id>` automatically when the agent triggers a `ductape_cli("login ...")` call
+
+Both values are read-only identifiers. Neither key nor workspace ID grants write access on its own — access requires the SDK access key (server-side) or CLI login session.
 
 ## Project-scoped vs user-wide config
 

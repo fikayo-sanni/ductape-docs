@@ -25,13 +25,13 @@ This makes the `ductape-mcp` binary available in your terminal. Alternatively, y
 
 ## Verify
 
-After installing, confirm the binary is available:
+After installing, confirm the binary is available and check the version:
 
 ```bash
 ductape-mcp --version
 ```
 
-The server communicates over **stdio** and is meant to be spawned by an MCP client — it will not produce interactive output when run directly. That is expected.
+The server communicates over **stdio** and is meant to be spawned by an MCP client. Run it directly only to verify the binary works — `--version` and `--help` exit cleanly; any other invocation will hang waiting for MCP protocol input.
 
 ## Connect to your MCP client
 
@@ -46,22 +46,24 @@ Configure your client to spawn the server. See [Configuration](./configuration) 
       "command": "npx",
       "args": ["-y", "@ductape/mcp"],
       "env": {
-        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here"
+        "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
       }
     }
   }
 }
 ```
 
-Your Publishable Key is in **Workbench → Settings → API Keys**. Setting it in `env` means the server authenticates automatically — no need to pass it on every tool call.
+Both values are in **Workbench → Tokens → Publishable key**. `DUCTAPE_PUBLISHABLE_KEY` authenticates runtime calls automatically. `DUCTAPE_WORKSPACE` scopes all CLI operations to the right workspace and eliminates workspace-resolution round trips.
 
 ## Verify in Cursor
 
-After [configuring Cursor](./configuration#cursor), open the MCP panel and confirm `ductape` appears with three tools:
+After [configuring Cursor](./configuration#cursor), open the MCP panel and confirm `ductape` appears with four tools:
 
 - `ductape_execute`
 - `ductape_generate_payload`
 - `ductape_generate_snippet`
+- `ductape_cli`
 
 Ask the agent to list available MCP tools, or invoke a simple read-only call:
 
