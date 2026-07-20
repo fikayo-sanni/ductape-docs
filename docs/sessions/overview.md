@@ -151,13 +151,15 @@ await ductape.sessions.create('my-product', {
   name: 'Checkout Session',
   tag: 'checkout-session',
   description: 'Session for checkout flow',
-  selector: '$Session{userId}',
+  selector: '$Session{userId}',  // must be "$Session{fieldName}" — plain "userId" is rejected
   expiry: 1,
   period: 'hours',
   schema: {
-    userId: { type: 'string', required: true },
-    email: { type: 'string', required: true },
-    cartId: { type: 'string', required: false },
+    // Sample data — actual example values, NOT type declarations
+    // The value at the selector path must be a primitive (string/number/boolean)
+    userId: 'user_123',
+    email: 'user@example.com',
+    cartId: 'cart_456',
   },
 });
 ```
@@ -169,10 +171,10 @@ await ductape.sessions.create('my-product', {
 | `name`        | string | Display name                                     |
 | `tag`         | string | Unique identifier (used in start/verify/refresh) |
 | `description` | string | Purpose of the session                          |
-| `selector`    | string | User identifier path (e.g. `$Session{userId}`)   |
+| `selector`    | string | Primary identifier path in `$Session{fieldName}` format (e.g. `'$Session{userId}'`). The field at this path in `schema` must be a primitive. Used as the lookup key for revoke, list, and analytics. |
 | `expiry`      | number | Duration before expiration                       |
 | `period`      | string | Time unit: `seconds`, `minutes`, `hours`, `days` |
-| `schema`      | object | Data structure (validated when starting a session) |
+| `schema`      | object | **Sample data** showing example values that will be embedded in the JWT. Each field must have a primitive value at the selector path. Actual runtime values are passed via `sessions.start`. |
 
 ### Listing and fetching session configs
 

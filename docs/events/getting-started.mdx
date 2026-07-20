@@ -105,7 +105,7 @@ await ductape.events.create({
 {
   brokers: string[];
   clientId: string;
-  groupId: string;
+  groupId?: string;
   ssl?: boolean;
   sasl?: {
     mechanism: 'plain' | 'scram-sha-256' | 'scram-sha-512';
@@ -140,23 +140,36 @@ await ductape.events.create({
 }
 ```
 
+**Azure Service Bus**
+```ts
+{
+  connectionString: string;  // Azure Service Bus connection string
+  queueName: string;         // Default queue name
+  namespace?: string;
+}
+```
+
 **Google Pub/Sub**
 ```ts
 {
   projectId: string;
-  topicName: string;
-  subscriptionName?: string;
-  keyFilename?: string;
+  credentials: {
+    private_key: string;    // Service account private key
+    client_email: string;   // Service account email
+    project_id?: string;
+    // ... other service account JSON fields
+  };
 }
 ```
 
 **NATS**
 ```ts
 {
-  servers: string | string[];
+  servers: string[];
+  token?: string;
   user?: string;
   pass?: string;
-  token?: string;
+  tls?: boolean;
 }
 ```
 
@@ -211,10 +224,12 @@ console.log(topic.name, topic.sample);
 
 ### Producing events
 
-Call `events.produce()` with the event string and the message payload:
+Call `events.produce()` with the product, env, event string, and message payload:
 
 ```ts
 await ductape.events.produce({
+  product: 'my-product',
+  env: 'prd',
   event: 'order-events:order-created',
   message: {
     orderId: '12345',
@@ -234,6 +249,8 @@ const session = await ductape.sessions.start({
 });
 
 await ductape.events.produce({
+  product: 'my-product',
+  env: 'prd',
   event: 'order-events:order-created',
   message: { orderId: '12345', total: 99.98 },
   session: `${session.sessionId}:${session.token}`,
@@ -242,13 +259,19 @@ await ductape.events.produce({
 
 ### Consuming events
 
-Call `events.consume()` with the event string and a callback. The callback receives each message as it arrives:
+Call `events.consume()` with the product, env, event string, and a callback. The callback receives each message as it arrives:
 
 ```ts
 await ductape.events.consume({
+  product: 'my-product',
+  env: 'prd',
   event: 'order-events:order-created',
   callback: async (message) => {
-    const { orderId, customerId, total } = message;
+    const { orderId, customerId, total } = message as {
+      orderId: string;
+      customerId: string;
+      total: number;
+    };
 
     await db.orders.update({ id: orderId, status: 'processing' });
     await sendConfirmationEmail(customerId);
@@ -264,45 +287,84 @@ If your callback throws, the broker records the failure. Messages that fail repe
 
 ## NestJS integration
 
-In a NestJS service, use the `@Messaging.Produce` decorator instead of calling the SDK directly:
+In a NestJS service, use the `@Events` decorators from `@ductape/nestjs` instead of calling the SDK directly.
+
+### Producing
 
 ```ts
 import { Injectable } from '@nestjs/common';
-import { Messaging } from '@ductape/nestjs';
+import { Events } from '@ductape/nestjs';
 
 @Injectable()
 export class OrdersService {
-  @Messaging.Produce({ event: 'order-events:order-created' })
+  @Events.Produce({ event: 'order-events:order-created' })
   emitOrderCreated(payload: { orderId: string; total: number }) {
     return payload;
   }
 }
 ```
 
-For consuming, wire a service method with `@Events.Consume` (or use the SDK `events.consume()` in your module's `onModuleInit`):
+The `product` and `env` defaults come from `DuctapeModule.forIntegration(...)`. Pass them explicitly to override:
 
 ```ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import Ductape from '@ductape/sdk';
+@Events.Produce({ event: 'order-events:order-created', product: 'my-product', env: 'prd' })
+```
+
+### Consuming
+
+Use `@Events.Consumer` to bind a method as a message handler. `DuctapeModule` wires the subscription automatically at startup — no `onModuleInit` needed:
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { Events } from '@ductape/nestjs';
 
 @Injectable()
-export class OrderConsumerService implements OnModuleInit {
-  constructor(private readonly ductape: Ductape) {}
-
-  async onModuleInit() {
-    await this.ductape.events.consume({
-      event: 'order-events:order-created',
-      callback: async (message) => {
-        await this.handleOrderCreated(message);
-      },
-    });
+export class OrderConsumerService {
+  @Events.Consumer({ event: 'order-events:order-created' })
+  async onOrderCreated(message: { orderId: string; total: number }) {
+    await this.processOrder(message);
+    // Return to acknowledge; throw to nack (triggers retry / DLQ)
   }
 
-  private async handleOrderCreated(message: unknown) {
-    // handler logic
+  private async processOrder(message: { orderId: string; total: number }) {
+    // business logic
   }
 }
 ```
+
+### Scheduling (dispatch)
+
+Use `@Events.Dispatch` to schedule a message through a Ductape job. The schedule can be static (fixed in the decorator) or dynamic (returned by the method):
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { Events } from '@ductape/nestjs';
+
+@Injectable()
+export class SchedulerService {
+  // Static — fires every 24 h:
+  @Events.Dispatch({
+    broker: 'order-events',
+    event: 'order-events:reminder-due',
+    schedule: { every: 86400000 },
+  })
+  scheduleReminder(payload: { message: { orderId: string } }) {
+    return payload;
+  }
+
+  // Dynamic — schedule derived from data at call time:
+  @Events.Dispatch({ broker: 'order-events', event: 'order-events:fulfillment-due' })
+  scheduleFulfillment(order: { id: string; expectedAt: number }) {
+    return {
+      message: { orderId: order.id },
+      schedule: { start_at: order.expectedAt },
+      retries: 3,
+    };
+  }
+}
+```
+
+When the return value has a `message` key, the decorator reads `message`, `schedule`, and `retries` from it, overriding the decorator config. Use `ctx.sdk.events.dispatch()` directly when the broker or event also needs to vary at call time.
 
 ---
 
@@ -345,22 +407,54 @@ await brokers.reprocessDLQ({ brokerTag: 'order-events' });
 
 ## Cloud-linked brokers
 
-If your broker lives in a cloud account already connected to Ductape, reference it by its cloud connection tag instead of providing credentials directly:
+If your broker lives in a cloud account already connected to Ductape, use the cloud connection tag instead of providing credentials directly. This works for AWS SQS, GCP Pub/Sub, and Azure Service Bus.
+
+### Import an existing resource
+
+Reference an existing queue or topic by name:
 
 ```ts
-// AWS SQS provisioned from a cloud connection
+import { MessageBrokerTypes } from '@ductape/sdk';
+
+// AWS SQS — existing queue
 await ductape.events.create({
   name: 'Order events',
   tag: 'order-events',
   envs: [{
     slug: 'prd',
-    type: 'aws_sqs',
+    type: MessageBrokerTypes.AWS_SQS,
     config: { cloud: 'prod_aws', queueName: 'order-events', region: 'us-east-1' },
+  }],
+});
+
+// GCP Pub/Sub — existing topic
+await ductape.events.create({
+  name: 'Order events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: MessageBrokerTypes.GOOGLE_PUBSUB,
+    config: { cloud: 'gcp_prod', topicName: 'order-events', region: 'us-central1' },
+  }],
+});
+
+// Azure Service Bus — existing namespace and queue
+await ductape.events.create({
+  name: 'Order events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: MessageBrokerTypes.AZURE_SERVICE_BUS,
+    config: { cloud: 'prod_azure', namespaceName: 'my-namespace', queueName: 'order-events', region: 'eastus' },
   }],
 });
 ```
 
-See [Cloud-linked components](../cloud/cloud-linked-components) for full details on AWS, GCP, and Azure connections.
+### Provision a new resource
+
+To create a new queue or topic in your cloud account from Ductape, use `cloud.resources.provision` with the cloud connection tag, then register the result as a broker using the import pattern above.
+
+See [Cloud-linked components](../cloud/cloud-linked-components) for the full provision and import workflow with per-provider details.
 
 ---
 

@@ -260,7 +260,7 @@ Automatically retry failed steps:
 await ctx.step(
   'external-api-call',
   async () => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'external-service',
       event: 'fetch-data',
       input: {},
@@ -282,7 +282,7 @@ Set a maximum duration for step execution:
 await ctx.step(
   'slow-operation',
   async () => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'slow-service',
       event: 'process',
       input: {},
@@ -301,8 +301,8 @@ Mark a step as always requiring rollback:
 // With 'critical_only' strategy, only critical steps roll back
 await ctx.step(
   'payment',
-  async () => ctx.action.run({ app: 'stripe', event: 'charge', input: {} }),
-  async (result) => ctx.action.run({ app: 'stripe', event: 'refund', input: { body: { id: result.id } } }),
+  async () => ctx.api.run({ app: 'stripe', event: 'charge', input: {} }),
+  async (result) => ctx.api.run({ app: 'stripe', event: 'refund', input: { body: { id: result.id } } }),
   { critical: true }
 );
 ```
@@ -319,7 +319,7 @@ handler: async (ctx) => {
 
   // Check for fraud
   const fraudCheck = await ctx.step('fraud-check', async () => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'fraud-detection',
       event: 'analyze',
       input: { body: { transactionId: payment.id } },
@@ -889,7 +889,7 @@ handler: async (ctx) => {
 ```typescript
 await ctx.step('risky-operation', async () => {
   try {
-    return await ctx.action.run({
+    return await ctx.api.run({
       app: 'unreliable-service',
       event: 'fetch',
       input: {},
@@ -897,7 +897,7 @@ await ctx.step('risky-operation', async () => {
   } catch (error) {
     ctx.log.warn('Primary service failed, using fallback', { error: error.message });
 
-    return await ctx.action.run({
+    return await ctx.api.run({
       app: 'fallback-service',
       event: 'fetch',
       input: {},
@@ -953,7 +953,7 @@ await ctx.step('send-email', sendEmail, null, { allow_fail: true });
 ### 4. Use Idempotency Keys for Retries
 
 ```typescript
-await ctx.action.run({
+await ctx.api.run({
   app: 'stripe',
   event: 'charge',
   input: {

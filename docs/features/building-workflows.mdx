@@ -134,7 +134,7 @@ await ductape.features.define({
   },
   handler: async (ctx) => {
     const validation = await ctx.step('validate', async () => {
-      return ctx.action.run({
+      return ctx.api.run({
         app: 'orders-api',
         event: 'validate-order',
         input: { body: { orderId: ctx.input.orderId } },
@@ -143,7 +143,7 @@ await ductape.features.define({
     if (!validation.valid) return { success: false, error: validation.reason };
 
     const payment = await ctx.step('process-payment', async () =>
-      ctx.action.run({
+      ctx.api.run({
         app: 'stripe',
         event: 'create-charge',
         input: { body: { amount: ctx.input.amount } },
@@ -173,7 +173,7 @@ await ductape.features.define({
   handler: async (ctx) => {
     for (const item of ctx.input.items) {
       await ctx.step(`process-${item.id}`, async () =>
-        ctx.action.run({
+        ctx.api.run({
           app: 'orders-api',
           event: 'process-item',
           input: { body: { id: item.id } },
@@ -202,12 +202,12 @@ await ductape.features.define({
     switch (ctx.input.type) {
       case 'a':
         await ctx.step('handle-a', async () =>
-          ctx.action.run({ app: 'api', event: 'handle-a', input: {} })
+          ctx.api.run({ app: 'api', event: 'handle-a', input: {} })
         );
         break;
       case 'b':
         await ctx.step('handle-b', async () =>
-          ctx.action.run({ app: 'api', event: 'handle-b', input: {} })
+          ctx.api.run({ app: 'api', event: 'handle-b', input: {} })
         );
         break;
     }
@@ -283,7 +283,7 @@ const charge = await ctx.step(
   'charge-card',
   // Handler
   async () => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'stripe',
       event: 'create-charge',
       input: { body: { amount: ctx.input.amount } },
@@ -291,7 +291,7 @@ const charge = await ctx.step(
   },
   // Rollback - called if a later step fails
   async (result) => {
-    await ctx.action.run({
+    await ctx.api.run({
       app: 'stripe',
       event: 'refund',
       input: { body: { chargeId: result.id } },
@@ -329,7 +329,7 @@ Call external APIs through connected apps:
 
 ```typescript
 // Basic call
-const result = await ctx.action.run({
+const result = await ctx.api.run({
   app: 'stripe',
   event: 'create-charge',
   input: {
@@ -338,7 +338,7 @@ const result = await ctx.action.run({
 });
 
 // With retries and timeout
-const result = await ctx.action.run({
+const result = await ctx.api.run({
   app: 'external-api',
   event: 'fetch-data',
   input: {
@@ -765,7 +765,7 @@ await ductape.features.define({
 
     // Step 1: Validate order
     const validation = await ctx.step('validate', async () => {
-      return ctx.action.run({
+      return ctx.api.run({
         app: 'inventory-api',
         event: 'check-availability',
         input: { body: { items: ctx.input.items } },
@@ -780,7 +780,7 @@ await ductape.features.define({
     const payment = await ctx.step(
       'payment',
       async () => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'stripe',
           event: 'create-charge',
           input: {
@@ -793,7 +793,7 @@ await ductape.features.define({
         });
       },
       async (result) => {
-        await ctx.action.run({
+        await ctx.api.run({
           app: 'stripe',
           event: 'refund',
           input: { body: { chargeId: result.id } },
@@ -808,14 +808,14 @@ await ductape.features.define({
     await ctx.step(
       'reserve-inventory',
       async () => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'inventory-api',
           event: 'reserve',
           input: { body: { items: ctx.input.items } },
         });
       },
       async () => {
-        await ctx.action.run({
+        await ctx.api.run({
           app: 'inventory-api',
           event: 'release',
           input: { body: { items: ctx.input.items } },

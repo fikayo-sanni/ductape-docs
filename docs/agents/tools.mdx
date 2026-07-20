@@ -192,7 +192,7 @@ handler: async (ctx, params) => {
 
 ```typescript
 handler: async (ctx, params) => {
-  const response = await ctx.action.run({
+  const response = await ctx.api.run({
     app: 'stripe',
     event: 'create-charge',
     input: {

@@ -54,8 +54,8 @@ const user = await ctx.step('create-user', async () => {
 // With rollback
 const charge = await ctx.step(
   'charge',
-  async () => ctx.action.run({ app: 'stripe', event: 'charge', input: { amount: 1000 } }),
-  async (result) => ctx.action.run({ app: 'stripe', event: 'refund', input: { chargeId: result.id } })
+  async () => ctx.api.run({ app: 'stripe', event: 'charge', input: { amount: 1000 } }),
+  async (result) => ctx.api.run({ app: 'stripe', event: 'refund', input: { chargeId: result.id } })
 );
 
 // With options
@@ -73,10 +73,10 @@ await ctx.step(
 
 Call external APIs through connected apps.
 
-### ctx.action.run()
+### ctx.api.run()
 
 ```typescript
-const result = await ctx.action.run<T>({
+const result = await ctx.api.run<T>({
   app: string,
   event: string,
   input: Record<string, unknown>,  // Flat input format
@@ -109,7 +109,7 @@ For conflicting keys, use prefix syntax:
 ### Example
 
 ```typescript
-const charge = await ctx.action.run({
+const charge = await ctx.api.run({
   app: 'stripe',
   event: 'create-charge',
   input: {

@@ -265,7 +265,7 @@ const payment = await ctx.step(
   'charge-payment',
   // Main handler
   async () => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'stripe',
       event: 'create-charge',
       input: { body: { amount: ctx.input.amount } },
@@ -273,7 +273,7 @@ const payment = await ctx.step(
   },
   // Rollback handler - called if a later step fails
   async (result) => {
-    await ctx.action.run({
+    await ctx.api.run({
       app: 'stripe',
       event: 'refund-charge',
       input: { body: { chargeId: result.id } },

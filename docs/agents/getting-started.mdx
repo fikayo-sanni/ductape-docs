@@ -297,7 +297,7 @@ If you can't help with something, explain why and suggest alternatives.`,
           },
         },
         handler: async (ctx, params) => {
-          return ctx.action.run({
+          return ctx.api.run({
             app: 'shipping-api',
             event: 'track-package',
             input: { body: { tracking: params.trackingNumber } },

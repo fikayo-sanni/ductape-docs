@@ -37,7 +37,7 @@ await ductape.features.define({
 
     // Step 1: Validate order and check inventory
     const validation = await ctx.step('validate-order', async () => {
-      const inventory = await ctx.action.run({
+      const inventory = await ctx.api.run({
         app: 'inventory-api',
         event: 'check-availability',
         input: { body: { items: ctx.input.items } },
@@ -66,7 +66,7 @@ await ductape.features.define({
 
       let discount = 0;
       if (ctx.input.couponCode) {
-        const coupon = await ctx.action.run({
+        const coupon = await ctx.api.run({
           app: 'promotions-api',
           event: 'validate-coupon',
           input: { body: { code: ctx.input.couponCode } },
@@ -86,7 +86,7 @@ await ductape.features.define({
     const payment = await ctx.step(
       'process-payment',
       async () => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'stripe',
           event: 'create-charge',
           input: {
@@ -106,7 +106,7 @@ await ductape.features.define({
       },
       async (result) => {
         // Rollback: Refund the charge
-        await ctx.action.run({
+        await ctx.api.run({
           app: 'stripe',
           event: 'create-refund',
           input: {
@@ -127,7 +127,7 @@ await ductape.features.define({
     await ctx.step(
       'reserve-inventory',
       async () => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'inventory-api',
           event: 'reserve-items',
           input: {
@@ -140,7 +140,7 @@ await ductape.features.define({
       },
       async () => {
         // Rollback: Release reserved items
-        await ctx.action.run({
+        await ctx.api.run({
           app: 'inventory-api',
           event: 'release-items',
           input: { body: { orderId: ctx.input.orderId } },
@@ -378,7 +378,7 @@ await ductape.features.define({
     const ocrResult = await ctx.step(
       'extract-text',
       async () => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'ocr-service',
           event: 'extract',
           input: {
@@ -397,7 +397,7 @@ await ductape.features.define({
 
     // Step 3: Classify document type
     const classification = await ctx.step('classify-document', async () => {
-      return ctx.action.run({
+      return ctx.api.run({
         app: 'ml-classifier',
         event: 'classify',
         input: {
@@ -419,7 +419,7 @@ await ductape.features.define({
         other: { fields: ['title', 'content'] },
       };
 
-      return ctx.action.run({
+      return ctx.api.run({
         app: 'data-extractor',
         event: 'extract',
         input: {
@@ -453,7 +453,7 @@ await ductape.features.define({
     await ctx.step(
       'index-document',
       async () => {
-        await ctx.action.run({
+        await ctx.api.run({
           app: 'search-api',
           event: 'index',
           input: {
@@ -535,7 +535,7 @@ await ductape.features.define({
 
     // Step 2: Get payment method
     const paymentMethod = await ctx.step('get-payment-method', async () => {
-      return ctx.action.run({
+      return ctx.api.run({
         app: 'stripe',
         event: 'get-payment-method',
         input: { params: { customerId } },
@@ -572,7 +572,7 @@ await ductape.features.define({
 
       try {
         paymentResult = await ctx.step(`payment-attempt-${paymentAttempt}`, async () => {
-          return ctx.action.run({
+          return ctx.api.run({
             app: 'stripe',
             event: 'create-charge',
             input: {
@@ -685,7 +685,7 @@ await ductape.features.define({
 
     // Step 6: Generate invoice
     await ctx.step('generate-invoice', async () => {
-      const invoice = await ctx.action.run({
+      const invoice = await ctx.api.run({
         app: 'invoice-service',
         event: 'generate',
         input: {
@@ -1030,7 +1030,7 @@ await ductape.features.define({
 
     // Step 2: Fetch changed records from source
     const sourceRecords = await ctx.step('fetch-source-records', async () => {
-      return ctx.action.run({
+      return ctx.api.run({
         app: sourceSystem,
         event: 'get-records',
         input: {
@@ -1060,7 +1060,7 @@ await ductape.features.define({
     for (const record of sourceRecords.records) {
       await ctx.step(`sync-record-${record.id}`, async () => {
         // Check for existing record in target
-        const existing = await ctx.action.run({
+        const existing = await ctx.api.run({
           app: targetSystem,
           event: 'get-record',
           input: { params: { id: record.id } },
@@ -1081,13 +1081,13 @@ await ductape.features.define({
 
         // Sync the record
         if (existing) {
-          await ctx.action.run({
+          await ctx.api.run({
             app: targetSystem,
             event: 'update-record',
             input: { body: record },
           });
         } else {
-          await ctx.action.run({
+          await ctx.api.run({
             app: targetSystem,
             event: 'create-record',
             input: { body: record },
@@ -1199,7 +1199,7 @@ await ctx.step('analytics', trackEvent, null, { allow_fail: true });
 Use idempotency keys for external operations:
 
 ```typescript
-await ctx.action.run({
+await ctx.api.run({
   app: 'stripe',
   event: 'charge',
   input: {

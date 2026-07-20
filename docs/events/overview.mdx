@@ -40,8 +40,8 @@ Events use the format `brokerTag:topicTag`. Everything before the colon identifi
 
 | Concept | What it is |
 |---------|------------|
-| **Broker** | A configured connection to a message provider (Kafka, RabbitMQ, Redis, SQS, …). One broker per provider setup, with environment-specific credentials. |
-| **Topic** | A named event stream within a broker. You define topics with a tag and an optional sample payload. |
+| **Broker** | A connection configuration for one message provider (credentials + per-env settings). Brokers have no topics built in — topics are added separately. |
+| **Topic** | A named event stream within a broker. One broker supports unlimited topics; each is created via `events.topics.create`. |
 | **Event** | A message produced to or consumed from a topic. Always referenced as `brokerTag:topicTag`. |
 
 ## Supported providers
@@ -52,7 +52,7 @@ Events use the format `brokerTag:topicTag`. Everything before the colon identifi
 | RabbitMQ | `RABBITMQ` | Flexible routing, reliable delivery |
 | Redis | `REDIS` | Simple pub/sub, low latency |
 | AWS SQS | `AWS_SQS` | Serverless managed queues |
-| Azure Service Bus | `AZURE_SERVICEBUS` | Azure managed messaging |
+| Azure Service Bus | `AZURE_SERVICE_BUS` | Azure managed messaging |
 | Google Pub/Sub | `GOOGLE_PUBSUB` | GCP integration |
 | NATS | `NATS` | Lightweight, high-performance messaging |
 

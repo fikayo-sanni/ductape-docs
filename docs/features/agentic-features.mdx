@@ -113,7 +113,7 @@ Guidelines:
         productId: { type: 'string', description: 'Product SKU' },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'inventory-api',
           event: 'check-stock',
           input: { params: { sku: params.productId } },
@@ -129,7 +129,7 @@ Guidelines:
         items: { type: 'array', description: 'Items to return' },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'returns-api',
           event: 'create-return',
           input: { body: params },
@@ -450,7 +450,7 @@ model: {
   },
   requiresConfirmation: true,  // Human must approve
   handler: async (ctx, params) => {
-    return ctx.action.run({
+    return ctx.api.run({
       app: 'stripe',
       event: 'create-refund',
       input: {
@@ -495,7 +495,7 @@ model: {
     });
 
     // Process refund
-    const refund = await ctx.action.run({
+    const refund = await ctx.api.run({
       app: 'stripe',
       event: 'create-refund',
       input: { body: { payment_intent: order.paymentId } },
@@ -503,7 +503,7 @@ model: {
 
     // Update inventory
     for (const item of params.items) {
-      await ctx.action.run({
+      await ctx.api.run({
         app: 'inventory-api',
         event: 'restock-item',
         input: { body: { sku: item.sku, quantity: item.quantity } },
@@ -974,7 +974,7 @@ Always cite your sources and distinguish between facts and analysis.`,
         maxResults: { type: 'number', default: 10 },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'search-api',
           event: 'search',
           input: { query: { q: params.query, limit: params.maxResults } },
@@ -988,7 +988,7 @@ Always cite your sources and distinguish between facts and analysis.`,
         url: { type: 'string', required: true },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'scraper-api',
           event: 'extract',
           input: { body: { url: params.url } },
@@ -1040,7 +1040,7 @@ Always cite your sources and distinguish between facts and analysis.`,
       },
       handler: async (ctx, params) => {
         // Generate report
-        const report = await ctx.action.run({
+        const report = await ctx.api.run({
           app: 'document-api',
           event: 'generate',
           input: { body: params },

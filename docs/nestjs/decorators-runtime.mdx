@@ -5,18 +5,19 @@ title: Runtime decorators
 
 # Runtime decorators
 
-Beyond core `@Api`, `@Database`, `@Storage`, and `@Webhook`, `@ductape/nestjs` exposes decorators for messaging, features, agents, sessions, and resilience. All runtime decorators are executed by **`DuctapeMethodInterceptor`** in integration mode.
+Beyond core `@Api`, `@Database`, `@Storage`, and `@Webhook`, `@ductape/nestjs` exposes decorators for events, notifications, features, agents, sessions, and resilience. All runtime decorators are executed by **`DuctapeMethodInterceptor`** in integration mode.
 
-The **first method argument** becomes SDK `input` / `message` (same convention as `@Api`).
+The **first method argument** becomes SDK `input` / `message` (same convention as `@Api`), except for `@Events.Consumer` which receives incoming messages.
 
-## Messaging, notifications, cache, graph, vector, feature, jobs, secrets
+## Events, notifications, cache, graph, vector, feature, jobs, secrets
 
 ### Method decorators
 
 | Decorator | SDK call |
 |-----------|----------|
-| `@Messaging.Produce({ event, product?, env?, session?, cache? })` | `messaging.produce` |
-| `@Messaging.Dispatch({ broker, event, schedule?, … })` | `messaging.dispatch` |
+| `@Events.Produce({ event, product?, env?, session?, cache? })` | `events.produce` |
+| `@Events.Dispatch({ broker, event, schedule?, … })` | `events.dispatch` |
+| `@Events.Consumer({ event, product?, env? })` | `events.consume` (wired at startup) |
 | `@Notification.Send({ notification, event?, channel?, … })` | `notifications.send` / channel helpers |
 | `@Notification.Dispatch({ notification, event, schedule?, … })` | `notifications.dispatch` |
 | `@Feature.Execute({ tag, product?, env? })` | `feature.execute` |
@@ -33,16 +34,97 @@ The **first method argument** becomes SDK `input` / `message` (same convention a
 | `DuctapeVectorModule.register({ tags: ['embeddings'] })` | `@Vector('embeddings')` | `VectorHandle` |
 | `DuctapeSecretsModule.register({ keys: ['API_KEY'] })` | `@Secret('API_KEY')` | `SecretHandle` |
 
-Example:
+### Producing events
+
+`@Events.Produce` publishes the returned value as the event message immediately:
 
 ```typescript
+import { Injectable } from '@nestjs/common';
+import { Events } from '@ductape/nestjs';
+
 @Injectable()
-export class EventsService {
-  @Messaging.Produce({ event: 'order.created' })
-  emitOrder(payload: { orderId: string }) {
+export class OrdersService {
+  @Events.Produce({ event: 'order-events:order-created' })
+  emitOrderCreated(payload: { orderId: string; total: number }) {
+    return payload;
+  }
+}
+```
+
+Calling `ordersService.emitOrderCreated(payload)` publishes `payload` to the topic and returns the SDK result.
+
+### Dispatching (scheduled) events
+
+`@Events.Dispatch` schedules a publish through a Ductape job. The schedule can be **static** (fixed in the decorator) or **dynamic** (derived from the method return value):
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Events } from '@ductape/nestjs';
+
+@Injectable()
+export class SchedulerService {
+  // Static schedule — known at deploy time:
+  @Events.Dispatch({
+    broker: 'order-events',
+    event: 'order-events:reminder-due',
+    schedule: { every: 86400000 },   // every 24 h
+  })
+  scheduleReminder(payload: { message: { orderId: string } }) {
     return payload;
   }
 
+  // Dynamic schedule — derived from data at call time:
+  @Events.Dispatch({ broker: 'order-events', event: 'order-events:fulfillment-due' })
+  scheduleFulfillment(order: { id: string; items: unknown[]; expectedAt: number }) {
+    return {
+      message: { orderId: order.id, items: order.items },
+      schedule: { start_at: order.expectedAt },
+      retries: 3,
+    };
+  }
+}
+```
+
+When the method return value contains a `message` key, the decorator reads `message`, `schedule`, and `retries` from it — overriding anything specified in the decorator. If the return value has no `message` key, the first argument is used as-is (backward-compatible with static-schedule usage).
+
+For schedules where even the `broker` or `event` must vary at call time, use `ctx.sdk.events.dispatch()` directly.
+
+### Consuming events
+
+`@Events.Consumer` registers a subscription that fires for each incoming message. No `onModuleInit` boilerplate is required — `DuctapeModule` wires it up automatically at startup:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Events } from '@ductape/nestjs';
+
+@Injectable()
+export class OrderConsumerService {
+  @Events.Consumer({ event: 'order-events:order-created' })
+  async onOrderCreated(message: { orderId: string; total: number }) {
+    await this.processOrder(message);
+    // Return to acknowledge; throw to nack (triggers retry / DLQ)
+  }
+
+  private async processOrder(message: { orderId: string; total: number }) {
+    // business logic
+  }
+}
+```
+
+The `product` and `env` used are the defaults from `DuctapeModule.forIntegration(...)`. Override them per method if needed:
+
+```typescript
+@Events.Consumer({ event: 'order-events:order-created', product: 'my-product', env: 'prd' })
+```
+
+### Feature execution
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Feature } from '@ductape/nestjs';
+
+@Injectable()
+export class FulfillmentService {
   @Feature.Execute({ tag: 'fulfillment' })
   runFulfillment(input: Record<string, unknown>) {
     return input;

@@ -85,7 +85,7 @@ Guidelines:
         },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'shipping-api',
           event: 'track-package',
           input: { body: { tracking: params.trackingNumber } },
@@ -351,7 +351,7 @@ Provide constructive feedback with specific line references and suggestions.`,
         prNumber: { type: 'number', required: true },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'github',
           event: 'get-pr-files',
           input: { body: { pr: params.prNumber } },
@@ -366,7 +366,7 @@ Provide constructive feedback with specific line references and suggestions.`,
         ref: { type: 'string', description: 'Git ref (branch/commit)' },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'github',
           event: 'get-file',
           input: { body: { path: params.path, ref: params.ref } },
@@ -384,7 +384,7 @@ Provide constructive feedback with specific line references and suggestions.`,
         side: { type: 'string', enum: ['LEFT', 'RIGHT'], default: 'RIGHT' },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'github',
           event: 'create-review-comment',
           input: { body: params },
@@ -405,7 +405,7 @@ Provide constructive feedback with specific line references and suggestions.`,
         body: { type: 'string', required: true },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'github',
           event: 'submit-review',
           input: { body: params },
@@ -483,7 +483,7 @@ Always cite your sources and note any limitations in the available information.`
         site: { type: 'string', description: 'Limit search to specific site' },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'search-api',
           event: 'web-search',
           input: {
@@ -502,7 +502,7 @@ Always cite your sources and note any limitations in the available information.`
         url: { type: 'string', required: true },
       },
       handler: async (ctx, params) => {
-        return ctx.action.run({
+        return ctx.api.run({
           app: 'scraping-api',
           event: 'extract-content',
           input: { body: { url: params.url } },
@@ -670,7 +670,7 @@ Always confirm before executing features that modify data.`,
             template: { message: params.message },
           });
         } else if (params.type === 'slack') {
-          await ctx.action.run({
+          await ctx.api.run({
             app: 'slack',
             event: 'send-message',
             input: { body: { channel: params.recipient, text: params.message } },

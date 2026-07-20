@@ -9,29 +9,35 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Message Brokers
 
-Message brokers let you build event-driven applications by sending and receiving messages between services. Ductape supports multiple providers through a unified interface.
+Message brokers let you build event-driven applications by sending and receiving messages between services. Ductape supports multiple providers through a unified interface exposed as `ductape.events`.
+
+## Architecture: brokers vs topics
+
+A **broker** is a connection configuration — it holds credentials and per-environment settings for one message provider. It has no topics of its own. **Topics** are added separately after the broker is registered and there is no limit on how many you can create per broker.
+
+| Concept | What it is |
+|---------|------------|
+| **Broker** | Connection config (credentials + per-env settings). One broker per logical provider setup. |
+| **Topic** | A named event stream within a broker. Added separately. One broker can hold unlimited topics. |
+| **Event** | A message produced to or consumed from a topic. Always referenced as `brokerTag:topicTag`. |
 
 ## Quick Example
 
-Use the **messaging** API on the Ductape instance. Events use the format `brokerTag:topicTag` (e.g. `order-events:order-created`).
+Events use the format `brokerTag:topicTag` (e.g. `order-events:order-created`):
 
 ```ts
 import Ductape from '@ductape/sdk';
 
-const ductape = new Ductape({
-  accessKey: 'your-access-key'
-});
+const ductape = new Ductape({ accessKey: 'your-access-key' });
 
-const { messaging } = ductape;
-
-// Publish a message
-await messaging.produce({
+// Produce
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: { orderId: '123', amount: 99.99 },
 });
 
-// Subscribe to messages (consumer)
-await messaging.consume({
+// Consume
+await ductape.events.consume({
   event: 'order-events:order-created',
   callback: async (message) => {
     console.log('Received:', message);
@@ -39,36 +45,24 @@ await messaging.consume({
 });
 ```
 
-## What You Can Do
-
-- **Produce messages** to topics with `messaging.produce()`
-- **Consume messages** from topics with `messaging.consume()`
-- **Manage brokers and topics** with `messaging.create()`, `messaging.list()`, `messaging.fetch()`, `messaging.topics.create()`, `messaging.topics.list()`, etc.
-- **Optional session context** when producing (e.g. user token from `sessions.start()`)
-- **Switch providers** per environment without changing your code
-- **Track and query messages** via `messaging.messages.query()`, `getProducers`, `getConsumers`, `getDeadLetters`, `getStats`, `getDashboard`
-- **Advanced** (BrokersService): event history, replay, DLQ reprocess, idempotent publish
-
 ## Supported Providers
 
-| Provider | Type | Best For |
-|----------|------|----------|
-| **Kafka** | `KAFKA` | High-throughput distributed streaming |
-| **RabbitMQ** | `RABBITMQ` | Flexible routing, reliable delivery |
-| **Redis** | `REDIS` | Simple pub/sub, low latency |
-| **AWS SQS** | `AWS_SQS` | Serverless managed queues |
-| **Azure Service Bus** | `AZURE_SERVICEBUS` | Azure managed queues and topics |
-| **Google Pub/Sub** | `GOOGLE_PUBSUB` | Google Cloud integration |
-| **NATS** | `NATS` | Lightweight, high-performance messaging |
+| Provider | Type constant | Best For |
+|----------|---------------|----------|
+| **Kafka** | `MessageBrokerTypes.KAFKA` | High-throughput distributed streaming |
+| **RabbitMQ** | `MessageBrokerTypes.RABBITMQ` | Flexible routing, reliable delivery |
+| **Redis** | `MessageBrokerTypes.REDIS` | Simple pub/sub, low latency |
+| **AWS SQS** | `MessageBrokerTypes.AWS_SQS` | Serverless managed queues |
+| **Azure Service Bus** | `MessageBrokerTypes.AZURE_SERVICE_BUS` | Azure managed queues |
+| **Google Pub/Sub** | `MessageBrokerTypes.GOOGLE_PUBSUB` | GCP managed messaging |
+| **NATS** | `MessageBrokerTypes.NATS` | Lightweight, high-performance messaging |
 
 ---
 
 ## Producing Messages
 
-Send messages to a topic with `messaging.produce()`. The event must be `brokerTag:topicTag`.
-
 ```ts
-const result = await ductape.messaging.produce({
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: {
     orderId: '12345',
@@ -83,18 +77,16 @@ const result = await ductape.messaging.produce({
 
 ### With session (user context)
 
-You can pass a session token (e.g. from `sessions.start()`) so the message is associated with a user context:
-
 ```ts
 const session = await ductape.sessions.start({
   tag: 'user-session',
   data: { userId: 'u1', email: 'user@example.com' },
 });
 
-await ductape.messaging.produce({
+await ductape.events.produce({
   event: 'order-events:order-created',
   message: { orderId: '123', total: 99.99 },
-  session: `${session.sessionId}:${session.token}`, // or tag:token format
+  session: `${session.sessionId}:${session.token}`,
 });
 ```
 
@@ -102,10 +94,8 @@ await ductape.messaging.produce({
 
 ## Consuming Messages
 
-Subscribe to a topic with `messaging.consume()`. Your callback runs for each message.
-
 ```ts
-await ductape.messaging.consume({
+await ductape.events.consume({
   event: 'order-events:order-created',
   callback: async (message) => {
     console.log('Received order:', message);
@@ -118,60 +108,34 @@ await ductape.messaging.consume({
 
 ## Listing and Fetching Brokers and Topics
 
-### List all brokers for a product
-
 ```ts
-const brokers = await ductape.messaging.list('my-product');
+// List all brokers for a product
+const brokers = await ductape.events.list('my-product');
 
-for (const b of brokers) {
-  console.log('Broker:', b.tag, b.name);
-}
-```
+// Fetch a single broker
+const broker = await ductape.events.fetch('my-product', 'order-events');
+console.log('Environments:', broker.envs?.map((e) => e.slug));
 
-### Fetch a single broker
+// List topics for a broker
+const topics = await ductape.events.topics.list('my-product', 'order-events');
 
-```ts
-const broker = await ductape.messaging.fetch('my-product', 'order-events');
-
-if (broker) {
-  console.log('Name:', broker.name);
-  console.log('Environments:', broker.envs?.map((e) => e.slug));
-}
-```
-
-### List topics for a broker
-
-```ts
-const topics = await ductape.messaging.topics.list('my-product', 'order-events');
-
-for (const t of topics) {
-  console.log('Topic:', t.tag, t.name);
-}
-```
-
-### Fetch a single topic
-
-Topic tag is the full event string `brokerTag:topicTag`.
-
-```ts
-const topic = await ductape.messaging.topics.fetch('my-product', 'order-events:order-created');
-
-if (topic) {
-  console.log('Name:', topic.name);
-  console.log('Sample:', topic.sample);
-}
+// Fetch a single topic (full event string)
+const topic = await ductape.events.topics.fetch('my-product', 'order-events:order-created');
+console.log('Sample:', topic.sample);
 ```
 
 ---
 
-## Creating a Message Broker
+## Creating a Broker
 
-Create a broker with environment-specific configurations. Pass `product` in the data object.
+A broker holds per-environment credentials. Topics are always created separately — see [Managing Topics](#managing-topics).
+
+### Self-hosted providers
 
 ```ts
 import { MessageBrokerTypes } from '@ductape/sdk';
 
-await ductape.messaging.create({
+await ductape.events.create({
   name: 'Order Events',
   tag: 'order-events',
   description: 'Handles all order-related messages',
@@ -183,7 +147,6 @@ await ductape.messaging.create({
         brokers: ['kafka-prod.example.com:9092'],
         clientId: 'order-service',
         groupId: 'order-consumers',
-        topic: 'orders',
         ssl: true,
         sasl: {
           mechanism: 'scram-sha-256',
@@ -195,24 +158,20 @@ await ductape.messaging.create({
     {
       slug: 'dev',
       type: MessageBrokerTypes.REDIS,
-      config: {
-        host: 'localhost',
-        port: 6379,
-      },
+      config: { host: 'localhost', port: 6379 },
     },
   ],
 });
 ```
 
-### Provider config shapes
+### Provider config reference
 
 **Kafka**
 ```ts
 {
-  brokers: string[];        // ['broker1:9092', 'broker2:9092']
+  brokers: string[];
   clientId: string;
-  groupId: string;
-  topic: string;
+  groupId?: string;
   ssl?: boolean;
   sasl?: {
     mechanism: 'plain' | 'scram-sha-256' | 'scram-sha-512';
@@ -225,8 +184,7 @@ await ductape.messaging.create({
 **RabbitMQ**
 ```ts
 {
-  url: string;              // e.g. amqps://user:pass@host/vhost
-  // or host, port, username, password, queue, routingKey
+  url: string;  // amqps://user:pass@host/vhost
 }
 ```
 
@@ -245,6 +203,7 @@ await ductape.messaging.create({
   region: string;
   accessKeyId: string;
   secretAccessKey: string;
+  sessionToken?: string;
 }
 ```
 
@@ -252,35 +211,96 @@ await ductape.messaging.create({
 ```ts
 {
   projectId: string;
-  topicName: string;
-  subscriptionName?: string;
-  keyFilename?: string;
+  credentials: {
+    private_key: string;       // Service account private key
+    client_email: string;      // Service account email
+    project_id?: string;
+    client_id?: string;
+    type?: string;
+    // ... other service account JSON fields
+  };
+}
+```
+
+**Azure Service Bus**
+```ts
+{
+  connectionString: string;  // Azure Service Bus connection string
+  queueName: string;         // Default queue name
+  namespace?: string;
 }
 ```
 
 **NATS**
 ```ts
 {
-  servers: string | string[];
+  servers: string[];
+  token?: string;
   user?: string;
   pass?: string;
-  token?: string;
-  name?: string;
-  maxReconnectAttempts?: number;
-  reconnectTimeWait?: number;
+  tls?: boolean;
 }
 ```
 
 ---
 
+## Cloud-linked brokers
+
+Provision or import queues/topics from a workspace cloud connection. Add `cloud: '<connection-tag>'` to the env config instead of direct credentials.
+
+### Import an existing resource
+
+```ts
+// AWS SQS
+await ductape.events.create({
+  name: 'Order Events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: MessageBrokerTypes.AWS_SQS,
+    config: { cloud: 'prod_aws', queueName: 'order-events', region: 'us-east-1' },
+  }],
+});
+
+// GCP Pub/Sub
+await ductape.events.create({
+  name: 'Order Events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: MessageBrokerTypes.GOOGLE_PUBSUB,
+    config: { cloud: 'gcp_prod', topicName: 'order-events', region: 'us-central1' },
+  }],
+});
+
+// Azure Service Bus
+await ductape.events.create({
+  name: 'Order Events',
+  tag: 'order-events',
+  envs: [{
+    slug: 'prd',
+    type: MessageBrokerTypes.AZURE_SERVICE_BUS,
+    config: { cloud: 'prod_azure', namespaceName: 'my-namespace', queueName: 'order-events', region: 'eastus' },
+  }],
+});
+```
+
+### Provision a new resource
+
+To create a new queue/topic in your cloud account, use `cloud.resources.provision` with the cloud connection tag. Once provisioned, register it as a broker using the import pattern above.
+
+See [Cloud-linked components](../cloud/cloud-linked-components) for the full provision and import workflow.
+
+---
+
 ## Managing Topics
 
-Create and update topics with `messaging.topics`. The topic **tag** must be the full identifier: `brokerTag:topicTag`.
+The topic tag must be the full event identifier: `brokerTag:topicTag`. A broker can have unlimited topics.
 
 ### Create a topic
 
 ```ts
-await ductape.messaging.topics.create('my-product', {
+await ductape.events.topics.create('my-product', {
   name: 'Order Created',
   tag: 'order-events:order-created',
   description: 'Emitted when an order is created',
@@ -291,12 +311,19 @@ await ductape.messaging.topics.create('my-product', {
     createdAt: '2024-01-15T10:30:00Z',
   },
 });
+
+// Add more topics to the same broker — no limit
+await ductape.events.topics.create('my-product', {
+  name: 'Order Fulfilled',
+  tag: 'order-events:order-fulfilled',
+  sample: { orderId: '12345', dispatchedAt: '2024-01-15T14:00:00Z' },
+});
 ```
 
-For **AWS SQS**, you can provide queue URLs per environment via `queueUrls`:
+For **AWS SQS**, each topic maps to a separate queue per environment via `queueUrls`:
 
 ```ts
-await ductape.messaging.topics.create('my-product', {
+await ductape.events.topics.create('my-product', {
   name: 'Order Created',
   tag: 'order-events:order-created',
   queueUrls: [
@@ -310,20 +337,15 @@ await ductape.messaging.topics.create('my-product', {
 ### Update a topic
 
 ```ts
-await ductape.messaging.topics.update('my-product', 'order-events:order-created', {
+await ductape.events.topics.update('my-product', 'order-events:order-created', {
   description: 'Updated description',
-  sample: {
-    orderId: '12345',
-    customerId: 'cust_789',
-    total: 99.99,
-    status: 'pending',
-  },
+  sample: { orderId: '12345', status: 'pending' },
 });
 ```
 
 ---
 
-## Event Format
+## Event format
 
 Events always use `brokerTag:topicTag`:
 
@@ -335,83 +357,46 @@ Events always use `brokerTag:topicTag`:
 
 ---
 
-## Message tracking (messaging.messages)
-
-You can query produced/consumed messages and dashboard stats via `ductape.messaging.messages`:
+## Message tracking
 
 ```ts
-// Query messages with filters
-const { messages, total, page, hasMore } = await ductape.messaging.messages.query({
+const { messages, total, page, hasMore } = await ductape.events.messages.query({
   brokerTag: 'order-events',
   topicTag: 'order-created',
   page: 1,
   limit: 20,
 });
 
-// Producers / consumers
-const { producers } = await ductape.messaging.messages.getProducers({
-  brokerTag: 'order-events',
-});
-
-const { consumers } = await ductape.messaging.messages.getConsumers({
-  brokerTag: 'order-events',
-});
-
-// Dead letters and stats
-const { deadLetters } = await ductape.messaging.messages.getDeadLetters({
-  brokerTag: 'order-events',
-});
-
-const stats = await ductape.messaging.messages.getStats({
-  brokerTag: 'order-events',
-});
-
-const dashboard = await ductape.messaging.messages.getDashboard({
-  brokerTag: 'order-events',
-});
+const { producers } = await ductape.events.messages.getProducers({ brokerTag: 'order-events' });
+const { consumers } = await ductape.events.messages.getConsumers({ brokerTag: 'order-events' });
+const { deadLetters } = await ductape.events.messages.getDeadLetters({ brokerTag: 'order-events' });
+const stats = await ductape.events.messages.getStats({ brokerTag: 'order-events' });
 ```
 
 ---
 
-## Advanced: BrokersService (events, replay, DLQ, idempotency)
+## Advanced: BrokersService (replay, DLQ, idempotency)
 
-For event history, replay, Dead Letter Queue reprocessing, and idempotent publish, use **BrokersService** directly. Initialize it with the same credentials as Ductape (typically derived from your access key).
-
-| BrokersService method | Description |
-|------------------------|-------------|
-| `publish(options)` | Same as `messaging.produce()` |
-| `subscribe(options)` | Same as `messaging.consume()` |
-| `getBrokers(product)` | Same as `messaging.list(product)` |
-| `getBroker(product, brokerTag)` | Same as `messaging.fetch(product, brokerTag)` |
-| `getTopics(product, brokerTag)` | Same as `messaging.topics.list(product, brokerTag)` |
-| `getTopic(product, event)` | Same as `messaging.topics.fetch(product, event)` |
-| `getEvents(options)` | Get broker events with filters (status, category, topic, dates) |
-| `getEvent({ product, eventId })` | Get a single event by ID |
-| `getEventStats(options)` | Aggregated stats for a broker |
+| Method | Description |
+|--------|-------------|
+| `publish(options)` | Same as `events.produce()` |
+| `subscribe(options)` | Same as `events.consume()` |
+| `getBrokers(product)` | Same as `events.list(product)` |
+| `getBroker(product, brokerTag)` | Same as `events.fetch(product, brokerTag)` |
+| `getTopics(product, brokerTag)` | Same as `events.topics.list(product, brokerTag)` |
+| `getTopic(product, event)` | Same as `events.topics.fetch(product, event)` |
+| `getEvents(options)` | Event history with filters |
 | `replayEvent(options)` | Replay a failed or successful event |
-| `reprocessDLQ(options)` | Reprocess messages from the Dead Letter Queue |
-| `checkIdempotency(options)` | Check if an idempotency key was already processed |
+| `reprocessDLQ(options)` | Reprocess dead-letter queue |
 | `publishIdempotent(options)` | Publish with idempotency key |
-| `testConnection(options)` | Test broker connectivity |
-
-Example: event stats and replay
 
 ```ts
 import { BrokersService } from '@ductape/sdk';
 
-const brokers = new BrokersService({
-  access_key: 'your-access-key',
-  env_type: 'prd',
-});
+const brokers = new BrokersService({ access_key: 'your-access-key', env_type: 'prd' });
 
-const stats = await brokers.getEventStats({
-  brokerTag: 'order-events',
-});
-
-const result = await brokers.replayEvent({
-  eventId: 'event-123',
-  force: true,
-});
+await brokers.replayEvent({ eventId: 'event-123', force: true });
+await brokers.reprocessDLQ({ brokerTag: 'order-events' });
 ```
 
 ---
@@ -422,7 +407,7 @@ const result = await brokers.replayEvent({
 import { BrokerError } from '@ductape/sdk';
 
 try {
-  await ductape.messaging.produce({ event: '...', message: {} });
+  await ductape.events.produce({ event: '...', message: {} });
 } catch (error) {
   if (error instanceof BrokerError) {
     console.log('Code:', error.code);
@@ -431,58 +416,13 @@ try {
 }
 ```
 
-Common codes: `BROKER_NOT_FOUND`, `BROKER_ENV_NOT_FOUND`, `TOPIC_NOT_FOUND`, `PUBLISH_FAILED`, `SUBSCRIBE_FAILED`, `SESSION_INVALID`, and others.
+Common codes: `BROKER_NOT_FOUND`, `BROKER_ENV_NOT_FOUND`, `TOPIC_NOT_FOUND`, `PUBLISH_FAILED`, `SUBSCRIBE_FAILED`, `SESSION_INVALID`.
 
 ---
-
-## Cloud-linked brokers
-
-Provision or import queues/topics from a workspace cloud connection (`cloud: '<tag>'`). Supported on AWS, GCP, and Azure.
-
-Brokers are priced by usage rather than instance size — no tier selection is needed. The `tier` field applies to databases, graphs, and vectors:
-
-```ts
-// AWS SQS
-await ductape.messaging.create({
-  product: 'my-product', tag: 'order-events', name: 'Order Events',
-  envs: [{ slug: 'prd', type: 'aws_sqs', config: {
-    cloud: 'prod_aws', queueName: 'order-events', region: 'us-east-1',
-  }}],
-});
-
-// GCP Pub/Sub
-await ductape.messaging.create({
-  product: 'my-product', tag: 'order-events', name: 'Order Events',
-  envs: [{ slug: 'prd', type: 'google_pubsub', config: {
-    cloud: 'gcp_prod', topicName: 'order-events', region: 'us-central1',
-  }}],
-});
-
-// Azure Service Bus
-await ductape.messaging.create({
-  product: 'my-product', tag: 'order-events', name: 'Order Events',
-  envs: [{ slug: 'prd', type: 'azure_servicebus', config: {
-    cloud: 'prod_azure', queueName: 'order-events', region: 'eastus',
-  }}],
-});
-```
-
-See [Cloud-linked components](../cloud/cloud-linked-components) for databases, graphs, vectors, the tier reference, and direct `cloud.resources.provision` / `.import` APIs.
-
----
-
-## Best practices
-
-1. **Use the event format `brokerTag:topicTag`** everywhere (produce, consume, topics).
-2. **Create brokers and topics** via `messaging.create()` and `messaging.topics.create()` so they exist before producing/consuming.
-3. **Use environment-specific configs** (e.g. different credentials per `slug` in `envs`).
-4. **Document topic payloads** with the `sample` field when creating topics.
-5. **Handle failures in consume callbacks** (retries, logging) so the broker can track success/failure.
-6. **Use session when producing on behalf of a user** so messages are tied to user context.
-7. **Use BrokersService** for replay, DLQ, and idempotent publish when needed.
 
 ## See also
 
-- [Cloud-linked components](../cloud/cloud-linked-components) – Provision or link AWS SQS, GCP Pub/Sub, or Azure Service Bus from a cloud connection tag
-- [Features](../features/overview) – Use message brokers in feature steps
-- [Jobs](../jobs/scheduling-jobs) – Schedule recurring produce operations
+- [Events](../events/overview) — same API, additional detail on provider setup and getting started
+- [Cloud-linked components](../cloud/cloud-linked-components) — provision or link AWS SQS, GCP Pub/Sub, Azure Service Bus
+- [Features](../features/overview) — use broker topics as steps in a feature workflow
+- [Jobs](../jobs/scheduling-jobs) — schedule recurring produce operations
