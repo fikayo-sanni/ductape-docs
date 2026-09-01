@@ -9,6 +9,12 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Getting Started with Features
 
+:::important
+Feature handlers are compiled into portable JSON. Every `ctx.step()` callback must record a Ductape
+primitive or a [portable function](./portable-functions). Ductape does not serialize arbitrary
+JavaScript closures and never uses a recording-time return value as runtime output.
+:::
+
 This guide walks you through creating and running your first feature using the code-first API.
 
 ## Prerequisites

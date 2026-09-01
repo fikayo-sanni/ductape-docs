@@ -5,7 +5,31 @@ sidebar_label: Tools reference
 
 # Tools reference
 
-The Ductape MCP server exposes **four tools**. All responses are JSON text in MCP content blocks. Errors return `isError: true` with a message string.
+The Ductape MCP server exposes runtime, schema, documentation, CLI, Events-discovery, migration,
+and portable-function setup tools. Responses are JSON text in MCP content blocks. Errors return
+`isError: true` with a message string.
+
+## `ductape_function_setup`
+
+Use this whenever a Feature calls application-owned code through `ctx.functions`. It returns the
+well-known HTTPS URLs, framework-specific raw-body adapter requirements, HMAC headers, validation
+checklist, and fail-closed conditions.
+
+```json
+{
+  "framework": "nestjs",
+  "base_url": "https://api.example.com",
+  "namespace": "statecraft-auth",
+  "version": "1",
+  "operations": ["register", "login"]
+}
+```
+
+The MCP agent should register local handlers and attempt secure remote exposure in application
+code. It must not claim remote availability until the route is reachable and rejects an invalid
+signature. See [Portable application functions](/features/portable-functions).
+
+---
 
 ---
 
@@ -233,6 +257,8 @@ Use `ductape_cli` for any operation that **creates or modifies platform configur
 |---|---|
 | List products | `products list` |
 | Create a product | `products create --name "My Product" --tag my-product` |
+| Compact product inventory | `products components list --product-tag my-product --json` |
+| Inspect one component type | `products components get --product-tag my-product --type healthchecks --json` |
 | List apps | `apps list` |
 | Create an app | `apps create -f app.json` |
 | Import app from Postman v2.1 | `apps import collection.json -t postman` |
@@ -240,6 +266,7 @@ Use `ductape_cli` for any operation that **creates or modifies platform configur
 | Update existing app from file | `apps import v2.json -t postman --app-tag my-workspace:stripe --update` |
 | List resources | `resources storage list` |
 | Create a resource | `resources database create -f db.json` |
+| Manage health checks | `resources health list` / `resources health create -f healthcheck.json` |
 | Link project to product | `link --product my-product --env dev` |
 | List cloud connections | `cloud connections list` |
 | List cloud resources | `cloud resources list --connection <tag>` |
@@ -252,8 +279,8 @@ Use `ductape_cli` for any operation that **creates or modifies platform configur
 | List workspace info | `whoami` |
 | Switch API profile | `profiles list`, `profiles use cloud` |
 
-:::info Workbench-managed configuration
-Environments, app actions, auths, features, quotas, fallbacks, and jobs are configured in the [Workbench](https://cloud.ductape.app) — the CLI does not have commands for them.
+:::info Administrative configuration
+Use `products environments` for product environments and `resources quota`, `resources fallback`, `resources jobs`, or `resources health` for those administrative resources. App actions and auths remain [Workbench](https://cloud.ductape.app)-managed. Features are defined in application code and registered at runtime.
 :::
 
 **Declarative sync — `ductape apply`:**
@@ -315,7 +342,10 @@ The key split: **`ductape_cli` for anything that creates or modifies configurati
 | Sync sessions, notifications, or event brokers from declaration files | `ductape_cli` (`apply`) |
 | Generate or apply database migration files | `ductape_cli` (`db schema generate`, `db migrate`) |
 | Check migration status or roll back | `ductape_cli` (`db migrate status`, `db migrate rollback`) |
-| Configure environments, app actions, auths, features, quotas, fallbacks, jobs | Workbench UI |
+| Configure product environments | `ductape_cli` (`products environments ...`) |
+| Configure quotas, fallbacks, jobs, or health checks | `ductape_cli` (`resources <type> ...`) |
+| Configure app actions or auths | Workbench UI |
+| Define features | Application code (`features.define`) |
 | Run a feature, action, query, upload, dispatch | `ductape_execute` |
 | Get payload shape before a runtime call | `ductape_generate_payload` |
 | Generate copy-paste SDK code for an engineer | `ductape_generate_snippet` |

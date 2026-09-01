@@ -1,0 +1,463 @@
+---
+sidebar_position: 4
+sidebar_label: Portable Functions
+---
+
+# Portable application functions
+
+Portable functions let a Feature call application-owned code while keeping the Feature itself as
+JSON that can be executed by another SDK process, worker, or Ductape runtime.
+
+An ordinary JavaScript function is not serializable. Ductape therefore stores a versioned function
+reference and JSON Schemas, never the function body or a value returned while recording.
+
+## The execution model
+
+```text
+typed ctx code → Feature compiler → portable function step JSON
+                                      ↓
+                              runtime function resolver
+                                      ↓
+                         local handler or signed HTTPS endpoint
+```
+
+If neither runtime exists, execution fails with `FUNCTION_UNAVAILABLE`. Ductape never substitutes a
+sample or recording-time result.
+
+## Define a contract
+
+Use `defineFunctions` to declare the runtime identity and input/output contracts:
+
+```ts
+import { defineFunctions } from '@ductape/sdk'
+
+export const StatecraftAuthFunctions = defineFunctions({
+  namespace: 'statecraft-auth',
+  version: '1',
+  description: 'Statecraft account and authentication operations.',
+  operations: {
+    register: {
+      description: 'Create an account and issue its first player session.',
+      input: {
+        type: 'object',
+        required: ['email', 'password'],
+        additionalProperties: false,
+        properties: {
+          email: { type: 'string', minLength: 3, maxLength: 254 },
+          password: { type: 'string', minLength: 12, maxLength: 128 },
+        },
+      },
+      output: {
+        type: 'object',
+        required: ['token', 'refreshToken', 'player'],
+        properties: {
+          token: { type: 'string' },
+          refreshToken: { type: 'string' },
+          player: {
+            type: 'object',
+            required: ['playerId', 'accountId', 'role'],
+            properties: {
+              playerId: { type: 'string' },
+              accountId: { type: 'string' },
+              role: { type: 'string', enum: ['player'] },
+            },
+          },
+        },
+      },
+      timeout_ms: 15_000,
+      idempotent: false,
+      transports: [{ type: 'local' }],
+    },
+  },
+})
+```
+
+The TypeScript declaration is retained for type inference. The `input` and `output` schemas are the
+runtime contract and are included in the compiled Feature step.
+
+## Register the local implementation
+
+Attach application code when the application starts:
+
+```ts
+const RuntimeAuthFunctions = {
+  ...StatecraftAuthFunctions,
+  operations: {
+    ...StatecraftAuthFunctions.operations,
+    register: {
+      ...StatecraftAuthFunctions.operations.register,
+      handler: (input, context) => {
+        // context.session is inherited from the Feature, when present.
+        return authService.register(input.email, input.password)
+      },
+    },
+  },
+}
+
+ductape.functions.register(RuntimeAuthFunctions)
+```
+
+Registration validates the namespace, version, operation names, and presence of both schemas.
+Function identity is `namespace.operation@version`.
+
+## Call it from a Feature
+
+```ts
+await ductape.feature.define({
+  product: 'ductape:statecraft',
+  tag: 'register-player-account',
+  name: 'Register Player Account',
+  input: {
+    email: { type: 'string', required: true },
+    password: { type: 'string', required: true },
+  },
+  handler: async ctx => {
+    const auth = ctx.functions.use(StatecraftAuthFunctions)
+    return ctx.step('create-account-and-start-session', () =>
+      auth.register({
+        email: ctx.input.email,
+        password: ctx.input.password,
+      }),
+    )
+  },
+})
+```
+
+The compiled step contains a function reference:
+
+```json
+{
+  "tag": "create-account-and-start-session",
+  "type": "function",
+  "event": "register",
+  "function_ref": {
+    "namespace": "statecraft-auth",
+    "operation": "register",
+    "version": "1",
+    "input_schema": { "type": "object" },
+    "output_schema": { "type": "object" },
+    "transports": [{ "type": "local" }],
+    "timeout_ms": 15000,
+    "idempotent": false
+  },
+  "input": {
+    "email": "$Input{email}",
+    "password": "$Input{password}"
+  }
+}
+```
+
+The handler implementation and any recording-time result are absent.
+
+## Make functions remotely available
+
+Set an HTTPS base URL on the application runtime:
+
+```bash
+DUCTAPE_FUNCTION_BASE_URL="https://api.example.com"
+```
+
+When a contract operation does not already declare HTTP, the compiler adds this deterministic URL:
+
+```text
+https://api.example.com/.well-known/ductape/functions/<namespace>/<version>/<operation>
+```
+
+Plain HTTP is rejected except for `localhost`, `127.0.0.1`, and `::1` development URLs.
+
+Mount one application route at:
+
+```text
+/.well-known/ductape/functions/:namespace/:version/:operation
+```
+
+Pass its raw request body, headers, and route parameters to
+`handlePortableFunctionHttpRequest`:
+
+```ts
+import {
+  PORTABLE_FUNCTION_HTTP_PATH,
+  handlePortableFunctionHttpRequest,
+} from '@ductape/sdk'
+
+app.post(PORTABLE_FUNCTION_HTTP_PATH, rawBodyMiddleware, async (request, response) => {
+  const result = await handlePortableFunctionHttpRequest({
+    headers: request.headers,
+    body: request.body,
+    params: request.params,
+  }, process.env.DUCTAPE_ACCESS_KEY!)
+
+  response.status(result.status).json(result.body)
+})
+```
+
+The handler must receive the same raw bytes that were signed. Do not parse and reserialize the body
+before signature verification.
+
+### NestJS automatic endpoint
+
+`@ductape/nestjs` registers the well-known controller automatically when you import
+`DuctapeModule.forIntegration(...)`, `forWorkspace(...)`, or `forRootAsync(...)`. Create Nest with
+raw-body capture enabled:
+
+```ts
+const app = await NestFactory.create(AppModule, { rawBody: true })
+```
+
+The controller fails closed with `FUNCTION_RAW_BODY_REQUIRED` when raw-body capture is missing and
+with `FUNCTION_RUNTIME_UNAVAILABLE` when the installed core SDK predates portable functions.
+
+### Other SDKs
+
+The same wire contract is available through the TypeScript SDK and its NestJS integration.
+Each provides:
+
+- Local handler registration and input/output validation
+- Events request/reply invoker registration
+- Signed HTTPS client invocation
+- Raw-body signature verification and local HTTP dispatch
+- Invocation correlation and inherited Feature session context
+
+TypeScript and NestJS Feature builders/executors recognize `type: "function"` and preserve the
+same `function_ref` JSON shown above. Python's Feature surface is intentionally smaller than the
+older SDKs, but its portable function steps, dependency ordering, operator input resolution,
+session inheritance, and fail-closed execution use the same wire contract.
+
+## HTTP security
+
+HTTP invocation is always HMAC-SHA256 signed using the application access key. Ductape sends:
+
+```text
+X-Ductape-Invocation-Id
+X-Ductape-Timestamp
+X-Ductape-Signature
+X-Ductape-Function
+```
+
+The signature covers:
+
+```text
+<timestamp>.<raw JSON request body>
+```
+
+The server rejects:
+
+- Missing or malformed signatures
+- Requests outside the five-minute timestamp tolerance
+- A route that does not match the signed namespace/version/operation
+- An `X-Ductape-Function` value that does not match the signed body
+- Unknown or locally unavailable operations
+
+Never put bearer tokens, access keys, static authorization headers, or arbitrary URLs in Feature
+JSON. A Feature may invoke only transports declared by its function contract.
+
+## Invocation context and sessions
+
+Business input and execution context are separate:
+
+Every primitive invoked inside a portable function inherits the active Feature context through the
+SDK execution-context carrier. Local and signed HTTP handlers install the same context before the
+handler runs. Processor records therefore retain `feature_tag`, feature/step run IDs, function
+invocation identity, session identity, and the `trace_id`/`span_id`/`parent_span_id` relationship.
+The session token itself is never persisted as telemetry.
+
+```ts
+handler: async (input, context) => {
+  context.product
+  context.env
+  context.workspace_id
+  context.feature_id
+  context.feature_tag
+  context.step_tag
+  context.invocation_id
+  context.session
+  context.deadline_at
+}
+```
+
+When the Feature was executed with a session, every function step inherits it as
+`context.session`. It is not copied into the function input, persisted as ordinary business data,
+or emitted in debug logs.
+
+## Resolution and validation
+
+Resolution is deterministic:
+
+1. A matching local handler registered for `namespace@version` and `operation`
+2. A declared gRPC transport over mTLS, using a pooled application/runtime channel
+3. A declared Events request/reply transport when an Events invoker is registered
+4. The first signed HTTPS transport declared by the function reference
+5. `FUNCTION_UNAVAILABLE`
+
+Inputs are validated before invoking the handler. Outputs are validated before returning them to
+the Feature. HTTP responses must contain the request's `invocation_id`.
+
+The successful remote transport is cached for five minutes. Only availability and deadline
+failures may fall back. Authentication, correlation, schema, and application failures never switch
+transport, preventing policy bypass and accidental duplicate execution.
+
+## Preferred gRPC transport
+
+Use gRPC for private service-to-service deployments and retain signed HTTPS as the compatibility
+fallback:
+
+```ts
+transports: [{
+  type: 'grpc',
+  endpoint: 'functions.internal:443',
+  service: 'ductape.functions.v1.PortableFunctions',
+  method: 'Invoke',
+  authentication: 'mtls',
+  tls: {
+    ca_env: 'DUCTAPE_FUNCTION_GRPC_CA',
+    cert_env: 'DUCTAPE_FUNCTION_GRPC_CERT',
+    key_env: 'DUCTAPE_FUNCTION_GRPC_KEY',
+  },
+  timeout_ms: 3_000,
+}, {
+  type: 'http',
+  url: 'https://functions.example.com/.well-known/ductape/functions/auth/v1/register',
+  authentication: 'ductape_hmac_sha256',
+}]
+```
+
+Contracts contain environment-variable names, never certificates, keys, tokens, or PEM material.
+Register a pooled adapter with `ductape.functions.registerGrpcInvoker(...)`. It must validate the
+server name, attach invocation/function/deadline/trace metadata, and close channels during shutdown.
+Disable reflection in production. `DUCTAPE_FUNCTION_GRPC_ENDPOINT` automatically adds this preferred
+transport; `DUCTAPE_FUNCTION_BASE_URL` may add the signed HTTPS fallback. Remote gRPC without mTLS
+is rejected with `FUNCTION_INSECURE_TRANSPORT`.
+
+## Events request/reply transport
+
+Declare Events transport when the application cannot expose an inbound HTTP endpoint:
+
+```ts
+transports: [{
+  type: 'events',
+  request_event: 'statecraft-functions:auth-register-requested',
+  response_event: 'statecraft-functions:auth-register-completed',
+  timeout_ms: 15_000,
+}]
+```
+
+Register an invoker that publishes the full function invocation and waits for a response carrying
+the same `invocation_id`:
+
+```ts
+ductape.functions.registerEventsInvoker(async (transport, invocation) => {
+  // Publish invocation to transport.request_event.
+  // Wait on transport.response_event and return only the matching invocation_id.
+  return response
+})
+```
+
+The application consumer must validate the function contract and session context before executing
+the handler. Ductape rejects mismatched response correlation IDs and applies the declared timeout.
+The consumer must be idempotent because brokers can redeliver messages.
+
+## Compiler safety
+
+This is invalid:
+
+```ts
+ctx.step('register', () => authService.register(ctx.input.email, ctx.input.password))
+```
+
+`authService.register` is an arbitrary application callback and cannot be serialized. Compilation
+fails with `FeatureCompilationError` because the step recorded no portable operation.
+
+This is valid:
+
+```ts
+const auth = ctx.functions.use(StatecraftAuthFunctions)
+ctx.step('register', () => auth.register({
+  email: ctx.input.email,
+  password: ctx.input.password,
+}))
+```
+
+Recording inputs may help enumerate loops and branches, but they are never executable outputs.
+
+## Errors
+
+| Code | Meaning |
+| --- | --- |
+| `FUNCTION_CONTRACT_INVALID` | Invalid namespace, version, operation, or missing schema |
+| `FUNCTION_OPERATION_NOT_FOUND` | Operation is absent from the declared contract |
+| `FUNCTION_UNAVAILABLE` | No local handler and no signed HTTP transport |
+| `FUNCTION_AUTH_UNAVAILABLE` | HTTP invocation lacks an SDK access key |
+| `FUNCTION_INSECURE_TRANSPORT` | Remote URL does not use HTTPS |
+| `FUNCTION_SCHEMA_VALIDATION_FAILED` | Input or output violates its JSON Schema |
+| `FUNCTION_SIGNATURE_INVALID` | Signature is missing, invalid, malformed, or expired |
+| `FUNCTION_ROUTE_MISMATCH` | Route/header identity differs from the signed body |
+| `FUNCTION_CORRELATION_MISMATCH` | Response invocation ID differs from the request |
+| `FUNCTION_TIMEOUT` | Local or HTTP invocation exceeded its deadline |
+
+## Deployment checklist
+
+Before executing remotely:
+
+1. Register the function contract and handler during application startup.
+2. Set `DUCTAPE_FUNCTION_BASE_URL` to the externally reachable HTTPS origin.
+3. Mount the well-known signed function route with raw-body access.
+4. Use the same Ductape access key on the invoking and receiving runtimes.
+5. Ensure proxies preserve the four `X-Ductape-*` headers and raw request body.
+6. Compile and register the Feature after the base URL is configured.
+7. Execute a real request and verify business state, step telemetry, and function telemetry.
+8. Confirm missing runtime, bad signature, invalid input, invalid output, timeout, and replay attempts fail.
+## Embedding operations inside Features
+
+Product models are currently configuration records; the SDK does not expose `ctx.model`, `ctx.models`, or `ctx.ai` execution. Application-owned embedding logic should therefore be declared as a portable function (or called through `ctx.api.run` when it already exists as a registered App action).
+
+```ts
+import { defineFunctions } from '@ductape/sdk'
+
+export const DiscoveryEmbeddings = defineFunctions({
+  namespace: 'discovery-embeddings',
+  version: '1',
+  operations: {
+    embed: {
+      input: {
+        type: 'object',
+        required: ['texts'],
+        additionalProperties: false,
+        properties: {
+          texts: { type: 'array', items: { type: 'string', minLength: 1 } },
+        },
+      },
+      output: {
+        type: 'object',
+        required: ['embeddings', 'dimensions', 'model'],
+        additionalProperties: false,
+        properties: {
+          embeddings: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
+          dimensions: { type: 'integer', minimum: 1 },
+          model: { type: 'string', minLength: 1 },
+        },
+      },
+      timeout_ms: 15_000,
+      idempotent: true,
+      transports: [{ type: 'local' }],
+    },
+  },
+})
+```
+
+Call it from a serializable step and validate the vector-store dimension before writing:
+
+```ts
+const embeddings = ctx.functions.use(DiscoveryEmbeddings)
+const generated = await ctx.step('embed-products', () =>
+  embeddings.embed({ texts: ctx.input.texts }),
+)
+
+if (
+  generated.embeddings.length !== ctx.input.texts.length ||
+  generated.embeddings.some(values => values.length !== EXPECTED_VECTOR_DIMENSIONS)
+) {
+  throw new Error('EMBEDDING_DIMENSION_MISMATCH')
+}
+```
+
+The runtime validates both JSON schemas. Missing implementations fail with `FUNCTION_UNAVAILABLE`, invalid values with `FUNCTION_SCHEMA_VALIDATION_FAILED`, and deadlines with `FUNCTION_TIMEOUT`. It never substitutes sample or recording-time embeddings.

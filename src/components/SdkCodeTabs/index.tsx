@@ -18,7 +18,7 @@ function renderCode(language: string, code: string) {
 }
 
 /**
- * Renders the same SDK example in TypeScript, Java, Go, and .NET tabs.
+ * Renders the active TypeScript server SDK example.
  * Populated automatically by the remark-sdk-code-tabs plugin for ```ts blocks.
  */
 export default function SdkCodeTabs({
@@ -35,15 +35,11 @@ export default function SdkCodeTabs({
     code: string;
   }> = [{value: 'typescript', text: 'TypeScript', language: 'typescript', code: typescript}];
 
-  if (java) {
-    tabs.push({value: 'java', text: 'Java', language: 'java', code: java});
-  }
-  if (go) {
-    tabs.push({value: 'go', text: 'Go', language: 'go', code: go});
-  }
-  if (dotnet) {
-    tabs.push({value: 'dotnet', text: '.NET', language: 'csharp', code: dotnet});
-  }
+  // Legacy Go, Java, and .NET props remain accepted so older MDX compiles, but
+  // their tabs are intentionally hidden until those SDKs are ready to advertise.
+  void java;
+  void go;
+  void dotnet;
 
   return (
     <Tabs groupId={groupId} queryString>

@@ -86,6 +86,9 @@ const verified = await ductape.sessions.verify({
 ## Notifications — `ductape/notifications.json`
 
 Declares notification channel configurations. Each entry is a channel (email sender, push provider, SMS gateway) with environment-specific credentials.
+The file must be a top-level JSON array. Do not wrap it in
+`{ "notifications": [], "messages": [] }`. Each notification may include its own nested
+`messages` array.
 
 ```json
 [
@@ -97,21 +100,33 @@ Declares notification channel configurations. Each entry is a channel (email sen
       {
         "slug": "dev",
         "emails": {
-          "host": "smtp.mailtrap.io",
-          "port": 587,
-          "user": "your-mailtrap-user",
-          "pass": "your-mailtrap-pass",
-          "sender": "no-reply@example.com"
+          "provider": "smtp",
+          "smtp": {
+            "host": "smtp.mailtrap.io",
+            "port": 587,
+            "sender_email": "no-reply@example.com",
+            "auth": {
+              "user": "$Secret{smtp-user}",
+              "pass": "$Secret{smtp-password}"
+            },
+            "secure": false
+          }
         }
       },
       {
         "slug": "prd",
         "emails": {
-          "host": "smtp.postmarkapp.com",
-          "port": 587,
-          "user": "your-postmark-user",
-          "pass": "your-postmark-pass",
-          "sender": "no-reply@example.com"
+          "provider": "smtp",
+          "smtp": {
+            "host": "smtp.postmarkapp.com",
+            "port": 587,
+            "sender_email": "no-reply@example.com",
+            "auth": {
+              "user": "$Secret{postmark-user}",
+              "pass": "$Secret{postmark-password}"
+            },
+            "secure": true
+          }
         }
       }
     ]
@@ -124,12 +139,21 @@ Declares notification channel configurations. Each entry is a channel (email sen
       {
         "slug": "prd",
         "push_notifications": {
-          "type": "FIREBASE",
-          "databaseUrl": "https://your-project.firebaseio.com",
-          "credentials": {
-            "type": "service_account",
-            "project_id": "your-project"
-          }
+          "type": "firebase",
+          "authMode": "cloud_connection",
+          "cloud": "gcp-notifications",
+          "databaseUrl": "https://your-project.firebaseio.com"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "tag": "push-alerts:match-launch",
+        "name": "Match launch",
+        "push_notification": {
+          "title": "Match ready",
+          "body": "{{matchName}} is ready",
+          "data": {}
         }
       }
     ]
@@ -146,6 +170,14 @@ ductape apply notifications
 :::caution Credentials in files
 `notifications.json` contains provider credentials. Do not commit real credentials to version control. Use environment variable placeholders or keep a `.gitignore`d local override file for development.
 :::
+
+Notification component tags cannot contain `:` (for example, `push-alerts`). Message tags use
+`component-tag:message-tag` (for example, `push-alerts:match-launch`).
+
+For SMTP, `sender_email` is required and `secure` must be a JSON boolean; `secure` cannot be a
+`$Secret{...}` placeholder. Firebase cloud-linked environments should use a GCP connection with
+the `notifications` scope. Creation records the link but does not prove Google-side authorization;
+runtime delivery requires the FCM API and an appropriately authorized service account.
 
 ---
 

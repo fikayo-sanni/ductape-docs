@@ -5,20 +5,15 @@ slug: /roadmap
 
 # Roadmap
 
-High-level parity and shipping status for multi-language SDKs. Detailed backlogs live in the repository.
+High-level shipping status for the supported TypeScript and NestJS SDKs.
 
 ## SDK parity
 
-| SDK | Parity ledger | Checklist |
-|-----|---------------|-----------|
-| Java | [sdk/java/PARITY_MAP.md](https://github.com/ductape/ductape/blob/main/sdk/java/PARITY_MAP.md) | [PARITY_CHECKLIST.md](https://github.com/ductape/ductape/blob/main/sdk/java/PARITY_CHECKLIST.md) |
-| Go | [sdk/go/PARITY_MAP.md](https://github.com/ductape/ductape/blob/main/sdk/go/PARITY_MAP.md) | [PARITY_CHECKLIST.md](https://github.com/ductape/ductape/blob/main/sdk/go/PARITY_CHECKLIST.md) |
-| .NET | [sdk/dotnet/PARITY_MAP.md](https://github.com/ductape/ductape/blob/main/sdk/dotnet/PARITY_MAP.md) | [PARITY_COMPLETION.md](https://github.com/ductape/ductape/blob/main/sdk/dotnet/PARITY_COMPLETION.md) |
+| SDK | Package |
+|-----|---------|
+| TypeScript | `@ductape/sdk` |
+| NestJS | `@ductape/nestjs` |
 
 ## Shipping milestones
 
-- **Java 1.0** — Maven Central via Sonatype OSSRH (`sdk/java/RELEASE.md`)
-- **Go v0.1.8** — Module tag `sdk/go/v0.1.8` (`sdk/go/RELEASE.md`)
-- **.NET** — NuGet `Ductape.Sdk` (`sdk/dotnet/RELEASE.md`)
-
-See [SDK readiness](/sdk-readiness) for production guidance by language.
+<!-- Legacy Go, Java, and .NET milestones are intentionally hidden until those SDKs are ready to advertise. -->

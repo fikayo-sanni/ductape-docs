@@ -15,6 +15,40 @@ A healthcheck is a scheduled monitoring task that:
 - Automatically retries failed checks before marking as unhealthy
 - Maintains historical performance data per environment
 
+## Canonical code-first contract
+
+Use `health.define()` and the probe builder. The persisted JSON uses `interval` (milliseconds),
+`retries`, `probe.event`, and `probe.events`; `checkIntervals`, top-level action aliases, and
+`messageBroker` are compatibility-only names.
+
+```ts
+await ductape.health.define({
+  product: 'buydeck',
+  tag: 'platform-dependencies',
+  handler: async (ctx) => {
+    ctx.probe().vector('product-discovery').action('test_connection');
+    ctx.interval(60_000);
+    ctx.retries(2);
+    ctx.env('prd');
+  },
+});
+```
+
+Supported probes are `app`, `database`, `feature`, `graph`, `events`, `storage`, `cache`,
+`vector`, and `notification`. Cache and status scheduling require Redis. Notification
+`test_connection` is non-delivering: it validates registered channel configuration and uses
+provider identity/account endpoints for SendGrid, Vonage/Nexmo, and Firebase credentials without
+sending a test message.
+
+Only active, non-deleted product environments require coverage. Inactive `snd` environments may
+be omitted. Registration is idempotent and reports `created`, `unchanged`, or `updated` with a
+definition revision and operation ID.
+
+Status values are `healthy`, `degraded`, `unhealthy`, `unknown`, `never_run`, or `stale`. Consumers
+must use freshness fields (`checkedAt`, `validUntil`, `nextCheckAt`) and must not treat an expired
+healthy result as current. Use `health.statusAll({ product, env, tags })` for partial-failure-safe
+batch reads and `health.preflight()` to verify Redis, scheduling, workers, and status storage.
+
 Healthchecks are perfect for monitoring third-party APIs, internal services, or any app action that needs continuous availability tracking.
 
 ## Creating a Healthcheck

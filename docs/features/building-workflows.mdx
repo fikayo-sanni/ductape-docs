@@ -57,15 +57,15 @@ await ductape.features.define({
 });
 ```
 
-### Recording options (conditionals, loops, switch)
+### Recording options
 
-When your handler uses **if/early return**, **loops**, or **switch**, the compiler needs help to record all branches. See [Conditionals, loops, and switch](#conditionals-loops-and-switch) for full details.
+Prefer the portable `ctx.branch`, `ctx.when`, and `ctx.each` APIs described below. The older recording options remain available for migration and fixed graph discovery.
 
 | Option | Purpose |
 |--------|--------|
-| **branchOverrides** | Step result overrides so the handler continues past an `if (result.x) return …` and records later steps. Those steps get a condition at runtime (e.g. `$Step{validate}{valid} == true`). |
-| **recordInput** | Sample input used during recording so loops (e.g. `for (const item of ctx.input.items)`) run and record steps. Use unique step tags per iteration. |
-| **recordScenarios** | Array of input scenarios; the handler runs once per scenario. Each step gets a condition (e.g. `$Input{type} == 'a'`) so only the matching branch runs at runtime. Use for switch-style branches. |
+| **branchOverrides** | Legacy compatibility for handlers written before `ctx.branch`. Do not use it in new Feature code. |
+| **recordInput** | Sample input exposed as `ctx.sampleInput` during recording so loops run and record steps. It never replaces runtime `ctx.input` references. Use unique step tags per iteration. |
+| **recordScenarios** | Legacy compile-time graph discovery for several sample inputs. Prefer `ctx.branch` for runtime decisions. |
 
 ### Signals
 
@@ -110,113 +110,80 @@ await ductape.features.define({
 
 ---
 
-## Conditionals, loops, and switch
+## Portable control flow
 
-The handler runs once at **define time** to record steps. If you use `if`, early `return`, loops, or `switch`, only the path taken during that run is recorded. Use the options below so all branches are recorded and the right **step conditions** are applied at runtime.
+A Feature handler runs while the Feature is compiled. At execution time Ductape interprets the stored `steps` graph; it does **not** call the JavaScript handler again. Native JavaScript control flow therefore must not consume `ctx.input` or a `ctx.step()` result.
 
-| You want to… | Use | Runtime behavior |
-|--------------|-----|------------------|
-| **If / else on a step result** (e.g. "only run payment if validation passed") | `branchOverrides` | Steps after the branch get a condition like `$Step{validate}{valid} == true`; executor skips them when the condition is false. |
-| **Loop over input** (e.g. process each item in `ctx.input.items`) | `recordInput` | Supply sample input so the loop runs during recording; steps are recorded per iteration. |
-| **If/else or switch on feature input** (e.g. different steps for `type: 'a'` vs `type: 'b'`) | `recordScenarios` | Handler runs once per scenario; each step gets a condition like `$Input{type} == 'a'` and only runs when input matches. |
+| You want to… | Use |
+|--------------|-----|
+| Runtime `if/else` | `ctx.branch(ctx.when.*, { then, else })` |
+| Combine conditions | `ctx.when.and(...)` or `ctx.when.or(...)` |
+| Expand a fixed sample collection | `recordInput` + `ctx.each(ctx.sampleInput.items, ...)` |
+| Process a runtime-sized collection | A registered portable Function invoked through `ctx.functions` |
+| Generate runtime strings or identifiers | `ctx.transform.concat`, `now`, `uuid`, and the string transforms |
 
-### If / else (early return) – branchOverrides
-
-When the handler branches on a **step result** and returns early, later steps are never recorded. Use `branchOverrides` so the compiler "pretends" a step returned a value that keeps the handler running and records those steps. At runtime, those steps get a **condition** so they only run when the real step output matches.
+### Runtime branches
 
 ```typescript
-await ductape.features.define({
-  tag: 'order-fulfillment',
-  name: 'Order Fulfillment',
-  // So the handler continues past the if and records process-payment
-  branchOverrides: {
-    validate: { valid: true },
-  },
-  handler: async (ctx) => {
-    const validation = await ctx.step('validate', async () => {
-      return ctx.api.run({
-        app: 'orders-api',
-        event: 'validate-order',
-        input: { body: { orderId: ctx.input.orderId } },
-      });
-    });
-    if (!validation.valid) return { success: false, error: validation.reason };
+const search = await ctx.step('find-customer', () =>
+  ctx.database.execute({
+    database: 'payments',
+    action: 'find-customer',
+    input: { email: ctx.input.email },
+  })
+);
 
-    const payment = await ctx.step('process-payment', async () =>
-      ctx.api.run({
-        app: 'stripe',
-        event: 'create-charge',
-        input: { body: { amount: ctx.input.amount } },
-      })
-    );
-    return { success: true, orderId: ctx.input.orderId, chargeId: payment.id };
-  },
+await ctx.branch(ctx.when.eq(search.data.length, 0), {
+  then: () => ctx.step('create-customer', () =>
+    ctx.database.execute({
+      database: 'payments',
+      action: 'create-customer',
+      input: { email: ctx.input.email },
+    })
+  ),
+  else: () => ctx.step('reuse-customer', () =>
+    ctx.database.execute({
+      database: 'payments',
+      action: 'touch-customer',
+      input: { id: search.data[0].id },
+    })
+  ),
 });
 ```
 
-- **Compile:** With `validate: { valid: true }`, the handler does not early-return, so `process-payment` is recorded. The step gets condition `$Step{validate}{valid} == true`.
-- **Runtime:** The executor runs `validate`; if the real result has `valid === false`, `process-payment` is skipped; if `valid === true`, it runs.
+Condition builders are `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `truthy`, and `falsy`. Compose them with `and` and `or`. Both paths are compiled, and their steps receive inverse runtime conditions automatically.
 
-### Loops (for) – recordInput
+`ctx.branch` does not return a selected value. If both paths must feed a common later step, record that later operation in both paths, persist a shared result, or move the find-or-create algorithm into one portable Function.
 
-By default, recording uses empty input, so a loop like `for (const item of ctx.input.items)` runs zero times and no steps are recorded. Use **recordInput** to supply sample input during recording so the loop runs and each iteration’s steps are recorded.
-
-Use **unique step tags per iteration** (e.g. `` `process-${item.id}` ``).
+### Deterministic iteration
 
 ```typescript
 await ductape.features.define({
-  tag: 'process-orders',
-  name: 'Process Orders',
-  recordInput: {
-    items: [{ id: '1' }, { id: '2' }],
-  },
+  tag: 'sync-regions',
+  name: 'Sync Regions',
+  recordInput: { regions: ['ng', 'gh'] },
   handler: async (ctx) => {
-    for (const item of ctx.input.items) {
-      await ctx.step(`process-${item.id}`, async () =>
-        ctx.api.run({
-          app: 'orders-api',
-          event: 'process-item',
-          input: { body: { id: item.id } },
-        })
+    const enabled = ctx.sampleInput.regions.filter(Boolean);
+    await ctx.each(enabled, async (region, index) => {
+      await ctx.step(`sync-region-${index}`, () =>
+        ctx.functions.invoke(syncRegion, 'run', { region })
       );
-    }
+    });
   },
 });
 ```
 
-Recording runs with `ctx.input.items = [{ id: '1' }, { id: '2' }]`, so steps `process-1` and `process-2` are recorded. Keys not in `recordInput` still compile to `$Input{...}` in the schema.
+Native `map`, `filter`, `find`, and indexing are allowed on concrete `ctx.sampleInput` values for compile-time graph discovery. They are not runtime collection primitives. Use a portable Function for runtime-sized `map`, `filter`, `find`, `some`, `every`, `reduce`, or arbitrary loops.
 
-### If/else or switch on input – recordScenarios
-
-For **if/else or switch** on **feature input** (e.g. different steps per `type` or `status`), use **recordScenarios**. The handler runs once per scenario (with that scenario as input). Every step recorded in that run gets a **condition** so it only runs when the real input matches (e.g. `$Input{type} == 'a'`). Steps from all runs are merged; if the same step appears in multiple scenarios, conditions are combined with **||**. You can use either `if (ctx.input.type === 'a') { ... } else if (ctx.input.type === 'b') { ... }` or `switch (ctx.input.type) { case 'a': ... }` in the handler.
-
+:::danger Never generate these patterns
 ```typescript
-await ductape.features.define({
-  tag: 'handle-by-type',
-  name: 'Handle by type',
-  recordScenarios: [
-    { type: 'a' },
-    { type: 'b' },
-  ],
-  handler: async (ctx) => {
-    switch (ctx.input.type) {
-      case 'a':
-        await ctx.step('handle-a', async () =>
-          ctx.api.run({ app: 'api', event: 'handle-a', input: {} })
-        );
-        break;
-      case 'b':
-        await ctx.step('handle-b', async () =>
-          ctx.api.run({ app: 'api', event: 'handle-b', input: {} })
-        );
-        break;
-    }
-  },
-});
+if (result.count === 0) await ctx.step(...);
+const customer = found[0] ?? await ctx.step(...);
+ctx.input.items.map(item => ctx.step(...));
+for (const item of ctx.input.items) await ctx.step(...);
+const reference = `pay_${Date.now()}_${Math.random()}`;
 ```
-
-- **Compile:** Two runs: one with `{ type: 'a' }`, one with `{ type: 'b' }`. Steps `handle-a` (condition `$Input{type} == 'a'`) and `handle-b` (condition `$Input{type} == 'b'`) are recorded.
-- **Runtime:** The executor evaluates the condition and runs only the matching step.
+:::
 
 ### Step condition syntax
 
@@ -705,9 +672,17 @@ const retries = ctx.default(ctx.input.retries, 3);
 
 ```typescript
 // String transformations
+const reference = ctx.transform.concat(
+  'pay_',
+  ctx.transform.now(),
+  '_',
+  ctx.transform.uuid(),
+);
 const upper = ctx.transform.upper(ctx.input.name);
 const lower = ctx.transform.lower(ctx.input.email);
 const trimmed = ctx.transform.trim(ctx.input.text);
+const replaced = ctx.transform.replace(ctx.input.name, ' ', '-');
+const prefix = ctx.transform.substring(ctx.input.code, 0, 4);
 
 // JSON operations
 const parsed = ctx.transform.parseJson<MyType>(ctx.input.jsonString);
@@ -715,7 +690,8 @@ const stringified = ctx.transform.stringify(ctx.input.data);
 
 // Date operations
 const now = ctx.transform.now();
-const formatted = ctx.transform.formatDate(Date.now(), 'YYYY-MM-DD');
+const uniqueId = ctx.transform.uuid();
+const formatted = ctx.transform.formatDate(ctx.transform.now(), 'yyyy-MM-dd');
 
 // Array/object operations
 const length = ctx.transform.length(ctx.input.items);
@@ -723,6 +699,8 @@ const size = ctx.transform.size(ctx.input.metadata);
 const parts = ctx.transform.split(ctx.input.csv, ',');
 const joined = ctx.transform.join(ctx.input.tags, ', ');
 ```
+
+`now()`, `uuid()`, and transforms that consume operator-backed values are resolved by `FeatureExecutor` for every execution. They are not evaluated while the Feature is synchronized. Never use `Date.now()` or `Math.random()` in a Feature handler to create a runtime value.
 
 ---
 
@@ -738,9 +716,11 @@ ctx.log.error('Step failed', { error: err.message });
 
 ---
 
-## Complete Example
+## Legacy branchOverrides example
 
-This example uses **branchOverrides** so the compiler records the payment step even though the handler can early-return when validation fails. At runtime, the payment step runs only when `$Step{validate}{available}` is true.
+:::warning Migration reference only
+The following example documents the older `branchOverrides` mechanism for existing Features. Do not generate new code in this style. New Features should use [`ctx.branch` and `ctx.when`](#runtime-branches); the legacy form remains here only to help migrate stored definitions safely.
+:::
 
 ```typescript
 await ductape.features.define({

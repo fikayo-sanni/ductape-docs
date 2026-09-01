@@ -4,6 +4,11 @@ sidebar_position: 1
 
 # Quotas
 
+> **Quota is provider allocation/weighted routing, not request-rate enforcement.** To protect OTP,
+> login, webhook, or public API endpoints, use `sdk.rateLimit.define()` / `sdk.rateLimit.run()` or
+> NestJS `@RateLimit()` with `DuctapeRateLimitGuard`. Rate-limit identifiers are SHA-256 hashed
+> before Redis storage; do not supply raw phone numbers, emails, tokens, or barcodes as key names.
+
 Quotas in Ductape enforce usage limits and track resource consumption across your product. They allow you to define maximum usage thresholds and automatically manage access based on consumption.
 
 ## What is a Quota?

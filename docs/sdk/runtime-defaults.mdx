@@ -90,9 +90,9 @@ export async function listActiveUsers() {
 
 After `ductape link --product my-api --env dev`, CLI commands like `ductape db query` use the linked project automatically. In app code, set the same values on the constructor.
 
-## Other SDK languages
+{/* Legacy Java, Go, and .NET runtime-default examples are intentionally hidden until those SDKs are ready to advertise.
 
-Java, Go, and .NET use the same pattern: pass **product tag** and **environment slug** on the client constructor, then omit them from `connect()` and service calls.
+## Other SDK languages
 
 ```java
 Ductape ductape = new Ductape(auth, "my-api", "dev");
@@ -110,8 +110,6 @@ client.Actions.Run(ctx, map[string]any{
     "app": "stripe", "action": "create-charge",
     "input": map[string]any{"amount": 1000, "currency": "usd"},
 })
-```
-
 ```csharp
 var ductape = new Ductape(auth, "my-api", "dev");
 await ductape.Database.ConnectAsync(new Dictionary<string, object?> { ["database"] = "main-db" });
@@ -120,5 +118,4 @@ await ductape.Actions.RunAsync(new Dictionary<string, object?> {
     ["input"] = new Dictionary<string, object?> { ["amount"] = 1000, ["currency"] = "usd" },
 });
 ```
-
-TypeScript is the reference implementation; see each package README for language-specific constructor signatures.
+*/}

@@ -356,7 +356,7 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 |--------|--------|
 | `create` | `[product_tag, data: { tag, name, description?, input?, output?, envs?, steps: [{ tag, name?, type, app?, event?, database?, graph?, notification?, storage?, broker?, feature?, input?, condition?, dependsOn?, options? }] }]` |
 | `update` | `[product_tag, feature_tag, data: { name?, description?, steps?, envs? }]` |
-| `fetch` | `[product_tag, feature_tag]` |
+| `fetch` | `[feature_tag, product_tag]` |
 | `fetchAll` | `[product_tag]` |
 | `delete` | `[product_tag, feature_tag]` |
 | `define` | `[{ product?, tag, name, description?, input?, output?, signals?, queries?, options?, envs?, recordInput?, recordScenarios?, branchOverrides?, handler }]` |
@@ -376,6 +376,8 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 | `compare` | `[executionId1, executionId2]` |
 
 Step types: `action`, `database`, `graph`, `notification`, `storage`, `publish`, `feature`, `sleep`, `wait_signal`.
+
+Feature handlers are compiled, not rerun at execution time. Generate runtime branches with `ctx.branch(ctx.when.*, { then, else })`, fixed sample expansion with `ctx.each(ctx.sampleInput.items, ...)`, and runtime identifiers with `ctx.transform.concat/now/uuid`. Native JavaScript control flow must not consume unresolved Feature proxies. `branchOverrides` and `recordScenarios` are legacy compatibility options.
 
 ---
 

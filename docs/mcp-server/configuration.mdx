@@ -66,7 +66,20 @@ Restart Claude Desktop after saving.
 
 ## Claude Code
 
-Add to your Claude Code MCP settings (`.claude/settings.json` or via `/mcp add`):
+The quickest setup is to run this from your project directory:
+
+```bash
+claude mcp add ductape \
+  -e DUCTAPE_PUBLISHABLE_KEY="your-publishable-key" \
+  -e DUCTAPE_WORKSPACE="your-workspace-id" \
+  -e DUCTAPE_PROJECT_DIR="directory-to-project" \
+  --scope local \
+  -- npx -y @ductape/mcp
+```
+
+Replace all three placeholder values before running the command. Use an absolute path for `DUCTAPE_PROJECT_DIR`; it tells Ductape where to run project-aware CLI operations. The `local` scope keeps this MCP server configuration private to you and the current project.
+
+Alternatively, add the server to your Claude Code MCP settings manually:
 
 ```json
 {
@@ -76,7 +89,8 @@ Add to your Claude Code MCP settings (`.claude/settings.json` or via `/mcp add`)
       "args": ["-y", "@ductape/mcp"],
       "env": {
         "DUCTAPE_PUBLISHABLE_KEY": "your-publishable-key-here",
-        "DUCTAPE_WORKSPACE": "your-workspace-id-here"
+        "DUCTAPE_WORKSPACE": "your-workspace-id-here",
+        "DUCTAPE_PROJECT_DIR": "/absolute/path/to/your/project"
       }
     }
   }
@@ -116,7 +130,11 @@ When set, the server:
 - Switches to this workspace once at startup (before the first `ductape_cli` call)
 - Injects `--workspace <id>` automatically when the agent triggers a `ductape_cli("login ...")` call
 
-Both values are read-only identifiers. Neither key nor workspace ID grants write access on its own — access requires the SDK access key (server-side) or CLI login session.
+### `DUCTAPE_PROJECT_DIR`
+
+Set this to the absolute path of the linked Ductape project. The MCP server runs `ductape_cli` subprocesses from this directory so project-aware commands can find `ductape/config.json` and related local files.
+
+The workspace ID and project directory only select context; they do not grant access. The publishable key authenticates the MCP server's permitted runtime calls, while privileged server-side or CLI operations still require their corresponding credentials or login session.
 
 ## Project-scoped vs user-wide config
 

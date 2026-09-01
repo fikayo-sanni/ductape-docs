@@ -21,7 +21,7 @@ Ductape is primarily consumed through the **SDK** and **Workbench**. HTTP APIs a
 
 ## SDK surface
 
-The TypeScript SDK (`@ductape/sdk`) is the reference implementation. Java, Go, and .NET SDKs mirror the same domains — see [SDK overview](/sdk).
+Use the TypeScript SDK (`@ductape/sdk`) directly or through the NestJS integration (`@ductape/nestjs`) — see [SDK overview](/sdk).
 
 ## Vector & graph
 

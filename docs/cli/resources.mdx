@@ -21,7 +21,37 @@ ductape resources databases connect -f '{"tag":"main"}'
 
 ## Resource types
 
-`storage`, `databases`, `graph`, `vector`, `caches`, `jobs`, `features`, `actions`, `notifications`, `message-brokers`, `sessions`, `secrets`, `quotas`, `health`, `fallback`
+`storage`, `databases`, `graph`, `vector`, `caches`, `jobs`, `feature`, `actions`, `notifications`, `message-brokers`, `sessions`, `secrets`, `quota`, `health`, `fallback`
+
+The CLI normalizes these aliases: `feature`/`features`, `quota`/`quotas`, `fallback`/`fallbacks`, and `health`/`healthcheck`/`healthchecks`. Generated commands should prefer the singular canonical names above.
+
+## Features and resilience resources
+
+```bash
+ductape resources feature list --product payment-processing --json
+ductape resources feature get -t create-payment --product payment-processing --json
+
+ductape resources quota list --product payment-processing --json
+ductape resources quota get -t payment-quota --product payment-processing --json
+
+ductape resources fallback list --product payment-processing --json
+ductape resources fallback get -t charge-payment --product payment-processing --json
+
+ductape resources health list --product payment-processing --json
+ductape resources health get -t paystack-health --product payment-processing --json
+```
+
+Feature fetch routing uses the SDK's `feature.fetch(featureTag, productTag)` signature internally. Quotas, fallbacks, and healthchecks use `fetch(productTag, componentTag)`. The CLI handles this difference; do not construct proxy module names or parameter arrays manually.
+
+Create and update administrative resources with `-f`:
+
+```bash
+ductape resources quota create --product payment-processing -f ductape/quotas/payment-quota.json --json
+ductape resources fallback update -t charge-payment --product payment-processing -f ductape/fallbacks/charge-payment.json --json
+ductape resources health create --product payment-processing -f ductape/healthchecks/paystack-health.json --json
+```
+
+These commands manage catalogue definitions. Runtime Feature execution and quota/fallback/health operations use the SDK or authenticated execution surface.
 
 For **products** and **apps** at the workspace level, use [`ductape products`](./products) and [`ductape apps`](./apps).
 

@@ -9,7 +9,11 @@ import PreviewBanner from '@site/src/components/PreviewBanner';
 
 # Examples
 
-Real-world feature patterns using the code-first API. For conditionals, loops, and switch (e.g. `branchOverrides`, `recordInput`, `recordScenarios`), see [Building Features - Conditionals, loops, and switch](./building-features#conditionals-loops-and-switch).
+Real-world feature patterns using the code-first API. For new conditional and iteration code, follow [Building Features - Portable control flow](./building-workflows#portable-control-flow).
+
+:::warning Legacy examples
+Some longer examples on this page demonstrate `branchOverrides` or native JavaScript control flow from the earlier recording API. Treat those examples as migration references. New Features must use `ctx.branch`/`ctx.when`, `ctx.each(ctx.sampleInput...)`, portable Functions for runtime-sized algorithms, and `ctx.transform` for runtime-generated values.
+:::
 
 ## E-Commerce Order Fulfillment
 
@@ -261,7 +265,7 @@ await ductape.features.define({
     );
 
     // Step 2: Generate verification code
-    const verificationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const verificationCode = ctx.transform.uuid();
     ctx.setState('verificationCode', verificationCode);
 
     // Step 3: Send verification email

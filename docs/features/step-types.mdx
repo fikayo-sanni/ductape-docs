@@ -13,6 +13,12 @@ Complete reference for all methods available on the feature context (`ctx`) obje
 
 ## ctx.step()
 
+:::warning Portable operations only
+The callback must call a serializable `ctx` primitive, including `ctx.functions`. An arbitrary
+application method such as `ctx.step('register', () => authService.register(...))` cannot be
+serialized and now fails compilation. See [Portable functions](./portable-functions).
+:::
+
 Define a feature step with optional rollback.
 
 ```typescript
@@ -593,6 +599,7 @@ Data transformation utilities.
 
 | Method | Description |
 |--------|-------------|
+| `concat(...parts)` | Concatenate literals and runtime operator values |
 | `size(obj)` | Number of keys in object |
 | `length(arr)` | Length of array or string |
 | `parseJson<T>(str)` | Parse JSON string |
@@ -603,7 +610,21 @@ Data transformation utilities.
 | `split(str, sep)` | Split string |
 | `join(arr, sep)` | Join array |
 | `now()` | Current timestamp |
+| `uuid()` | New UUID generated for each Feature execution |
+| `replace(str, search, replacement)` | Replace all matching text at execution time |
+| `substring(str, start, end)` | Extract part of a string at execution time |
 | `formatDate(date, fmt)` | Format date |
+
+```typescript
+const reference = ctx.transform.concat(
+  'pay_',
+  ctx.transform.now(),
+  '_',
+  ctx.transform.uuid(),
+);
+```
+
+This compiles to a portable expression such as `$Concat(["pay_", $Now, "_", $Uuid], "")`. Do not use `Date.now()` or `Math.random()` for Feature runtime values; those native calls run during compilation.
 
 ---
 
@@ -1025,3 +1046,57 @@ interface IExecutionComparison {
   outcome_diff: Record<string, { status: FeatureStatus; output?: unknown }>;
 }
 ```
+## Vector steps
+
+Use `ctx.vector` inside `ctx.step()` to compile vector operations into the portable Feature definition. The executor supplies the Feature's product, environment, and inherited session at runtime.
+
+```ts
+const matches = await ctx.step('find-related', () =>
+  ctx.vector.query({
+    vector: 'product-vectors',
+    values: ctx.input.embedding,
+    topK: 10,
+    filter: { tenantId: ctx.input.tenantId },
+  }),
+);
+
+await ctx.step('index-product', () =>
+  ctx.vector.upsertOne({
+    vector: 'product-vectors',
+    id: ctx.input.productId,
+    values: ctx.input.embedding,
+    metadata: { tenantId: ctx.input.tenantId },
+  }),
+);
+```
+
+The complete context surface is:
+
+- `ctx.vector.query({ vector, values, topK, namespace?, filter?, includeValues?, includeMetadata?, minScore? })`
+- `ctx.vector.upsert({ vector, vectors, namespace?, wait? })`
+- `ctx.vector.upsertOne({ vector, id, values, metadata?, namespace? })`
+- `ctx.vector.deleteVectors({ vector, ids?, namespace?, deleteAll?, filter? })`
+- `ctx.vector.execute({ vector, action, input })` for a registered vector action
+
+`ctx.vector.query` names the embedding field `values`; the compiled runtime payload uses `vector`. Vertex AI Vector Search does not generate embeddings, so supply a dimensionally compatible `number[]` from a registered model or application function.
+## Session lifecycle steps
+
+`ctx.session` and `ctx.sessions` serve different purposes. `ctx.session` is the read-only token inherited by the current Feature execution. `ctx.sessions` records explicit lifecycle operations against a configured product session.
+
+```ts
+const issued = await ctx.step('start-player-session', () =>
+  ctx.sessions.start({
+    session: 'player-session',
+    data: { playerId: ctx.input.playerId },
+  }),
+)
+
+await ctx.step('revoke-old-session', () =>
+  ctx.sessions.revoke({
+    session: 'player-session',
+    sessionId: ctx.input.oldSessionId,
+  }),
+)
+```
+
+Available methods are `start`, `verify`, `refresh`, `revoke`, and `list`. The executor supplies the Feature product and environment. Starting or refreshing a session returns tokens but does not mutate the immutable `ctx.session` inherited by the current execution; pass a returned token explicitly when a later application operation needs it.

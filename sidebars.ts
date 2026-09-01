@@ -528,11 +528,8 @@ const sidebars: SidebarsConfig = {
       label: 'Miscellaneous',
       collapsed: true,
       items: [
-        {
-          type: 'doc',
-          id: 'sdk-readiness',
-          label: 'SDK Readiness',
-        },
+        // Multi-language SDK readiness is intentionally hidden until the legacy
+        // Go, Java, and .NET SDKs are ready to advertise again.
         {
           type: 'doc',
           id: 'sdk/runtime-defaults',

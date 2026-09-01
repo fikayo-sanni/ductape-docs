@@ -62,9 +62,8 @@ The connection **tag** is fixed after creation. You can change display name and 
 | Language | Complete |
 |----------|----------|
 | TypeScript | `ductape.cloud.connections.complete(cloudTag, input)` |
-| Go | `client.Cloud.Connections.Complete(ctx, cloudTag, input)` |
-| Java | `cloudService().completeConnection(cloudTag, input)` |
-| .NET | `ductape.Cloud.CompleteConnectionAsync(cloudTag, input)` |
+| NestJS | Inject the Ductape SDK and call `ductape.cloud.connections.complete(cloudTag, input)` |
+{/* Legacy Go, Java, and .NET rows are intentionally hidden. */}
 
 ## Next
 
