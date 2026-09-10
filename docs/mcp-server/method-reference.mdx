@@ -359,7 +359,7 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 | `fetch` | `[feature_tag, product_tag]` |
 | `fetchAll` | `[product_tag]` |
 | `delete` | `[product_tag, feature_tag]` |
-| `define` | `[{ product?, tag, name, description?, input?, output?, signals?, queries?, options?, envs?, recordInput?, recordScenarios?, branchOverrides?, handler }]` |
+| `define` | `[{ product?, tag, name, description?, input?, output?, signals?, queries?, options?, envs?, controlFlowMode?: "portable" or "legacy", recordInput?, recordScenarios?, branchOverrides?, handler }]` |
 | `execute` | `[{ product, env, tag, input, session?, idempotency_key?, cache?, retries?, timeout? }]` |
 | `dispatch` | `[{ product, env, feature, input, schedule?, session?, cache?, retries? }]` |
 | `signal` | `[{ product, env, feature_id, signal, payload? }]` |
@@ -377,7 +377,9 @@ Same shape as quotas (without `quota` limit field on options). Methods: `create`
 
 Step types: `action`, `database`, `graph`, `notification`, `storage`, `publish`, `feature`, `sleep`, `wait_signal`.
 
-Feature handlers are compiled, not rerun at execution time. Generate runtime branches with `ctx.branch(ctx.when.*, { then, else })`, fixed sample expansion with `ctx.each(ctx.sampleInput.items, ...)`, and runtime identifiers with `ctx.transform.concat/now/uuid`. Native JavaScript control flow must not consume unresolved Feature proxies. `branchOverrides` and `recordScenarios` are legacy compatibility options.
+Feature handlers are compiled, not rerun at execution time. Generate runtime branches with `ctx.branch(ctx.when.*, { then, else })`, fixed sample expansion with `ctx.each(ctx.sampleInput.items, ...)`, and runtime identifiers with `ctx.transform.concat/now/uuid`. Native JavaScript control flow must not consume unresolved Feature proxies. `branchOverrides` and `recordScenarios` require explicit `controlFlowMode: "legacy"`.
+
+Agents must call the read-only `ductape_features_validate_project` tool before `ductape_cli("features sync", project_dir)`. The CLI repeats validation and refuses to start the project registration script when conformance errors exist.
 
 ---
 

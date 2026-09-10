@@ -464,6 +464,13 @@ console.log('Completed Steps:', result.completed_steps);
 
 Stored Features execute their compiled step graph; the handler is not rerun at runtime. Use `ctx.branch` with `ctx.when` for runtime decisions, `ctx.each` with `ctx.sampleInput` for fixed graph expansion, and portable Functions for runtime-sized collection algorithms. Do not apply native `if/else`, `??`, loops, or array methods to unresolved `ctx.input` or step-result proxies.
 
+Validate the entire project before syncing. Validation is read-only, and sync runs the same fail-closed preflight before any registration code starts:
+
+```bash
+ductape features validate --json
+ductape features sync
+```
+
 See [Building Features - Portable control flow](./building-workflows#portable-control-flow).
 
 ## Next Steps

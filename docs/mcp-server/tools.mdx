@@ -9,6 +9,32 @@ The Ductape MCP server exposes runtime, schema, documentation, CLI, Events-disco
 and portable-function setup tools. Responses are JSON text in MCP content blocks. Errors return
 `isError: true` with a message string.
 
+## `ductape_features_validate_project`
+
+Run this read-only tool before every code-first Feature synchronization. It parses TypeScript and
+JavaScript Feature definitions under `ductape/features/` and reports file, line, column, Feature tag,
+diagnostic code, and remediation guidance.
+
+```json
+{
+  "project_dir": "/absolute/path/to/project"
+}
+```
+
+It rejects native branches and loops, array control-flow helpers, host-bound time/random/environment
+access, uninspectable dynamic definitions, and legacy recording options without an explicit legacy
+mode. A failed result means the agent must stop; `features sync` must not be called. The CLI repeats
+the same validation before starting application registration code.
+
+```text
+ductape_features_validate_project({ project_dir })
+  -> fix every diagnostic
+  -> ductape_features_validate_project({ project_dir })
+  -> ductape_cli({ command: "features sync", project_dir })
+```
+
+---
+
 ## `ductape_function_setup`
 
 Use this whenever a Feature calls application-owned code through `ctx.functions`. It returns the
@@ -346,6 +372,8 @@ The key split: **`ductape_cli` for anything that creates or modifies configurati
 | Configure quotas, fallbacks, jobs, or health checks | `ductape_cli` (`resources <type> ...`) |
 | Configure app actions or auths | Workbench UI |
 | Define features | Application code (`features.define`) |
+| Validate Feature source before sync | `ductape_features_validate_project` |
+| Persist validated Feature definitions | `ductape_cli` (`features sync`) |
 | Run a feature, action, query, upload, dispatch | `ductape_execute` |
 | Get payload shape before a runtime call | `ductape_generate_payload` |
 | Generate copy-paste SDK code for an engineer | `ductape_generate_snippet` |

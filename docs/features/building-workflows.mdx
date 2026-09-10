@@ -163,8 +163,7 @@ await ductape.features.define({
   name: 'Sync Regions',
   recordInput: { regions: ['ng', 'gh'] },
   handler: async (ctx) => {
-    const enabled = ctx.sampleInput.regions.filter(Boolean);
-    await ctx.each(enabled, async (region, index) => {
+    await ctx.each(ctx.sampleInput.regions, async (region, index) => {
       await ctx.step(`sync-region-${index}`, () =>
         ctx.functions.invoke(syncRegion, 'run', { region })
       );
@@ -173,7 +172,16 @@ await ductape.features.define({
 });
 ```
 
-Native `map`, `filter`, `find`, and indexing are allowed on concrete `ctx.sampleInput` values for compile-time graph discovery. They are not runtime collection primitives. Use a portable Function for runtime-sized `map`, `filter`, `find`, `some`, `every`, `reduce`, or arbitrary loops.
+`ctx.each` may expand a fixed, concrete `ctx.sampleInput` collection. Do not pre-process that collection with native `map`, `filter`, `find`, indexing, or other JavaScript control flow: those operations run only on the sync host. Use a portable Function for runtime-sized collection logic.
+
+Before any synchronization, run the read-only conformance gate:
+
+```bash
+ductape features validate --json
+ductape features sync
+```
+
+`features sync` repeats the same AST validation before starting the project-owned registration process. A validation failure means no remote mutation was attempted.
 
 :::danger Never generate these patterns
 ```typescript
@@ -719,7 +727,7 @@ ctx.log.error('Step failed', { error: err.message });
 ## Legacy branchOverrides example
 
 :::warning Migration reference only
-The following example documents the older `branchOverrides` mechanism for existing Features. Do not generate new code in this style. New Features should use [`ctx.branch` and `ctx.when`](#runtime-branches); the legacy form remains here only to help migrate stored definitions safely.
+The following example documents the older `branchOverrides` mechanism for existing Features. It requires `controlFlowMode: 'legacy'`. Do not generate new code in this style. New Features should use [`ctx.branch` and `ctx.when`](#runtime-branches); the legacy form remains here only to help migrate stored definitions safely.
 :::
 
 ```typescript
@@ -727,6 +735,7 @@ await ductape.features.define({
   tag: 'order-fulfillment',
   name: 'Order Fulfillment',
   description: 'Complete order processing feature',
+  controlFlowMode: 'legacy',
 
   options: {
     timeout: 300000,
