@@ -30,7 +30,7 @@ Before using the Warehouse, ensure you have:
 3. The Ductape SDK installed
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 ## Quick Start

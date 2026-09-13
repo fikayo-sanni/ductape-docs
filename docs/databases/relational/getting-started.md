@@ -20,7 +20,7 @@ Before you begin, make sure you have:
 Install the Ductape SDK:
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 The SDK includes all database drivers (PostgreSQL, MySQL, MongoDB, DynamoDB) out of the box.

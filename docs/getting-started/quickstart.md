@@ -46,7 +46,8 @@ To provision resources through a cloud account (AWS, GCP, Azure, MongoDB Atlas, 
 
 ### Copy your access key
 
-Go to **Settings > API Keys** inside your workspace and copy the access key. You will need it when initializing the SDK and logging in from the CLI.
+Go to **Tokens → SDK Access Key** inside your workspace and copy the server Access Key. The CLI
+uses its own browser-authenticated local session; website sign-in and SDK keys do not log the CLI in.
 
 ---
 
@@ -63,7 +64,7 @@ npm install --global @ductape/cli
 ### Login
 
 ```bash
-ductape login              # authenticates against cloud.ductape.app
+ductape login --browser google  # or --browser github
 ductape whoami             # confirm active user and workspace
 ductape workspaces list    # switch workspace if needed
 ```
@@ -97,13 +98,14 @@ The SDK is the runtime integration layer in your application. It connects to the
 ### Install
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 ### Initialize
 
 ```ts
-import Ductape from '@ductape/sdk';
+import DuctapeModule from '@ductape/sdk';
+const Ductape = DuctapeModule.default ?? DuctapeModule;
 
 const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
@@ -203,7 +205,9 @@ Add to `~/.cursor/mcp.json` (or a project-level `.cursor/mcp.json`). Restart Cur
 }
 ```
 
-Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Setting it in `env` means you never need to pass it on individual tool calls.
+Your **Publishable Key** is under **Tokens → Publishable Key** in the Workbench. Setting it in
+`env` means you never need to pass it on individual runtime tool calls. Administrative tools still
+require `ductape login` and a successful `ductape whoami` in the terminal.
 
 ### Tools exposed
 
@@ -220,7 +224,7 @@ Your **Publishable Key** is under **Settings > API Keys** in the Workbench. Sett
 1. Sign up at [cloud.ductape.app](https://cloud.ductape.app) and create a workspace.
 2. Create a product with at least one environment (`dev` and `prd` are a good start).
 3. Add databases, storage, graphs, or brokers and link them to each environment via cloud connections or manual credentials.
-4. Copy your access key from **Settings > API Keys**.
+4. Copy your server access key from **Tokens → SDK Access Key**.
 5. Install the CLI: `npm install --global @ductape/cli`, then `ductape login` and `ductape init --link` in your project folder.
-6. Install the SDK: `npm install @ductape/sdk`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
+6. Install the SDK: `npm install @ductape/sdk@latest`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
 7. Add the MCP server to Cursor: `npm install @ductape/mcp` and configure `~/.cursor/mcp.json`. Use `ductape_generate_snippet` to get ready-to-use code as you build.

@@ -43,7 +43,7 @@ npm init -y # optional, initializes package.json
 ### 2. **Install Dependencies**
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 npm install dotenv # optional, for environment variables
 npm install typescript
 npm install ts-node

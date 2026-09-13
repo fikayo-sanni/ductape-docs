@@ -52,6 +52,38 @@ Use **custom event names** for anything specific to your product. Built-in helpe
 - Optional **`env`** (defaults to `prd`)
 - Optional **`session`** JWT from your backend after login — see [Sessions](./sessions)
 
+## Record the analytics decision
+
+Every Ductape frontend must explicitly record whether product analytics is enabled, deferred, or
+prohibited. Silent omission is not a completed integration. Store the decision in
+`ductape/analytics/frontend.json`, keyed by each deployable application's path:
+
+```json
+{
+  "applications": {
+    "apps/customer": {
+      "status": "enabled",
+      "privacyReviewed": true,
+      "autoCapture": "disabled"
+    },
+    "apps/admin": {
+      "status": "deferred",
+      "rationale": "Consent policy is awaiting approval."
+    }
+  }
+}
+```
+
+When working through the Ductape MCP, run
+`ductape_frontend_analytics_validate_project({ project_dir: "/absolute/project/path" })`. The
+read-only validator finds deployable React, Vue, and browser-client applications and checks the
+recorded decision. For enabled applications it also checks for analytics initialization, router
+pageviews, named events, authenticated `identify()`, logout/account-switch `clearSession()`, and
+auto-capture privacy review. It reports findings without rewriting application code.
+
+Keep auto-capture disabled until consent, text masking, selectors, and sensitive application states
+have been reviewed.
+
 ## Viewing events in Workbench
 
 Open **Logs** for your product and filter by type **Frontend**. Each row represents one analytics event:

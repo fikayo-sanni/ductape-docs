@@ -11,7 +11,7 @@ Create a product, add an app, configure environments, and run your first action.
 **Prerequisites:**  
 - Node.js installed  
 - Ductape account ([Sign up here](https://cloud.ductape.app/auth/login))  
-- Ductape SDK installed (`npm install @ductape/sdk`)
+- Ductape SDK installed (`npm install @ductape/sdk@latest`)
 
 ---
 

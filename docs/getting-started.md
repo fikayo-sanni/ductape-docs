@@ -43,7 +43,9 @@ To provision resources through a cloud account (AWS, GCP, Azure, MongoDB Atlas, 
 
 ### Copy your access key
 
-Go to **Settings > API Keys** inside your workspace and copy the access key. You will need it when initializing the SDK and logging in from the CLI.
+Go to **Tokens → SDK Access Key** inside your workspace and copy the server Access Key. It initializes
+the backend SDK; it does not replace the separate CLI login session. Publishable keys are under
+**Tokens → Publishable Key** and are used by MCP runtime/proxy calls and frontend-safe clients.
 
 
 
@@ -60,7 +62,7 @@ npm install --global @ductape/cli
 ### Login
 
 ```bash
-ductape login              # authenticates against cloud.ductape.app
+ductape login --browser google  # or --browser github; website sign-in alone is not CLI login
 ductape whoami             # confirm active user and workspace
 ductape workspaces list    # switch workspace if needed
 ```
@@ -96,13 +98,14 @@ The SDK is the runtime integration layer in your application. It connects to the
 ### Install
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 ### Initialize
 
 ```ts
-import Ductape from '@ductape/sdk';
+import DuctapeModule from '@ductape/sdk';
+const Ductape = DuctapeModule.default ?? DuctapeModule; // native ESM + CommonJS package interop
 
 const ductape = new Ductape({
   accessKey: process.env.DUCTAPE_ACCESS_KEY!,
@@ -227,5 +230,5 @@ Full reference: [MCP Server docs](https://docs.ductape.app/mcp-server/getting-st
 3. Add databases, storage, graphs, or brokers and link them to each environment via cloud connections or manual credentials.
 4. Copy your access key from **Tokens > SDK Access Keys**.
 5. Install the CLI: `npm install --global @ductape/cli`, then `ductape login` and `ductape init --link` in your project folder.
-6. Install the SDK: `npm install @ductape/sdk`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
+6. Install the SDK: `npm install @ductape/sdk@latest`. Initialize it with your access key, product tag, and environment. Connect to your resources at startup.
 7. Add the MCP server to Cursor: `npm install @ductape/mcp` and configure `~/.cursor/mcp.json`. Use `ductape_generate_snippet` to get ready-to-use code as you build.

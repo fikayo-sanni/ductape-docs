@@ -17,11 +17,37 @@ import SdkInstallTabs from '@site/src/components/SdkInstallTabs';
 
 | Language | Package / module | Version |
 |----------|------------------|---------|
-| TypeScript | `@ductape/sdk` | **0.1.8** |
-| NestJS | `@ductape/nestjs` | **0.1.0** (requires `@ductape/sdk` ≥ 0.1.12) |
+| TypeScript | `@ductape/sdk` | Install with the **`latest`** dist-tag |
+| NestJS | `@ductape/nestjs` | Install with the **`latest`** dist-tag |
 {/* Legacy Go, Java, and .NET version rows are intentionally hidden until those SDKs are ready to advertise. */}
 
 Changelog: [TypeScript](https://github.com/ductape/ductape/blob/main/sdk/ts/CHANGELOG.md).
+
+Check the registry rather than copying a stale pinned version:
+
+```bash
+npm view @ductape/sdk version
+npm install @ductape/sdk@latest
+```
+
+### Node module interoperability
+
+The current package is compiled as CommonJS. Native Node ESM may expose the CommonJS namespace as
+the default value, so normalize it explicitly:
+
+```js
+// Native Node ESM
+import DuctapeModule from '@ductape/sdk';
+const Ductape = DuctapeModule.default ?? DuctapeModule;
+```
+
+```js
+// CommonJS
+const Ductape = require('@ductape/sdk').default;
+```
+
+Both forms are covered by the package interoperability regression check. Do not use an unnormalized
+default import in native ESM until the package publishes a dedicated ESM export.
 
 ## Documentation by language
 
@@ -54,7 +80,7 @@ await ductape.api.run({
 For NestJS apps, use **`@ductape/nestjs`** — modules, injectable handles, and decorators such as `@Api`, `@Database`, `@Storage`, and `@Webhook`. See the [NestJS integration guide](/nestjs/overview). NestJS examples are **TypeScript only** (not included in the multi-language SDK tabs above).
 
 ```bash
-npm install @ductape/nestjs @ductape/sdk
+npm install @ductape/nestjs@latest @ductape/sdk@latest
 ```
 
 ## Quickstart

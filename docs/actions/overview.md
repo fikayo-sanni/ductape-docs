@@ -29,7 +29,7 @@ Before working with Actions, make sure you have:
 Install the Ductape SDK in your project:
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 ## Step 2: Initialize the SDK

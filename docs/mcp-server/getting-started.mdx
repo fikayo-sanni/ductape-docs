@@ -11,6 +11,7 @@ This guide walks through installing and connecting the Ductape MCP server to you
 
 - **Node.js 18+**
 - A Ductape account with a workspace **Publishable Key** (from Workbench → workspace settings)
+- An authenticated Ductape CLI session for administrative tools
 - Network access to `https://api.ductape.app`
 
 ## Install
@@ -19,6 +20,9 @@ Install the MCP server globally:
 
 ```bash
 npm install -g @ductape/mcp
+npm install -g @ductape/cli
+ductape login --browser google   # or: ductape login --browser github
+ductape whoami                   # must show the intended workspace
 ```
 
 This makes the `ductape-mcp` binary available in your terminal. Alternatively, you can skip the install and use `npx` directly in your MCP client configuration (see below).
@@ -54,16 +58,18 @@ Configure your client to spawn the server. See [Configuration](./configuration) 
 }
 ```
 
-Both values are in **Workbench → Tokens → Publishable key**. `DUCTAPE_PUBLISHABLE_KEY` authenticates runtime calls automatically. `DUCTAPE_WORKSPACE` scopes all CLI operations to the right workspace and eliminates workspace-resolution round trips.
+Both values are in **Workbench → Tokens → Publishable Key**. `DUCTAPE_PUBLISHABLE_KEY`
+authenticates MCP runtime calls; it does not authenticate the CLI and it is not the server SDK
+Access Key. `DUCTAPE_WORKSPACE` scopes CLI operations, but administrative MCP tools still use the
+separate local session created by `ductape login`. Verify that session with `ductape whoami`.
 
 ## Verify in Cursor
 
-After [configuring Cursor](./configuration#cursor), open the MCP panel and confirm `ductape` appears with four tools:
-
-- `ductape_execute`
-- `ductape_generate_payload`
-- `ductape_generate_snippet`
-- `ductape_cli`
+After [configuring Cursor](./configuration#cursor), open the MCP panel and confirm `ductape`
+appears. MCP 0.3.3 exposes 19 tools, including `ductape_doctor`, `ductape_schema`,
+`ductape_docs`, runtime execution, project validation/setup, migration, and CLI tools. The tool set
+can grow between releases, so let the client enumerate it rather than validating against a fixed
+four-tool list.
 
 Ask the agent to list available MCP tools, or invoke a simple read-only call:
 
@@ -75,6 +81,9 @@ Ask the agent to list available MCP tools, or invoke a simple read-only call:
 }
 ```
 
+Run `ductape_doctor` first. It checks package compatibility, CLI authentication, workspace scope,
+and project linkage without exposing credentials.
+
 If `DUCTAPE_PUBLISHABLE_KEY` is set in the server env config, no `publishable_key` field is needed. You can still pass it explicitly to override the env var.
 
 ## Troubleshooting
@@ -84,6 +93,7 @@ If `DUCTAPE_PUBLISHABLE_KEY` is set in the server env config, no `publishable_ke
 | `ductape-mcp: command not found` | Run `npm install -g @ductape/mcp` and ensure your global `node_modules/.bin` is in `$PATH`. |
 | Server starts but tools don't appear | Restart the MCP client after config changes. |
 | `Not authenticated` on execute | Set `DUCTAPE_PUBLISHABLE_KEY` in the server `env` config, or pass `publishable_key` explicitly on the tool call. |
+| Administrative tool says CLI is not authenticated | Website sign-in is separate. Run `ductape login --browser google` in a terminal, then `ductape whoami`, and restart/retry the MCP client. |
 | Proxy validation error | Check [Modules & methods](./modules-and-methods) — method names are case-sensitive and dot-notation for nested methods (e.g. `environments.create`). |
 | Payload generation 401/403 | Verify `publishable_key` is correct and belongs to the target workspace. |
 

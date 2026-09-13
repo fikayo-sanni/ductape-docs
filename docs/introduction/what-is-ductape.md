@@ -483,7 +483,7 @@ await ductape.quotas.configure({
 ### Installation
 
 ```bash
-npm install @ductape/sdk
+npm install @ductape/sdk@latest
 ```
 
 ### Quick Start
