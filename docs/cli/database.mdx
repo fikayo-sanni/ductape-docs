@@ -182,6 +182,16 @@ ductape db migrate --dry-run
 
 Migration tracking is handled by Ductape's `MigrationEngine`, which maintains a `_ductape_migrations` table/collection automatically on first run. Re-running `ductape db migrate` is safe — already-applied migrations are skipped.
 
+Before connecting to a provider, the CLI compares index definitions across every local migration.
+Index identity is based on the collection, ordered keys, uniqueness, sparsity, partial filter,
+collation, TTL, and provider options rather than the index name alone. Equivalent definitions with
+different names fail local validation and report both migration tags and operation positions.
+
+For MongoDB, `ifNotExists` also inspects provider indexes by definition. An equivalent index under
+a different name is treated as satisfied; incompatible options still fail. A failed multi-operation
+migration reports the operations confirmed complete and the exact failed operation. Do not blindly
+retry a partially applied migration; reconcile live schema and migration history first.
+
 ### Standard workflow
 
 ```bash

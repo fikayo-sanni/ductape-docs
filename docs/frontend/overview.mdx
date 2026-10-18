@@ -72,6 +72,18 @@ const { data, isLoading } = useDatabaseQuery(
 
 ## Key Features
 
+## Persisted settings
+
+A settings screen is complete only when it loads canonical state, persists changes through its
+owning registered Feature, and exposes loading, failure, and retry states. Generate or consume the
+frontend input type from the current Feature contract; do not invent payload keys from labels.
+Verify a real read-after-write round trip in the target environment before treating a local state
+change or success toast as proof of persistence.
+
+For notification preferences, keep channel consent such as `email`, `sms`, and `push` separate from
+event-category subscriptions such as order or promotion updates. The submitted keys must match the
+Feature input schema exactly.
+
 ### Real-time Subscriptions
 Subscribe to database changes, feature updates, and more with WebSocket-based real-time synchronization.
 
