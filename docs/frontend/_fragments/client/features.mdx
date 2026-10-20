@@ -1,7 +1,11 @@
 
 Features allow you to execute complex, multi-step processes with built-in durability, retries, and state management. Execute backend features directly from your frontend application.
 
-When using a **publishable key** (frontend), include `session` (token from your backend) in every request.
+For protected operations, configure the backend-issued session with `ductape.setSession(token)` or pass `session` explicitly per call. The backend remains responsible for authorization; login should use a backend endpoint or an explicitly permitted pre-login operation.
+
+Feature execution preserves the runtime receipt (`feature_id`, `execution_time`, `completed_steps`, and optional failure/rollback details). `executionId` aliases `feature_id`; timestamps are present only when supplied by the server. Failed, rolled-back, timed-out, or cancelled execution rejects with `FEATURE_EXECUTION_FAILED` and the receipt on `error.result`. HTTP 200 is not itself a successful execution.
+
+The client does not automatically replay mutations after network failures. Reconcile an uncertain result before retrying. Create a new client when changing product/environment after accessing services; existing connections retain their original scope. Changing sessions closes realtime streams until `connect()` is called again.
 
 ## Executing Features
 
@@ -32,14 +36,9 @@ const execution = await ductape.features.execute({
     userId: 'user-123',
     message: 'Your order has shipped!'
   },
-  options: {
-    timeout: 60000, // 60 seconds
-    retries: 3,
-    metadata: {
-      source: 'frontend',
-      triggeredBy: 'user-action'
-    }
-  }
+  product: 'my-product',
+  env: 'dev',
+  session: sessionToken,
 });
 ```
 

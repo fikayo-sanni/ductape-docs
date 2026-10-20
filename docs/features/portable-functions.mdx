@@ -75,6 +75,11 @@ export const StatecraftAuthFunctions = defineFunctions({
 The TypeScript declaration is retained for type inference. The `input` and `output` schemas are the
 runtime contract and are included in the compiled Feature step.
 
+Array schemas support `items`, `minItems`, and `maxItems`. Both input and output validation enforce
+the bounds on every transport, including local, signed HTTP, Events, and gRPC execution. Invalid
+bounds, negative values, or array-only keywords on a non-array schema are rejected when the
+function contract is registered.
+
 ## Register the local implementation
 
 Attach application code when the application starts:

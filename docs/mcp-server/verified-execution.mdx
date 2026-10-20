@@ -1,0 +1,38 @@
+---
+title: Verified Discovery and Execution
+description: Discover the deployed capability and exact resource contract before execution.
+---
+
+## Check the deployed surface
+
+Call `ductape_capabilities` before selecting operations. It reads the proxy's actual allowlist, installed SDK version, and registry hash. `unknown` runtime availability means that safe static inspection could not establish callability; it does not mean an operation was tested or absent. A handshake is not permission to execute.
+
+Call `ductape_doctor` to inspect local CLI/project linkage. Source code, installed packages, and deployed services can differ. Do not assume a method exists everywhere because it appears in one SDK checkout.
+
+## Reuse an exact capability
+
+Inspect the current workspace/product and linked apps before marketplace discovery. Marketplace discovery returns ranked partial matches with snapshot coverage and truncation metadata. It does not claim to search private assets or the entire upstream catalogue. Inspect candidates and use returned tags rather than inventing them from provider names.
+
+Use `ductape_search_capabilities` for combined reuse discovery, or `ductape capabilities search <query> --product <tag> --env <slug>` through the CLI. It includes selected-product definitions and linked/private app actions; enable `--marketplace` for public candidates. Results identify missing inventories and bounded search limits. Other products require separate searches. Returned summaries are candidates, not execution contracts: follow each result's `next_lookup` before using it.
+
+For a connected app action, call `ductape_schema` with the exact `product_tag`, `env_slug`, `app_tag`, and `action_tag`. This requires the deployed integrations action-contract endpoint. The response identifies the resolved connection, app version, environment, and contract hash. Missing authoritative metadata is a blocker, not a reason to fall back to the latest public app version.
+
+For a saved database action, inspect both its action contract and synchronized database schema. The output envelope and the fields inside returned rows are different contracts. A missing saved-action output contract stays unknown; it is never replaced with a generic query envelope.
+
+## Prepare the operation
+
+Use targeted `ductape_docs` topics for method signatures. The exhaustive reference is available as `sdk-methods` rather than embedded in every execute call.
+
+Generate payloads in strict mode. Messaging is different: the producer owns its message schema. Replace reserved generated placeholders before calling `ductape_execute`; empty session fields and unresolved sentinels are rejected locally. Obtain backend-issued sessions through the authorized flow. Never place private access keys in tool calls or ordinary runtime input.
+
+Persist administrative asset JSON under `ductape/<asset-type>/` and verify remote content after creation. Function registration is local; synchronization is a separate operation. Batch publication is not atomic: inspect per-asset publication receipts after partial failure.
+
+## Verify and recover
+
+Inspect business execution status and output, not only HTTP status or whether a tool returned a value. Preserve request/process IDs when investigating failures.
+
+Structured proxy diagnostics redact credentials and retain provider errors and mutation certainty. An unknown mutation outcome is not permission to retry. Reconcile the business state, confirm that no effect committed, and obtain authorization before replaying an operation. Correcting a schema mismatch does not itself make a payment safe to repeat.
+
+## Current boundaries
+
+Schema hashes are returned for inspection but are not yet enforced as prepared-operation receipts at execution. Preflight sentinel checks are not full input-schema validation. Reuse search reports partial snapshot coverage, not an exhaustive catalogue guarantee. Do not claim stronger guarantees based on guidance alone.
