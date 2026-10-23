@@ -43,11 +43,12 @@ A healthcheck has a `mode`:
 
 | Mode | Behaviour |
 | --- | --- |
-| `interval` | Today's behaviour: probe every `interval` ms. This is what every stored check without a `mode` keeps doing. |
+| `interval` | Probe every `interval` ms. Only a check that says `mode: 'interval'` does this. |
 | `reactive` | Sleep. Probe on a slow heartbeat. Wake when an operation fails. Probe with backoff until the asset has recovered, then sleep again. |
 
-New checks default to `reactive`. A check keeps `interval` when the author sets an explicit
-`interval` and no mode (explicit intent wins, as it does today), or sets `mode: 'interval'`.
+`reactive` is the default, for new checks and for every stored check with no `mode`. A new definition that sets an
+explicit `interval` and no mode becomes `interval`, and that choice is now **stored** as `mode: 'interval'`, because
+"no mode" means reactive.
 
 Fields on the healthcheck (all optional):
 
@@ -157,10 +158,17 @@ reactive.
 
 ### 6. Compatibility
 
-- A stored check without `mode` is `interval`. Nothing changes for existing checks until someone edits
-  them or re-syncs a code definition that has no explicit interval.
-- 
-- A scheduled check also honours a probe request: it looks straight away, then carries on with its schedule.
+- A stored check without `mode` is `reactive`. Every check saved before modes existed becomes reactive when the
+  scheduler and SDK that read this rule are deployed; no stored data is rewritten. Its stored `interval` is ignored.
+  To keep probing on a timer, save `mode: 'interval'` (Workbench: "On a schedule"; code: `ctx.interval(ms)`).
+- A check that has an explicit interval in its code definition is re-saved with `mode: 'interval'` the next time the
+  definition syncs, which changes its revision once.
+- A scheduled check also honours a probe request: it looks straight away, then carries on with its schedule. It does
+  not look again if it finished a probe less than a minute ago, so a failing asset cannot turn a schedule into a loop.
+- A healthcheck probe is never reported as a failing operation. The probe is the check itself running; reporting its
+  failure asked the same check to probe again, and a broken check re-probed every few seconds.
+- The SDK's own input checks ("input X on base object is required") are the caller's mistake, not a sign the asset is
+  unhealthy, so they no longer request probes.
 - Quota and fallback now rank a never-probed provider with the healthy ones. Previously healthy providers
   were preferred over never-probed ones, which would have pushed a fallback's primary behind its backup.
 - `canonicalHealthcheck` only includes the new fields when they are set, so unchanged definitions keep
