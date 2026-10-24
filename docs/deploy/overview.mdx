@@ -1,0 +1,80 @@
+---
+title: Ductape Deploy
+sidebar_position: 1
+---
+
+# Ductape Deploy
+
+Ductape Deploy builds your functions and services and runs them in **your own cloud account**, then keeps track of what is running, who changed it and how to put it back. Your code and your data stay in your account. Ductape holds the plan, the decision and the record. Two things pass through the control plane in memory and are not kept: a Cloudflare Worker bundle on its way into your account, and, only on AWS Lambda, the workspace secrets a release refers to (see [Security](./security#secrets-copied-into-a-function)).
+
+It is for code you write yourself: a [portable function](../features/portable-functions) that a Feature calls, or a whole HTTP service. It never deploys Ductape itself.
+
+## What you get
+
+- **Builds in your account.** Your source goes straight to a bucket you own and is built there from your Dockerfile. Ductape never receives it. (Cloudflare Workers are bundled on your machine instead.)
+- **Releases that cannot change.** A release is an image digest, a contract and a configuration, identified by a hash. The same release is the same bytes everywhere.
+- **Plans before changes.** A plan says exactly what would change, before anything does.
+- **Decisions by a person where it matters.** Production plans need a person to approve that exact plan. Agents and scripts can propose and apply, never approve.
+- **Safe rollouts.** A new release is checked before it takes traffic, and a failed one is rolled back automatically to the last good release.
+- **Versions side by side.** Several versions of a function can run at once. Old ones are deprecated with a reason, then retired.
+- **A record.** Every step, every approval and every policy change is kept, with who made it.
+
+## The pieces
+
+| Piece | What it is |
+|-------|------------|
+| **Release** | An immutable image digest plus contract plus configuration, identified by a hash. [Build and release](./build-and-release) |
+| **Plan** | What would change to reach the state you asked for, bound to a hash. It expires after an hour. [Plans and approval](./plans-approval) |
+| **Approval** | A person's decision about one exact plan. Changing the plan voids it. |
+| **Deployment** | One version of a function or service, in one environment, on one cloud connection. It moves through planned, building, built, provisioning, verifying, promoting and active, or fails and rolls back. |
+| **Journal** | The record of every step a deployment went through. |
+| **Environment policy** | Whether a person must approve plans for an environment, and whether an agent may apply when no approval is needed. |
+
+## Where it runs
+
+| Cloud | Runs your code on | Builds with | Status |
+|-------|-------------------|-------------|--------|
+| Google Cloud | Cloud Run | Cloud Build | Available |
+| AWS | Lambda (container images) | CodeBuild | Preview |
+| AWS | Fargate (containers behind your load balancer) | CodeBuild | Preview |
+| AWS | ECS Express Mode (containers, AWS builds the load balancer) | CodeBuild | Preview |
+| Azure | Container Apps | Container Registry Tasks | Preview |
+| Cloudflare | Workers | Your own bundler (esbuild is built in) | Preview |
+
+**Cloudflare Workers are different.** A Worker is a JavaScript bundle, not a container, so only TypeScript **functions** run there: no services, no C#. The bundle is stored in a Workers KV namespace in your own account and passes through Ductape's control plane in memory on its way (it is not kept). There is no cloud-level access check in front of a Worker, so the function's signature check is the access control. See [Connect a cloud](./connect-a-cloud#cloudflare-workers-preview).
+
+**AWS Fargate is the container path on AWS.** Each release runs as its own ECS service behind an Application Load Balancer in your account, and traffic moves by changing the load balancer's weights. It needs a domain you own and a certificate for it, because Ductape sends signed requests over HTTPS only. A release that stops taking traffic keeps running, and costing, until you remove it. See [Connect a cloud](./connect-a-cloud#aws-fargate-preview).
+
+**ECS Express Mode is the simple container path on AWS, with fewer guarantees.** AWS builds the load balancer and HTTPS for you, so there is no domain or certificate to bring. It also moves traffic itself: AWS runs a canary on every update, so Ductape cannot split traffic or check a release before it takes traffic. It checks the release once it is serving and returns to the last good release if the check fails. A first release has nothing to return to. It is a separate target, `aws_ecs_express`, so nobody picks it without seeing this. See [Connect a cloud](./connect-a-cloud#ecs-express-mode-preview).
+
+## What each target can do
+
+| Target | Traffic between releases | Checked before traffic | Rollback | Secrets a release refers to |
+|--------|--------------------------|------------------------|----------|-----------------------------|
+| Cloud Run | Revision traffic split | Yes, on a tagged revision | Traffic goes back to the previous revision | Your Secret Manager |
+| AWS Lambda | Weighted alias | Yes, on the new version | The alias goes back to the previous version | **Copied** from workspace secrets |
+| AWS Fargate | Load balancer weights | Yes, behind a secret header | Weights go back; quick while the old release still runs | Your Secrets Manager |
+| AWS ECS Express | None: AWS runs a canary, 100% only | After it is serving, not before | A new update to the previous release | Your Secrets Manager |
+| Azure Container Apps | Revision weights | Yes, a new revision takes no traffic until named | Weights go back to the previous revision | Your Key Vault |
+| Cloudflare Workers | Worker version percentages | Yes, before the version takes traffic | Back to an earlier version, within the last 100 Cloudflare keeps | Your Secrets Store (beta) |
+
+Two refinements on AWS Fargate. A load balancer with no internet address (`Scheme=internal`) is supported: Ductape cannot reach it, so a small relay function inside your VPC makes each check from within. And a release that stops serving can be scaled to zero tasks if you opt in, so it stops costing. Both are in [Connect a cloud](./connect-a-cloud#aws-fargate-preview).
+
+Preview means the code is complete and tested against stand-ins for each cloud's API, and has not yet run against a real account. Expect rough edges and tell us about them.
+
+You connect a cloud once, with permissions you grant and can read. See [Connect a cloud](./connect-a-cloud).
+
+## What Ductape will not do
+
+- It never deletes anything in your account, including what it created. Removing deployed resources is your own action. Everything it makes is tagged `ductape_managed`.
+- It never changes or reuses a resource it did not create.
+- It never changes subscription-level settings, such as registering a resource provider.
+- It never holds your source code, and it never puts a secret in a plan, a journal, a log or an answer. Where a cloud cannot be pointed at a secret (AWS Lambda), the value is copied once, in memory, on the server, and a plan that does this always needs a person's approval.
+- It does not deploy to Cloudflare Containers yet. Cloudflare moves container traffic itself and the pieces that would let Ductape check a release first are not confirmed, so it is left out rather than guessed.
+
+## Next
+
+- [Quickstart](./quickstart): from a Dockerfile to a running, versioned function.
+- [Secrets from a `.env` file](../cli/secrets): `ductape secrets-scan-env` saves a project's secrets to the workspace so a release can refer to them.
+- [Calling deployed functions](./call-deployed-functions): how the SDK finds and calls them.
+- [Security model](./security): who can do what, and what is signed.

@@ -1,0 +1,124 @@
+---
+title: Troubleshooting
+sidebar_position: 11
+---
+
+# Troubleshooting
+
+Every refusal carries a code, shown in square brackets by the CLI and in the workbench.
+
+## Connections
+
+| Symptom | Fix |
+|---------|-----|
+| Validation lists missing permissions | Grant what it names, all at once, then validate again. Role changes take a minute or more to apply. |
+| "has not been used in project ... or it is disabled" (Google) | Enable that API. It can take a minute or two to switch on. |
+| "caller does not have permission to act as service account" (Google) | Grant `roles/iam.serviceAccountUser` to the Ductape service account. |
+| A role you granted is reported missing again | Some screens replace the roles on an account instead of adding to them. Check it holds all seven together. |
+| "The role defined for the function cannot be assumed by Lambda" (AWS) | `DuctapeFunctionRuntime` must trust `lambda.amazonaws.com`. A new role can take a minute to be usable. |
+| `MissingSubscriptionRegistration` (Azure) | A subscription owner registers the provider: `az provider register --namespace Microsoft.App --wait`. |
+| "ACR tasks are not permitted" (Azure) | Registry builds are refused on free-credit and some trial subscriptions. Use pay-as-you-go. |
+| "not created for deploys" | Create the connection with the deploy scope. |
+
+## AWS Fargate
+
+| Symptom | Fix |
+|---------|-----|
+| "is not set up for Fargate: ... missing" | Run the second stack and complete the connection with its outputs: `ductape cloud connections complete <tag> --fargate-outputs-file outputs.json` |
+| Validation says the listener is HTTP, not HTTPS | Use the stack's `ListenerArn` output. Ductape will not send signed requests over plain HTTP. |
+| A new release never becomes healthy | Read the service events and the `/ecs/ductape` log group. Usual causes: the container does not listen on the declared port (a function listens on 8080), tasks cannot pull the image because the subnets have no route to the internet, or a security group blocks the load balancer. |
+| The address does not resolve, or the certificate is rejected | The wildcard DNS record must point at the load balancer and the certificate must cover `*.<your domain>`. It does not cover the domain itself. |
+| "do not apply to Fargate: timeoutSeconds ..." | Fargate has no per-call timeout setting. Remove it from the runtime block; the limit is the load balancer's idle timeout. |
+| "is not authorized to perform: iam:PassRole" | `DuctapeAccess` may hand only `DuctapeFargateTask` and `DuctapeFargateExecution` to ECS. Complete the connection with exactly those role ARNs. |
+| Releases fail their check as unreachable after limiting the load balancer by prefix list | The list must include the addresses Ductape calls from (`deploy_setup.fargate.controlPlaneAddresses` in the connection response, or ask your Ductape operator). Add them to the prefix list; no redeploy is needed. |
+| "The relay refused the request: the relay only calls hosts under the connection's base domain" | The relay function was made for another domain. Update the `ductape-fargate` stack with `BaseDomain` set to the connection's base domain; validating the connection says which domain the relay has. |
+| An internal load balancer's releases fail with "could not reach it" | The check runs inside your VPC, so your domain has to resolve to the internal load balancer from there (a private hosted zone for the base domain), and the relay's security group must be allowed to reach the load balancer on 443 (the stack adds that rule). |
+| A rollback to an older release takes a minute or two | That release was scaled to zero by the opt-in scale-down. It is brought back at its old size and waited for before it takes traffic. Turn scale-down off (`--fargate-scale-down-idle off`) to keep every release warm. |
+| "kept refusing a rule priority" | Another deploy to the same load balancer was making rules at the same moment. Ductape retries with a different number a few times; try again. |
+| "refers to the secret ... which does not exist" | A secret reference under `ductape/` names a secret that is not in this account and region. Create it in Secrets Manager first. |
+| A task never starts and ECS says it cannot retrieve a secret | The execution role cannot read the secret. The setup stack allows `ductape/*`; for another name, add `secretsmanager:GetSecretValue` for it to `DuctapeFargateExecution`. |
+| "do not apply to Fargate: ..." names `startupProbe` | It no longer does. A `tcp` probe is refused; use `startupProbe.path`. See the health check notes in [Connect a cloud](./connect-a-cloud#aws-fargate-preview). |
+| A rule exists for the host but "was not created by Ductape" | Another rule already uses that host name. Ductape does not change what it did not make: pick another deployment name or remove the rule yourself. |
+
+## ECS Express Mode
+
+| Symptom | Fix |
+|---------|-----|
+| `TRAFFIC_SPLIT_UNSUPPORTED` | Express cannot split traffic. Plan with `trafficPercent` 100, or use `aws_fargate` for a split. |
+| "Express Mode checks health with an HTTP path" | Set `runtime.startupProbe.path` to a path that answers 200, or give the service a verification check that expects 200. |
+| The orphan report says it needs `tag:GetResources` | Update the `ductape-deploy` stack from the latest template. Deploys work without it. |
+| "AWS rolled the release back: ..." | Express's canary tripped its health check or error alarm. The message carries AWS's reason, and the service stays on the last good release. |
+| The first release is `failed` after traffic moved | There was no earlier release to return to. Fix the release and deploy again. |
+| "is not set up for ECS Express Mode: ... missing" | Complete the connection with the Fargate details (cluster, subnets, roles, log group) and the Express role: `--fargate-outputs-file` and `--express-outputs-file`. |
+| Validation says the infrastructure role does not trust ECS | Create it from the `ductape-ecs-express` stack. It must trust `ecs.amazonaws.com` and carry `AmazonECSInfrastructureRoleforExpressGatewayServices`. |
+| "exists in ductape and was not created by Ductape" | A service with that name is already in the cluster. Ductape does not change what it did not make. |
+
+## Secrets copied into AWS Lambda
+
+| What you see | What to do |
+|--------------|-----------|
+| "The workspace has no secret named ..." | A release refers to `{ "secret": "NAME" }` and the workspace has none. Create it with `ductape secrets create`, or read it from a `.env` file with `ductape secrets-scan-env --apply`. |
+| "... is revoked" or "... has expired" | The workspace secret cannot be copied. Replace or renew it, then plan again. |
+| "... is limited to the environments ... and is not allowed in ..." | The secret's environments do not include the one you are deploying to. Add the environment to the secret. |
+| "... has no value" | The secret exists but is empty. Set a value. |
+| The plan cannot be applied by a script or an assistant | A plan that copies a secret needs a person to approve that exact plan in every environment. See [Plans and approval](./plans-approval). |
+| A deployed function still has the old secret value | A secret is copied when a release is deployed. After changing it in the workspace, redeploy (`deployments redeploy <id>`). |
+
+## Azure Key Vault references
+
+| Symptom | Fix |
+|---------|-----|
+| "holds no Key Vault" | A reference by bare name needs the connection's vault: `--key-vault-uri https://my-vault.vault.azure.net`. Or give the full address in the reference. |
+| "not a Key Vault secret address" | Use `https://<vault>.vault.azure.net/secrets/<name>`, optionally with a version. |
+| The app starts but cannot read the secret | Give the app's runtime identity the Key Vault Secrets User role on the vault. Role changes can take a few minutes. |
+
+## Cloudflare Workers
+
+| Symptom | Fix |
+|---------|-----|
+| "this connection names no Secrets Store" | Complete the connection with `--secrets-store-id <32-character id>` and put the secret in that store. |
+| Validation says the token cannot read the Secrets Store | Add the Secrets Store permission to the token, or clear the id with `--secrets-store-id ""`. |
+| Validation says the token lacks permissions | Add Account / Workers Scripts / Edit and Account / Workers KV Storage / Edit to the token, limited to the account |
+| "has no workers.dev subdomain" | Set one under Workers & Pages |
+| "is not in this Cloudflare account (namespace ductape-releases)" | Publish the bundle again. Publish and deploy through the same connection. |
+| `ARTIFACT_MISMATCH` | A bundle only runs on `cloudflare_workers` targets and an image only on the others |
+| `TARGET_KIND_MISMATCH` | Workers cannot run a service |
+| A plan is blocked on `TIMEOUT_EXCEEDS_LIMIT` | A Worker is stopped after 30 seconds of CPU time. Lower the contract's `timeout_ms` or use another cloud. |
+| "has no cpu, memory setting" | Cloudflare manages size and scaling. Remove the runtime block. |
+| Rollback fails with a missing version | Cloudflare keeps the last 100 versions. Publish and deploy the release again. |
+
+## Builds
+
+| Symptom | Fix |
+|---------|-----|
+| Changes to the cloud are "switched off" `[MUTATIONS_DISABLED]` | The control plane has not enabled changes. Ask whoever runs it. |
+| A build fails with a permission error | Builds run as your cloud's build identity. The guide lists what it needs. |
+| "Cannot have more than 1 builds in queue" (AWS) | New accounts run one build at a time. Wait, or raise the quota. |
+| Source upload expired | You have an hour between creating a build and starting it. Create it again. |
+
+## Plans and approval
+
+| Code | Meaning |
+|------|---------|
+| `APPROVAL_REQUIRED` | The environment needs a person to approve this plan first |
+| `APPROVAL_NOT_HUMAN` | Approving needs a person's own session, not a script or an agent |
+| `PLAN_EXPIRED` | Plans last an hour. Make a new one. |
+| `PLAN_NOT_APPLICABLE` | The plan has a conflict or a placement violation |
+| `STEP_UP_REQUIRED` | This server wants a fresh emailed code. See [Plans and approval](./plans-approval). |
+| `STEP_UP_CODE_INVALID` / `STEP_UP_LOCKED` | Wrong code (five tries) or too many tries. Ask for a new one. |
+| `INSUFFICIENT_ROLE` | Only workspace owners and admins can do this on this server |
+| `DEPLOY_NOT_ENABLED` | Deploy is not enabled for this workspace yet |
+| `DEPLOYMENT_IN_PROGRESS` | Wait for it to finish before planning another change |
+| `TRAFFIC_UNCHANGED` / `ROLLBACK_NOT_NEEDED` | Already at what you asked for |
+| `OBSERVED_REQUIRED` | This server does not read your cloud itself; send the observed state, or ask it to |
+
+## Deployments
+
+| Symptom | Fix |
+|---------|-----|
+| An applied plan does not move | No worker is running. The workbench says so, and `ductape deploy capabilities show` has `worker.alive: false`. |
+| A deployment failed | `ductape deploy deployments journal <id>` shows each step and the cause. It rolled back to the last good release if there was one. |
+| A function is Failed with `ImageAccessDenied` (AWS) | Do not add expiry rules to the `ductape/` repositories or push images there yourself. |
+| A function not called for weeks fails on its first call (AWS) | Lambda puts idle container functions to sleep. Call again; deploying always wakes it. |
+| The deployed endpoint answers 401 or 403 in a browser | That is intended. Endpoints check signed requests and your cloud's own identity. |
+| A version cannot be retired | It is still serving, or not deprecated. The message says where. |

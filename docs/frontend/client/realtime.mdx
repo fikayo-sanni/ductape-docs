@@ -1,0 +1,61 @@
+---
+sidebar_position: 11
+title: Realtime
+description: Subscribe from a browser or app to broker messages, database and graph results, workflows, agents, vectors and health checks.
+---
+
+# Realtime
+
+`ductape.connect()` opens one WebSocket to your platform. Over it you can subscribe to what changes, and the server sends you the changes instead of you asking again.
+
+```typescript
+const ductape = new Ductape({ publishableKey: 'pk_...', product: 'shop', env: 'prd' });
+await ductape.connect();
+
+const subscription = ductape.brokers.subscribe({ topic: 'order.created' }, (messages) => {
+  console.log(messages[0].message);
+});
+subscription.unsubscribe();
+```
+
+The address is your API address with `/realtime` on the end (for a self-hosted install, `ws://localhost:4311/realtime`). Pass `wsUrl` to use another.
+
+## What you can watch
+
+| Resource | Sent when | How it is read |
+|----------|-----------|----------------|
+| Broker topic | A message arrives | Pushed. One consumer per topic on the server, shared by everyone watching it |
+| Database query | The result changes | The query is run every 3 seconds |
+| Graph nodes | The result changes | Every 3 seconds |
+| Workflow (feature run) | The status changes, until it ends | Every 2 seconds |
+| Agent execution | The execution changes | Every 2 seconds |
+| Vector index | The statistics change | Every 5 seconds |
+| Health check | The status changes | Every 10 seconds |
+
+A watched query or status is sent once when you subscribe, and again only when its content changes, not on every look. A workflow subscription ends by itself when the run completes, fails, is cancelled or is rolled back, and you are told with `subscription:ended`.
+
+A broker subscription is a live feed, not a queue: messages that arrive while nobody is watching a topic are not kept for later. Quota subscriptions are not available.
+
+Health checks report `healthy`, `degraded` or `unhealthy`. A state the platform has beyond those three (stale, never run, unknown) is reported as `degraded`, never as healthy.
+
+## What a key may watch
+
+A publishable key is checked when you connect, and each subscription is checked against its scope the way the HTTP API is. A key with a scope may watch what the scope includes: messages from `messaging.consume`, queries from `databases.query`, nodes from `graph.findNodes`, workflows from `feature.status`, agents from `agents.status`, vectors from `vector.getStats` and health checks from `health.status`. A key with no scope may watch anything that is not forbidden to every publishable key. Anything else is refused with `PUBLISHABLE_KEY_SCOPE_DENIED`.
+
+If a subscription carries a `session`, the session is verified before anything is sent, and an invalid or expired one is refused with `SESSION_INVALID`.
+
+## Errors and limits
+
+A refusal arrives as a message of type `error` with the `id` of the subscription it is about, and a `code` and `message` in its payload. The codes: `INVALID_FRAME`, `INVALID_ID`, `INVALID_SUBSCRIPTION`, `RESOURCE_UNSUPPORTED`, `PUBLISHABLE_KEY_SCOPE_DENIED`, `SESSION_INVALID`, `DUPLICATE_SUBSCRIPTION`, `TOO_MANY_SUBSCRIPTIONS`, `RATE_LIMITED`, `UNKNOWN_TYPE`, `SUBSCRIBE_FAILED`, `SUBSCRIPTION_READ_FAILED` and `SUBSCRIPTION_FAILED`.
+
+A failing read is reported once and retried, slower each time, up to a minute apart. After 20 failures in a row the subscription is stopped and you are told, and you can subscribe again.
+
+- A message may be at most 64 KB. A larger one closes the connection.
+- A connection may hold 50 subscriptions and send 100 messages a second.
+- A workspace may hold 1,000 connections at once. Closes with code 4008 when over.
+- A connection that cannot keep up is closed (code 4013); the client reconnects and replays its subscriptions.
+- An unknown or revoked key closes with code 4001.
+
+## Running it yourself
+
+Realtime is part of the proxy service, so a self-hosted install has it already; the API gateway forwards `/realtime` to it. Nothing separate needs to run. Messages from a broker topic reach a connection only through the process the connection is on, and each process consumes with its own consumer tag, so running several proxy processes is safe.

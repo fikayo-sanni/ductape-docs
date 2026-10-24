@@ -49,3 +49,7 @@ Omit `client_secret` on later `complete` calls to keep the stored secret; includ
 | `postgresql` | Databases (Flexible Server) |
 | `cosmos-gremlin` | Graphs |
 | `azure-search` | Vectors |
+
+## Deploying code
+
+This account can also run your own functions and services on **Azure Container Apps (preview)**, built in your account from your Dockerfile, with a deployment template and a service principal limited to one resource group. It uses a separate connection made with the `deploy` scope. See [Connect a cloud](../../deploy/connect-a-cloud) and [Ductape Deploy](../../deploy/overview).

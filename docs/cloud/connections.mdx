@@ -46,6 +46,18 @@ await ductape.cloud.connections.validate('prod_aws');
 | MongoDB Atlas | `mongodb_atlas` | `project_id`, `atlas_public_key`, `atlas_private_key` | [Atlas setup](./providers/mongodb-atlas) |
 | Neo4j Aura | `neo4j_aura` | `aura_client_id`, `aura_client_secret` | [Aura setup](./providers/neo4j-aura) |
 
+## Connections for deploying code
+
+Pass `scopes: ['deploy']` (or tick **Use this connection to deploy code with Ductape** in the workbench, or use `--deploy` in the CLI) to make a connection for [Ductape Deploy](../deploy/overview). Validation then also checks the deploy permissions and names each one that is missing.
+
+A deploy connection takes extra fields when completed: `runtime_service_account` (Google), `runtime_role_arn`, `build_role_arn` and `default_region` (AWS), `resource_group`, `registry_name`, `environment_name` and `runtime_identity_id` (Azure). For setup steps that match your account, ask for the guide:
+
+```bash
+ductape cloud connections guide --provider gcp --purpose deploy
+```
+
+See [Connect a cloud](../deploy/connect-a-cloud).
+
 ## Workbench
 
 | Action | Where |

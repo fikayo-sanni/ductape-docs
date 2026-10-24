@@ -1,0 +1,65 @@
+---
+title: Run the control plane
+sidebar_position: 10
+---
+
+# Run the control plane
+
+This page is for whoever runs a Ductape installation, whether self-hosted or hosted. If you use Ductape as a customer, you do not need it.
+
+## What it needs
+
+- MongoDB as a **replica set**. Registering, applying and advancing a deployment use transactions. A standalone server fails these. Managed Atlas clusters are replica sets already.
+- `ENC_KEY`, as for the rest of the platform.
+- The integrations service from a release that includes the deploy routes, with an `@ductape/sdk` that provides the deploy rules (`dist/deploy`). The service refuses to start deploy work, and says so, when the installed SDK is too old.
+- Workspace secrets readable by the integrations service, if customers deploy to AWS Lambda with secret references: it decrypts them in memory, on the server, to copy them into the function. Nothing is cached or logged.
+- Outbound HTTPS to the cloud APIs of the connections your customers make and to their deployed endpoints. No inbound access to customer clouds, and no Ductape cloud credentials.
+
+## Switches
+
+Everything is off until you turn it on, and each switch does one thing.
+
+| Variable | What it does |
+|----------|--------------|
+| `DEPLOY_ALLOW_MUTATIONS` | Set to `true` to let Deploy change customer clouds. Without it, plans can be made and approved and nothing is applied. |
+| `DEPLOY_OBSERVE_FROM_PROVIDER` | Set to `true` so the control plane reads the state of the cloud itself when planning. Without it, a plan must carry the observed state, which only the CLI can supply. The workbench needs it. |
+| `DEPLOY_RECONCILER` | Set to `true` on the worker. It advances applied plans. |
+| `DEPLOY_RECONCILER_INTERVAL_MS` | How often the worker looks for work. Default 5000. |
+| `DEPLOY_RECONCILER_CONCURRENCY` | How many deployments, and how many builds, one pass works on at once. Default 4. |
+| `DEPLOY_ENABLED_WORKSPACES` | Comma-separated workspace ids allowed to use Deploy. Others are refused with `DEPLOY_NOT_ENABLED` for anything that creates or decides something. Reads, and calls to functions already deployed, keep working. Unset allows everyone. |
+| `DEPLOY_ADMIN_ONLY` | Set to `true` so only workspace owners and admins can approve, retire and change policy. |
+| `DEPLOY_STEP_UP` | `off` (default), `production` or `all`: when a fresh emailed code is required. Needs `DEPLOY_STEP_UP_KEY` and `EMAIL_SERVICE`. |
+| `DEPLOY_STEP_UP_KEY` | At least 32 characters, different from `ENC_KEY`. Signs grants. |
+| `DEPLOY_CONTROL_PLANE_CIDRS` | Comma-separated addresses the control plane calls customer deployments from. Shown to customers as `deploy_setup.fargate.controlPlaneAddresses`, so they can allow them in the prefix list that limits their Fargate load balancer. Unset, the customer is told Ductape could not say. Keep it true: a wrong list makes every release fail its check as unreachable. |
+| `DEPLOY_SIGNING_MASTERS` / `DEPLOY_SIGNING_EPOCH` | Signing masters kept apart from `ENC_KEY`, as `epoch:secret` pairs, and the epoch new deployments use. Keep every epoch a live deployment still uses. |
+
+## The worker
+
+The worker advances builds and deployments. Run it as its own service, the same image with `DEPLOY_RECONCILER=true`, so scaling the web service never multiplies workers. A single worker is enough to start with.
+
+- Builds and deployments have separate loops, and each pass works on several items at once, so one slow cloud operation does not hold up the rest.
+- Each deployment is held by a lease with a fence. A worker that stalls and loses its lease cannot undo a newer one, and several workers are safe together.
+- On `SIGTERM` it stops starting work and gives what is running up to 25 seconds. What is left is safe to resume: every step can be repeated, and an unrenewed lease lapses.
+- On a self-hosted instance whose licence has lapsed, it starts nothing new.
+- Failures go to Sentry, tagged with where they happened and never with a payload.
+
+Each pass records a heartbeat. The workbench shows a warning when changes are on and no worker has checked in lately, or when a deployment has been moving for twenty minutes or more. The same facts are in `ductape deploy capabilities show`.
+
+## Watching it
+
+A line like this is logged while anything is moving, for a log alarm to match:
+
+```json
+{"event":"deploy.worker.pass","owner":"worker-12-ab12cd34","inFlight":2,"oldestInFlightSeconds":340}
+```
+
+Alarm on `oldestInFlightSeconds` above twenty minutes, on `[deploy-reconciler]` failure lines and on a `rollback_failed` step in a journal. A failed rollback means a customer may be serving a bad release; treat it as urgent.
+
+## Rolling it out
+
+1. Ship with every switch off. Check `ductape deploy capabilities show`.
+2. Turn on `DEPLOY_OBSERVE_FROM_PROVIDER` and list yourself in `DEPLOY_ENABLED_WORKSPACES`. Make plans and read them. Nothing changes in any cloud.
+3. Turn on `DEPLOY_ALLOW_MUTATIONS` and start the worker. Build in a test project, then deploy to a staging environment.
+4. Turn on `DEPLOY_ADMIN_ONLY` and `DEPLOY_STEP_UP`, and widen the allowlist.
+
+Changing `ENC_KEY` never affects deployed functions that use a separate signing master. Functions deployed before one was set use a key derived from `ENC_KEY`, so rotate those by deploying a new release once a master exists.

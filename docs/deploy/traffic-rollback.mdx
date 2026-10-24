@@ -1,0 +1,60 @@
+---
+title: Traffic and rollback
+sidebar_position: 6
+---
+
+# Traffic and rollback
+
+Ductape uses each cloud's own way of splitting traffic between releases: Cloud Run revisions and tags, Lambda versions and weighted aliases, Container Apps revisions and weights, Cloudflare Worker version percentages, Fargate load balancer weights. It does not put a load balancer of its own in front of your code.
+
+## How a release takes traffic
+
+1. The new release is created **privately** and checked with your verification call, without any user traffic.
+2. If it passes, it takes the share of traffic you planned.
+3. The release holding all traffic becomes the **last good release**. A rollout to less than 100 percent leaves the previous good release in place and still serving the rest.
+4. If any step fails, the deployment goes back to the last good release and the journal says why.
+
+A release that has not been verified never receives traffic, including on Azure, where a new revision never takes traffic unless a rule names it, and on Fargate, where a release being checked answers only to a request carrying a secret header.
+
+On **ECS Express Mode** AWS moves the traffic itself, so there is no split and no private check. A rollback is the same update that deploys a release, pointed at the previous task definition, and AWS runs its own canary on the way back too. Ductape checks a release after it is serving and rolls back if the check fails, but users can reach it in the meantime, which is why the plan says so before it is approved.
+
+On **Fargate** a rollback is a change to the load balancer's weights between services that are still running, so it is quick. Weights are whole numbers out of 1000, so traffic moves in steps of a tenth of a percent, and a rule can split between at most five releases. Releases that no longer take traffic are not stopped, which is what makes the rollback quick and also what keeps them costing until you remove them.
+
+## Change traffic
+
+```bash
+ductape deploy deployments traffic <deploymentId> --percent 25
+```
+
+This makes a plan, like any other change. Approve and apply it. Moving to 100 percent makes the release the last good one; moving to 0 stops sending it traffic and deletes nothing.
+
+## Redeploy
+
+```bash
+ductape deploy deployments redeploy <deploymentId>
+```
+
+Runs the current release again. Use it to retry a failed deployment or to repair what the cloud holds. Its runtime settings are kept unless you give new ones with `--runtime-file`.
+
+## Roll back
+
+```bash
+ductape deploy deployments rollback <deploymentId>
+ductape deploy deployments rollback <deploymentId> --release-hash sha256:...
+```
+
+Puts an earlier release back at full traffic, by default the last one that held all traffic. Only a release this deployment has actually run can be rolled back to, so a rollback cannot become a way to deploy something nobody applied here.
+
+A deployment that is still moving cannot be planned again. Wait for it to finish.
+
+## What is serving
+
+```bash
+ductape deploy deployments get <deploymentId>
+```
+
+Shows the state, the traffic share, the release and revision serving, the previous good release and the fallback revision. On every pass, the control plane reads the cloud again, so what you see is what the cloud holds.
+
+## Versions are separate deployments
+
+Each version of a function gets its own cloud resource, so versions run side by side, and a call picks one by its version selector. Routing between versions is Ductape-level; see [Versions](./versions). Ductape does not give a service a stable URL across versions.

@@ -15,6 +15,24 @@ ductape stop
 ductape status
 ```
 
+## What `ductape install` does
+
+It puts the platform on your machine from the published images. It needs Docker with Compose v2.
+
+1. Writes the compose files and the API gateway configuration to `~/.ductape/platform/`. They are replaced every time you install, because they describe the release.
+2. Writes `~/.ductape/platform/.env` the first time, with an `ENC_KEY` made for this install. Back that file up: without the key, the secrets this install stores cannot be read. A later install never replaces your `.env` or its key. An `.env` from an earlier install that has no key is given one.
+3. Pulls the images: one for each backend service, and the Workbench.
+
+```bash
+ductape install                  # the latest release
+ductape install --tag 1.4.0      # pin a release (written to .env as DUCTAPE_TAG)
+ductape install --no-pull        # use images already on this machine, such as ones you built yourself
+```
+
+If you had the earlier single-image install, its compose file is kept as `docker-compose.previous.yml`. Stop it before starting the new one: `docker compose -f docker-compose.previous.yml down --remove-orphans`.
+
+Settings go in `~/.ductape/platform/.env`. To use [Ductape Deploy](../deploy/overview) add the `DEPLOY_` settings there; they are all off until you turn them on (see [Run the control plane](../deploy/operate)).
+
 | Service | Default URL |
 |---------|-------------|
 | API gateway | http://localhost:4311/api/ |

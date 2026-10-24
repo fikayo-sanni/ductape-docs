@@ -68,26 +68,7 @@ console.log(`Remaining: ${status.remaining}`);
 
 ### Subscribing to Quota Changes
 
-```typescript
-// Connect first for real-time features
-await ductape.connect();
-
-// Subscribe to quota changes
-const subscription = ductape.resilience.quotas.subscribe(
-  {
-    tag: 'api-calls',
-    identifier: 'user-123'
-  },
-  (events) => {
-    events.forEach(event => {
-      console.log(`Quota changed: ${event.remaining} remaining`);
-    });
-  }
-);
-
-// Unsubscribe when done
-subscription.unsubscribe();
-```
+Not available. The realtime server has no per-identifier quota count to watch (a quota here distributes load across providers), so a quota subscription is refused with `RESOURCE_UNSUPPORTED`. To watch a provider, subscribe to its health check (below).
 
 ## Fallbacks
 

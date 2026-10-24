@@ -99,6 +99,19 @@ See [Cloud connections](../cloud/connections) and [provider guides](../cloud/pro
 
 Omit `client_secret` (or other secret fields) on a later `complete` call to keep the stored value; include them only when rotating credentials.
 
+### Connections for deploying code
+
+```bash
+ductape cloud connections guide --provider gcp --purpose deploy
+ductape cloud connections create --provider aws --name "AWS deploy" --tag aws_deploy --deploy --save-template ductape-deploy.yaml
+ductape cloud connections complete aws_deploy --role-arn arn:aws:iam::123456789012:role/DuctapeAccess \
+  --runtime-role-arn arn:aws:iam::123456789012:role/DuctapeFunctionRuntime \
+  --build-role-arn arn:aws:iam::123456789012:role/DuctapeBuild --default-region eu-west-2
+ductape cloud connections validate aws_deploy
+```
+
+`--deploy` gives the connection the `deploy` scope. `--save-template` writes the setup template (CloudFormation for AWS, a deployment template for Azure) to a file for you to read and run. Secrets are never flag values: a key is a file (`--service-account-file`) and a secret is the name of an environment variable (`--client-secret-env`). Add `--dry-run` to preview a request with secrets masked. The other flags are in the [Deploy CLI reference](../deploy/cli-reference#cloud-connections).
+
 ### Update display name or description
 
 `update.json`:

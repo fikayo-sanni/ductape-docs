@@ -1,0 +1,179 @@
+---
+title: Connect a cloud
+sidebar_position: 3
+---
+
+# Connect a cloud
+
+A deploy connection is a [cloud connection](../cloud/connections) created with the `deploy` scope. It has one purpose, deploying code, and its own set of permissions. Make a separate connection to manage storage or databases.
+
+Create it from the workbench (tick **Use this connection to deploy code with Ductape**) or from a terminal with `--deploy`. For step-by-step instructions that match your account, ask the CLI:
+
+```bash
+ductape cloud connections guide --provider <gcp|aws|azure> --purpose deploy
+```
+
+The workbench shows the same guide next to the connection, with copy-ready commands.
+
+## What each cloud needs
+
+| | Google Cloud | AWS | Azure |
+|---|---|---|---|
+| **Access** | A service account you create, with seven roles on the project | An IAM role Ductape assumes, limited to resources named `ductape-*` | A service principal with Contributor, or a custom role, on one resource group |
+| **You create** | APIs enabled, the service account | Three roles, with one CloudFormation template | A resource group, then one deployment template, then the service principal |
+| **Ductape adds** | A source bucket, an Artifact Registry repository, builds, a Cloud Run service per version, a secret per function | A source bucket, an ECR repository per function, a CodeBuild project, a Lambda function per version with two aliases and an IAM-protected function URL, a secret per function | A container app per version in your environment, a revision per release, images in your registry, a sign-in check on each app |
+| **Builds** | Cloud Build | CodeBuild | Container Registry Tasks |
+| **Status** | Available | Preview | Preview |
+
+Every cloud gets a template or command list you can read before you run it. Nothing in them can be used by anyone but Ductape's account holding your connection's identity.
+
+## Google Cloud
+
+1. Enable the APIs: Cloud Run, Cloud Build, Artifact Registry, Secret Manager, Cloud Storage, Resource Manager and IAM.
+2. Create a service account for Ductape and grant these roles on the project, all at once: `roles/run.admin`, `roles/cloudbuild.builds.editor`, `roles/artifactregistry.admin`, `roles/secretmanager.admin`, `roles/storage.admin`, `roles/iam.serviceAccountUser` and `roles/browser`.
+3. Create a key for it and complete the connection with `--service-account-file`. Optionally add `--runtime-service-account` for the account your services run as.
+
+## AWS (preview)
+
+1. Create the connection with `--deploy --save-template ductape-deploy.yaml`. The response also holds the external id.
+2. Run the CloudFormation stack from that template. It creates `DuctapeAccess`, `DuctapeFunctionRuntime` and `DuctapeBuild`.
+3. Complete the connection with the three role ARNs and a default region.
+
+New AWS accounts have lower Lambda memory and concurrency limits and run one CodeBuild build at a time. Ask for increases in Service Quotas if you need them.
+
+## AWS Fargate (preview)
+
+Fargate is an optional second path on the same AWS connection, for containers you want behind a load balancer instead of in Lambda. Skip this section if Lambda is enough.
+
+Before you start you need a **domain you own** and an **ACM certificate** for its wildcard (`*.deploy.example.com`) in the region you deploy to. Ductape sends signed requests over HTTPS only, so there is no plain HTTP option.
+
+1. Save the Fargate stack from the connection you already made: `ductape cloud connections get <tag> --save-fargate-template ductape-fargate.yaml`.
+2. Run it after the first stack. It creates an ECS cluster named `ductape`, an internet-facing Application Load Balancer with an HTTPS listener that answers 404 until Ductape adds a rule, two security groups (tasks accept traffic from the load balancer and nothing else), the task and execution roles, a log group, and attaches the extra permissions to `DuctapeAccess`.
+
+```bash
+aws cloudformation deploy --stack-name ductape-fargate --template-file ductape-fargate.yaml \
+  --capabilities CAPABILITY_NAMED_IAM --region <REGION> \
+  --parameter-overrides VpcId=<VPC_ID> SubnetIds=<SUBNET_A>,<SUBNET_B> \
+  CertificateArn=<ACM_CERTIFICATE_ARN> BaseDomain=deploy.example.com
+```
+
+3. Point a wildcard DNS record, `*.deploy.example.com`, at the stack's `LoadBalancerDnsName` output. Every deployment then answers on `<name>.deploy.example.com`, and a release being checked on `<name>--cand.deploy.example.com`.
+4. Complete the connection from the stack's outputs, then validate:
+
+```bash
+aws cloudformation describe-stacks --stack-name ductape-fargate --region <REGION> > outputs.json
+ductape cloud connections complete <tag> --fargate-outputs-file outputs.json
+ductape cloud connections validate <tag>
+```
+
+Add `--fargate-private-tasks` if your subnets are private and reach the internet through a NAT gateway. Without the file, each value has its own flag: `--fargate-cluster`, `--fargate-listener-arn`, `--fargate-base-domain`, `--fargate-vpc-id`, `--fargate-subnets`, `--fargate-security-groups`, `--fargate-task-role-arn`, `--fargate-execution-role-arn` and `--fargate-log-group`. In the workbench, paste the same output into the Fargate section of the connection.
+
+Validation also checks that the cluster exists, the listener is HTTPS, both roles trust ECS, and every extra permission is held.
+
+What to know before you use it:
+
+- **Every release is its own ECS service**, with its own target group. A new release never changes the one that is serving, and a rollback is a weight change on a service that is still running.
+- **Nothing is deleted.** By default a release that has stopped taking traffic keeps running, and costing, until you remove it. `ductape deploy connections orphans <tag>` lists what no deployment accounts for.
+- **Scale-down is opt-in.** Complete the connection with `--fargate-scale-down-idle on` (or tick it in the workbench) and, after each traffic change has been read back from the load balancer, releases that are not serving, were not serving just before, and are not the one being checked are set to **zero tasks**. Only the number of tasks changes: the service, its target group and its task definition stay, and the size it had is written on the service. A release asked for again (a rollback to it, or a redeploy) is brought back to that size and waited for before it takes a single request, so rolling back past the previous release is no longer instant. A service Ductape did not make, and another deployment's releases, are never touched. Turn it off with `--fargate-scale-down-idle off`.
+- **A function is protected by its signature check alone**, unless you limit who can reach the load balancer. It has no access check Ductape can pass to a caller. By default anyone can reach it on 443. To limit that, create a managed prefix list of the addresses allowed (your callers, and the addresses Ductape calls from, which the connection response shows as `deploy_setup.fargate.controlPlaneAddresses`) and run the Fargate stack again with `AllowedPrefixListId=<pl-...>`. If Ductape's addresses are missing, releases fail their check as unreachable.
+- **An internal load balancer is supported through a relay.** Make the stack with `Scheme=internal` and it creates a small function inside your VPC (the `VerifierFunctionName` output). Ductape cannot reach an internal load balancer, so each check of a release is made by that function and judged by Ductape. Your base domain has to resolve to the load balancer from inside the VPC (a private hosted zone), the connection needs `--fargate-internal on --fargate-verifier-function <name>` (completing with the saved stack outputs sets both), and validating the connection pings the relay and checks it is attached to a VPC and set up for your domain. An internal service is not reachable from the internet at all, so the prefix list does not apply to it. This path is tested against a stand-in for AWS and has not been run against a real account.
+- **Runtime settings:** `cpu`, `memory`, `minInstances` and `startupProbe` apply (Fargate allows only certain cpu and memory pairs, and says which). `timeoutSeconds`, `concurrency` and `maxInstances` do not exist on Fargate and are refused when you plan. How long a call can take is the load balancer's idle timeout, which the stack sets to 15 minutes.
+- **Health check:** with no `startupProbe`, the load balancer treats any answer from 200 to 499 on `/` as healthy, which suits a function that answers an unsigned call with 401. With `startupProbe.path` it must answer 200 to 399 on that path. `periodSeconds` (5 to 300), `timeoutSeconds` (2 to 120, shorter than the period), `failureThreshold` (2 to 10) and `initialDelaySeconds` (0 to 240, how long a new task is left alone) are mapped onto the load balancer. A `tcp` probe is refused: the check is HTTP.
+- **Secret references work**: a `{ "secret": "NAME" }` in configuration names a Secrets Manager secret in your account, which ECS hands to the container. The execution role must be allowed to read it; the stack allows `ductape/*`. See [Build and release](./build-and-release#configuration-holds-references-not-secrets).
+
+Plan to it like any other target, with the region of the stack:
+
+```json
+{ "target": { "kind": "aws_fargate", "connection": "aws_deploy", "region": "eu-west-2" } }
+```
+
+The same release image works on Lambda and on Fargate; a function listens on port 8080 on Fargate, and a service listens on the port its descriptor declares.
+
+## ECS Express Mode (preview)
+
+Express Mode is an optional third path on the same AWS connection. AWS builds the load balancer, HTTPS and scaling, so you bring **no domain and no certificate**. The price is control: AWS runs its own canary on every update, and Ductape works around that rather than hiding it.
+
+- **No traffic split.** A plan is refused unless it sends 100 percent.
+- **A release is checked after it takes traffic**, not before. Once AWS reports the rollout finished, Ductape runs the same verification call against the live address. If it fails, the deployment goes back to the last good release (the same update, pointed at the previous task definition). AWS may already have rolled back on its own alarm; the journal then carries AWS's reason. A **first** release has nothing to return to and stays failed.
+- **Health checks need a path that answers 200.** Set `runtime.startupProbe.path`. A function answers an unsigned call with 401, so it needs a path of its own. A service can use a verification check that expects 200. This is refused when you plan, not guessed.
+- **Public by default**, protected by the function's signature check, like Fargate.
+- Express updates one service per deployment in place. Each release is an immutable task definition revision that Ductape registers and tags, which is what a rollback points back to.
+
+Express uses the cluster, task role and execution role from the Fargate stack, so run that stack first (you can skip the certificate and DNS steps if you only want Express; the stack's load balancer is then unused).
+
+1. Save the Express stack: `ductape cloud connections get <tag> --save-express-template ductape-ecs-express.yaml`.
+2. Run it. It creates `DuctapeExpressInfrastructure`, the role AWS assumes to build the load balancer (with the AWS managed policy `AmazonECSInfrastructureRoleforExpressGatewayServices`), and attaches the Express permissions to `DuctapeAccess`.
+
+```bash
+aws cloudformation deploy --stack-name ductape-ecs-express --template-file ductape-ecs-express.yaml \
+  --capabilities CAPABILITY_NAMED_IAM --region <REGION>
+aws cloudformation describe-stacks --stack-name ductape-ecs-express --region <REGION> > express.json
+ductape cloud connections complete <tag> --express-outputs-file express.json
+ductape cloud connections validate <tag>
+```
+
+Or give the role directly with `--express-infrastructure-role-arn`. In the workbench, paste the same output into the Express part of the connection. Plan to it with:
+
+```json
+{ "target": { "kind": "aws_ecs_express", "connection": "aws_deploy", "region": "eu-west-2" }, "trafficPercent": 100 }
+```
+
+Runtime settings: `cpu`, `memory`, `minInstances` and `maxInstances` apply; `timeoutSeconds` and `concurrency` do not exist on this target and are refused when you plan. Secret references work as on Fargate (a Secrets Manager secret your execution role can read).
+
+## Azure (preview)
+
+1. Create a resource group and have a subscription owner register four resource providers once: `Microsoft.App`, `Microsoft.ContainerRegistry`, `Microsoft.OperationalInsights` and `Microsoft.ManagedIdentity`. Ductape cannot do this for you.
+2. Create the connection with `--deploy --save-template ductape-deploy.json` and deploy that template into the resource group. It creates an identity, a registry, a log workspace and a container apps environment.
+3. Create a service principal with Contributor on that resource group only, put its secret in an environment variable and complete the connection with the template's outputs.
+
+Registry builds are refused on free-credit and some trial subscriptions. Use a pay-as-you-go subscription.
+
+**Secret references** read from your own Key Vault. Complete the connection with `--key-vault-uri https://my-vault.vault.azure.net` (or give the full secret address in each reference), and give the app's runtime identity the **Key Vault Secrets User** role on the vault. The app holds only the address of each secret and reads the value itself when it starts; Ductape never sees it. Pointing a reference at another secret makes a new revision.
+
+## Cloudflare Workers (preview)
+
+A Cloudflare connection is for deploying Workers only. A Worker is a JavaScript bundle that runs on Cloudflare's edge, so this is for TypeScript **functions**: there is no container, no service and no C#.
+
+1. Find your account id (Workers & Pages in the dashboard) and make sure the account has a `workers.dev` subdomain.
+2. Create an API token with exactly two permissions, limited to that account: **Account / Workers Scripts / Edit** and **Account / Workers KV Storage / Edit**. Cloudflare shows it once.
+3. Put the token in an environment variable, then connect:
+
+```bash
+read -s CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN
+ductape cloud connections create --provider cloudflare --name "Cloudflare" --tag cf_deploy --deploy
+ductape cloud connections complete cf_deploy --account-id <ACCOUNT_ID> --api-token-env CLOUDFLARE_API_TOKEN
+ductape cloud connections validate cf_deploy
+```
+
+What Ductape adds to the account: a Workers KV namespace named `ductape-releases` that holds each bundle until it is deployed, a Worker per deployed version, a Worker version per release (tagged with the release hash) and a deployment per traffic change, which is Cloudflare's own gradual rollout. Nothing is ever deleted.
+
+Things that differ from the other clouds, so you can decide with your eyes open:
+
+- **The bundle passes through the control plane.** Cloudflare has no builder with an API and no signed upload address. Your machine bundles the code, and the bytes go through Ductape in memory straight into your Workers KV. Ductape keeps only the digest.
+- **There is no cloud-level access check.** A Worker on `workers.dev` is reachable by anyone, so the function's signature check, which every call must pass, is the access control. A call without a valid signature is refused by the code.
+- **A Worker is stopped after 30 seconds of CPU time.** A contract that allows longer is refused when you plan.
+- **Size and scaling are Cloudflare's.** A plan with a runtime block (cpu, memory, instances) is refused.
+- **Secret references use Secrets Store, which is still in beta.** Complete the connection with `--secrets-store-id <32-character id>`, put the secret in that store, and a `{ "secret": "NAME" }` in a release's configuration is bound from it (the Worker reads it when it runs). The token also needs the Secrets Store permission. Ductape never reads the value. Without a store id a reference is refused and says so; you can instead add the secret to the Worker in Cloudflare and read it from the environment.
+- **Cloudflare keeps the last 100 versions.** Rolling back to an older release fails with a clear message; publish it again.
+
+See [Build and release](./build-and-release#cloudflare-workers) for publishing a bundle and [Calling deployed functions](./call-deployed-functions#hosting-a-function-on-a-worker) for the host.
+
+## Validate
+
+```bash
+ductape cloud connections validate <tag>
+```
+
+Validation reads, and changes nothing. A failure names each missing permission with how to grant it, checks that the resources your template made are there and says which resource providers are not registered.
+
+## Keeping it contained
+
+Use a dedicated project, account or resource group if you can, so what Ductape adds is easy to see. Because Ductape never deletes anything, removing a deployment's resources, or everything, is always your own action. Find resources that no deployment accounts for with:
+
+```bash
+ductape deploy connections orphans <tag> [--region <region>]
+```
+
+It reads Google Cloud (Cloud Run services and signing secrets), AWS (Lambda functions, ECS services, task definitions grouped by family, target groups, load balancer rules and signing secrets), Azure (container apps in the connection's resource group) and Cloudflare (Worker scripts). It asks the cloud for everything tagged as Ductape's, groups it by the deployment it belongs to, and lists what no deployment record accounts for. It deletes nothing.
+
+For AWS, name the regions to look in (the regions you have deployed to and the connection's default region are included). AWS needs one extra permission, `tag:GetResources`, which cannot be limited to a resource, so it is its own policy (`DuctapeDeployReport`) in the `ductape-deploy` stack. A connection made before this existed gets a clear message naming it; update the stack from the latest template to add it. Deploys do not need it.

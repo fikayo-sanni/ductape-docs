@@ -1,0 +1,142 @@
+---
+title: Build and release
+sidebar_position: 4
+---
+
+# Build and release
+
+A **release** is what you deploy: an image, the contract it serves and its configuration. Once registered it never changes. Deploying the same release twice runs the same bytes.
+
+## Build in your account
+
+```bash
+ductape deploy builds create --file build.json --dir ./src --wait
+```
+
+| Cloud | What builds your image |
+|-------|------------------------|
+| Google Cloud | Cloud Build, from your Dockerfile or with buildpacks |
+| AWS | CodeBuild, from your Dockerfile |
+| Azure | Container Registry Tasks, from your Dockerfile, with the folder you upload as the build context |
+
+The CLI packs the source folder and uploads it to a bucket in your account through a short-lived signed address. Ductape keeps only the checksum. Files named `.git`, `node_modules` and `.env` are left out, and the CLI lists what it left out.
+
+Builds can be listed, inspected and stopped:
+
+```bash
+ductape deploy builds list --product buydeck
+ductape deploy builds status <buildId>
+ductape deploy builds cancel <buildId>
+```
+
+A running build is cancelled in your cloud account first, so nothing keeps running and billing there after Ductape says it stopped.
+
+## Cloudflare Workers
+
+A Worker is a bundle, not an image, so there is no build in your cloud. You bundle the code on your machine and publish it:
+
+```bash
+ductape deploy releases publish-worker --file release.json --connection cf_deploy --entry src/index.ts
+# or a bundle you built yourself
+ductape deploy releases publish-worker --file release.json --connection cf_deploy --bundle dist/index.js
+```
+
+```json title="release.json"
+{
+  "product": "buydeck",
+  "function": "create-stock-reservation",
+  "version": "1.0.0",
+  "contract": { "namespace": "stock", "version": "1.0.0", "operations": {} },
+  "config": { "REGION": "eu" },
+  "verification": { "operation": "reserve", "input": {} }
+}
+```
+
+`--entry` bundles with esbuild, which must be installed in your project (`npm install --save-dev esbuild`). Node built-ins stay external because Workers run them through `nodejs_compat`, and the same source always makes the same bytes, so the same release. The bundle must be one ES module with a default `fetch` handler and be at most 10 MB.
+
+The bundle goes through the control plane in memory into a Workers KV namespace named `ductape-releases` in your account, and a release is registered from its digest. The release's image digest **is** the bundle's sha256, and it is marked as a Worker bundle: it can only be planned to a `cloudflare_workers` target, and a container image can only be planned to the others. Say so at plan time, not after a failed deploy.
+
+Publish and deploy through the same connection: the bundle waits in that account's KV until it is applied. Plan it like any release:
+
+```json
+{ "target": { "kind": "cloudflare_workers", "connection": "cf_deploy" } }
+```
+
+A Worker has no region, so none is given.
+
+## Register an image you built yourself
+
+```bash
+ductape deploy releases register --file release.json
+```
+
+```json title="release.json"
+{
+  "product": "buydeck",
+  "function": "create-stock-reservation",
+  "version": "1.0.0",
+  "imageDigest": "sha256:...",
+  "imageRepository": "europe-west2-docker.pkg.dev/proj/repo/app",
+  "verification": { "operation": "reserve", "input": {} },
+  "contract": { "namespace": "stock", "version": "1.0.0", "operations": {} },
+  "config": { "REGION": "eu" }
+}
+```
+
+Registering the same release again is safe. Compute a release's hash offline, without contacting Ductape:
+
+```bash
+ductape deploy release-hash --image sha256:... --contract contract.json --config config.json
+```
+
+## Configuration holds references, not secrets
+
+`config` is plain values and secret **references**. A value that looks like a secret is refused:
+
+```json
+{ "REGION": "eu", "PAYMENTS_KEY": { "secret": "PAYMENTS_KEY" } }
+```
+
+On most targets a reference names a secret that **already exists in your own cloud's secret store**, and the cloud hands it to the container when it starts: Ductape never reads the value. **AWS Lambda is the exception**: it cannot be pointed at a secret, so a reference there names a secret in your *workspace*, which the control plane copies into the function (see below). Either way the value is never in a plan, a journal, a log or an answer.
+
+| Target | What the reference names | What you must allow |
+|--------|--------------------------|---------------------|
+| Cloud Run | A Secret Manager secret in the project | The runtime service account can read it |
+| AWS Fargate and ECS Express | A Secrets Manager secret in the account and region, by name or full ARN (add `:key::` to take one key of a JSON secret) | The execution role can read it. The setup stack allows `ductape/*`; for any other name, add the permission yourself |
+| Azure Container Apps | A Key Vault secret, by name in the connection's vault (`--key-vault-uri`) or by full address (`https://my-vault.vault.azure.net/secrets/name`) | The app's runtime identity has the Key Vault Secrets User role on the vault |
+| Cloudflare Workers | A secret in your Secrets Store (still in beta), by name; the connection holds the store's id (`--secrets-store-id`) | The token has the Secrets Store permission |
+| AWS Lambda | A **workspace secret** (the ones `ductape secrets` and `ductape secrets-scan-env` manage), by key. Lambda cannot be pointed at a secret, so the value is **copied** into the function's configuration | Nothing in AWS. A person must approve the plan, and the workspace secret must not be revoked, expired or limited to other environments |
+
+**Copying a workspace secret into Lambda.** The control plane reads the secret from your workspace at the moment it writes the function, in memory, and writes it into the function's environment once. The value is never in a plan, a journal, a log, an error, an API answer or an error report; the plan lists the secret *names* and says a person must approve it, in every environment, whatever the environment's policy says. The same rules the SDK applies to `$Secret{NAME}` apply: a revoked or expired secret, or one limited to other environments, is refused when you plan. A rotated secret takes effect on the next deploy, as a new version. Be aware of where the value ends up: Lambda stores environment variables encrypted, and shows them to anyone in your AWS account who may read that function's configuration. If that is not acceptable, read the secret in your code from Secrets Manager instead.
+
+On AWS (Fargate and ECS Express), a reference to a secret under `ductape/` is checked when the release is deployed, before anything is registered, so a missing one is named then. Any other name is left to ECS, which reports it with a reason if a task cannot start.
+
+## Services
+
+A whole backend is deployed the same way, as a **service**: any HTTP server in a container.
+
+```json
+{
+  "kind": "service",
+  "product": "buydeck",
+  "service": "buydeck-api",
+  "version": "1.0.0",
+  "imageDigest": "sha256:...",
+  "imageRepository": "...",
+  "port": 3000,
+  "checks": [{ "path": "/health" }],
+  "config": { "LOG_LEVEL": "info" }
+}
+```
+
+`checks` are HTTP calls the service must answer correctly before it takes traffic. Do not use `/healthz` on Cloud Run: it answers that path itself. A function and a service cannot share a name in one product.
+
+## How it runs
+
+Optionally, give a plan a `runtime` block. It is part of the plan, so an approval covers it, and the plan returns cost warnings:
+
+```json
+{ "runtime": { "cpu": 1, "memory": "1Gi", "minInstances": 1, "maxInstances": 5, "timeoutSeconds": 60 } }
+```
+
+Settings are checked when the plan is made, so most mistakes are refused before anything reaches your cloud. Set `maxInstances`: without it Cloud Run may run up to 100 instances and use a region's whole quota.

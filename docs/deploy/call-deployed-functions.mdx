@@ -1,0 +1,96 @@
+---
+title: Calling deployed functions
+sidebar_position: 8
+---
+
+# Calling deployed functions
+
+A server SDK finds a deployed function, keeps the answer in memory and calls the function directly. The data path never goes through Ductape.
+
+```text
+your app ──resolve──▶ Ductape control plane (where is it, how do I call it)
+   │
+   └────────call────▶ your function, in your cloud   (signed request)
+```
+
+## What the SDK does
+
+1. **Resolve.** It asks the control plane for the version you want. The answer lists where it runs and, for a server with an access key, how to call it. It is cached, and asked again before its credentials lapse.
+2. **Call.** It signs the request with a key for that deployment and adds your cloud's own access check: an identity token on Google Cloud, a SigV4 signature on AWS, a bearer token on Azure. Both checks must pass, so a leaked URL on its own is useless.
+3. **Fall back.** If the control plane cannot be reached, the last route keeps being used until its credentials lapse. If a call finds a stale route, the SDK asks once more and tries again. A function that ran and failed is never retried.
+
+## Modes
+
+| Mode | Behaviour |
+|------|-----------|
+| `auto` (default) | A handler in this process first, then a deployed copy, then the contract's own transports |
+| `local` | Only handlers in this process |
+| `deployed` | Ignore handlers in this process. For an application server that imports the shared contract module in production |
+
+Set it with `DUCTAPE_FUNCTIONS_MODE` or `ductape.functions.setMode('deployed')`.
+
+## Hosting a function
+
+The container you deploy mounts one route and passes the raw request to the SDK's handler. The key it checks signatures with is delivered by Ductape and is never in your image.
+
+```ts
+import { PORTABLE_FUNCTION_HTTP_PATH, handlePortableFunctionHttpRequest } from '@ductape/sdk'
+
+app.post(PORTABLE_FUNCTION_HTTP_PATH, rawBodyMiddleware, async (request, response) => {
+  const result = await handlePortableFunctionHttpRequest(
+    { headers: request.headers, body: request.body, params: request.params },
+    process.env.DUCTAPE_FUNCTION_ACCESS_KEY!,
+  )
+  response.status(result.status).json(result.body)
+})
+```
+
+On .NET, `Ductape.Sdk.AspNetCore` provides the same thing:
+
+```csharp
+app.MapDuctapeFunctionHost(registry);
+```
+
+The handler must receive the same raw bytes that were signed. Do not parse and reserialize the body first. A runnable example is `examples/Ductape.Sdk.DeployedFunction.Example` in the SDK repository.
+
+Where the key comes from depends on the cloud: an environment variable backed by Secret Manager on Google Cloud, a Secrets Manager secret read with the function's own role on AWS (`DUCTAPE_FUNCTION_ACCESS_KEY_SECRET_ARN`), an app secret on Azure.
+
+## Hosting a function on a Worker
+
+The Node handler above pulls in the whole SDK and cannot be bundled for a Worker. Use the Workers host instead, which needs only `Request`, `Response` and WebCrypto:
+
+```ts title="src/index.ts"
+import { createWorkerFunctionHost } from '@ductape/sdk/worker'
+
+export default createWorkerFunctionHost([
+  {
+    namespace: 'stock',
+    version: '1.0.0',
+    operations: {
+      reserve: {
+        input: { type: 'object', required: ['sku'], properties: { sku: { type: 'string' } } },
+        output: { type: 'object', required: ['message'], properties: { message: { type: 'string' } } },
+        timeout_ms: 15_000,
+        handler: async (input) => ({ message: `reserved ${input.sku}` }),
+      },
+    },
+  },
+])
+```
+
+It speaks exactly the protocol of the other hosts: the same signature over the body and a timestamp (valid for five minutes), the same route checks, the same schema checks on input and output, and the same error codes. It reads the signing key from the `DUCTAPE_FUNCTION_ACCESS_KEY` binding, which Ductape puts on every version it uploads. If the binding is missing it refuses to answer rather than answer unchecked.
+
+There is no second check in front of a Worker, so this signature check is all that stands between the internet and your function. Keep it in place.
+
+## People and servers
+
+The resolve endpoint gives a route and credentials only to a **server access key**. A person's session gets a relay instead, so a person's browser never holds a signing key. This is why a script that holds only a person's login cannot call a function directly.
+
+## Errors
+
+| Code | Meaning |
+|------|---------|
+| `FUNCTION_NOT_DEPLOYED` | Nothing deployed matches the selector, in this product and environment |
+| `FUNCTION_UNAVAILABLE` | It is deployed but cannot be reached right now |
+| `FUNCTION_INPUT_INVALID` / `FUNCTION_OUTPUT_INVALID` | The input or output does not match the contract, on every transport |
+| A version warning | The selector resolved to a deprecated version. The call still works |

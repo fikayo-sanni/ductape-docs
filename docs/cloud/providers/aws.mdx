@@ -56,3 +56,7 @@ RDS and Neptune require VPC security group access. See [AWS networking](../aws-n
 | `rds` | Databases (PostgreSQL) |
 | `neptune` | Graphs |
 | `opensearch` | Vectors |
+
+## Deploying code
+
+This account can also run your own functions and services on **AWS (preview)**, built in your account from your Dockerfile, with a CloudFormation template that creates three roles, on Lambda or (with a second template) on Fargate behind your own load balancer. It uses a separate connection made with the `deploy` scope. See [Connect a cloud](../../deploy/connect-a-cloud) and [Ductape Deploy](../../deploy/overview).
