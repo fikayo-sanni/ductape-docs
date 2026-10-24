@@ -7,6 +7,14 @@ description: The state of every system, what is failing, and how each resource i
 
 The dashboard is the first item in the sidebar and the page the Workbench opens on. The logs are the second item, one click away. Tabs you had open stay open behind the dashboard.
 
+## Deployments and cloud connections
+
+Below Activity by type, two summaries show what is deployed and where.
+
+**Deployments** counts every deployment in the workspace (the latest 200) by state: active, in progress, and needing attention (failed or rolled back). It breaks them down by environment and by where they run (Cloud Run, AWS Lambda, Fargate, and so on), and lists what needs attention first, or the latest changes when nothing does. It also shows plans waiting for a person to approve them, blocked plans, builds that are running or have failed, and anything the deploy server says about itself (changes switched off, no worker running, approval email codes not set up).
+
+**Cloud connections** counts the workspace's connected cloud accounts by provider and status, and lists each one with whether deployments can go through it today. A connection that is not ready says why: setup not finished, or not created with the deploy scope. Each shows how many deployments went through it.
+
 ## Platform health
 
 The top of the dashboard shows the state of every system your workspace uses, for the period you choose (24 hours to a year), each compared with the period just before it.
@@ -17,7 +25,7 @@ The top of the dashboard shows the state of every system your workspace uses, fo
 - **Latest errors.** The most recent failures, with the system, the operation, the product and the message.
 - **A card for every active system.** Calls, error rate and p95 with their changes, a chart of calls over time with the failed share marked, the most common error, and buttons to open that system's logs or only its failures. Systems with no activity in the period are listed in one line.
 
-The systems are Actions, Functions, Features, Databases, Storage, Cache, Sessions, Events and queues, Notifications, Webhooks, Jobs, Graphs, Vectors, Quotas and fallbacks, and Health checks. A log type that is not one of these is counted under Other. Frontend analytics events (clicks and page views) are not calls, so they are not counted.
+The systems are Actions, Functions, Features, Databases, Storage, Cache, Sessions, Events and queues, Notifications, Webhooks, Jobs, Graphs, Vectors, Quotas and fallbacks, and Health checks. A log type that is not one of these is shown as a system of its own, under its own name (a type called `quantum_thing` is "Quantum thing"); nothing is put in a catch-all. A log with no type is not counted, and frontend analytics events (clicks and page views) are not calls, so they are not counted.
 
 ### When an alert is raised
 
