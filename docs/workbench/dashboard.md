@@ -17,7 +17,7 @@ Below Activity by type, two summaries show what is deployed and where.
 
 ## Platform health
 
-The top of the dashboard shows the state of every system your workspace uses, for the period you choose (24 hours to a year), each compared with the period just before it.
+The sections below Activity by type show the state of every system your workspace uses, for the period you choose (24 hours to a year), each compared with the period just before it.
 
 - **Summary.** One sentence on how the platform is: every system healthy, some degraded, or some failing.
 - **Calls, error rate and latency.** Totals for the period, with the change since the period before. Latency is shown as p50 (the typical call), p95 (the slowest 5%) and p99 (the slowest 1%), because an average hides the slow calls people notice.
@@ -25,7 +25,7 @@ The top of the dashboard shows the state of every system your workspace uses, fo
 - **Latest errors.** The most recent failures, with the system, the operation, the product and the message.
 - **A card for every active system.** Calls, error rate and p95 with their changes, a chart of calls over time with the failed share marked, the most common error, and buttons to open that system's logs or only its failures. Systems with no activity in the period are listed in one line.
 
-The systems are Actions, Functions, Features, Databases, Storage, Cache, Sessions, Events and queues, Notifications, Webhooks, Jobs, Graphs, Vectors, Quotas and fallbacks, and Health checks. A log type that is not one of these is shown as a system of its own, under its own name (a type called `quantum_thing` is "Quantum thing"); nothing is put in a catch-all. A log with no type is not counted, and frontend analytics events (clicks and page views) are not calls, so they are not counted.
+The systems are Actions, Functions, Features, Databases, Storage, Cache, Sessions, Secrets, Events and queues, Notifications, Webhooks, Jobs, Graphs, Vectors, Quotas and fallbacks, and Health checks. A log type that is not one of these is shown as a system of its own, under its own name (a type called `quantum_thing` is "Quantum thing"); nothing is put in a catch-all. A log with no type is not counted, and frontend analytics events (clicks and page views) are not calls, so they are not counted.
 
 ### When an alert is raised
 
@@ -42,11 +42,18 @@ An alert needs at least 20 calls in the period, so a handful of calls never deci
 
 A system is **Failing** when it has a critical alert, **Degraded** when it has a warning, **Healthy** when it has calls and none of these, and **No activity** when it has no calls.
 
+## Activity by type
+
+A Gantt chart: a row for each kind of resource, the period across the top, and a bar for every unbroken stretch of time in which that resource was used. A bar is darker where it was busier and red where at least 5% of what ran failed. Hover a bar to see when it starts and ends, how many calls it covers and how many failed. The number at the end of each row is its calls and its share of all calls.
+
 ## Resource usage
 
-A table of every kind of resource: how many exist (databases, buckets, caches and queues), how much each was called with its share of all calls, its error rate, p95 latency and cost, and the one thing particular to it: data written for storage, hit rate for the cache, and calls over your plan. Open a row to see the busiest operations, which products use it, and its most common errors. **Usage by product** below it ranks products by how much they used the platform.
+A table of every kind of resource: how many exist (databases, buckets, caches and queues), how much each was called with its share of all calls, its error rate, its average and p95 latency, and, when there is something to show:
 
-A product or app filter on the dashboard narrows all of this. Updates arrive every 30 seconds; if one fails, the last good answer stays on screen and says so.
+- **Cost**: what the calls cost, from the pricing recorded on each call. The column is left out when no call in the period was priced.
+- **Usage**: the one thing particular to the resource: data written for storage, hit rate for the cache, and calls over your plan. The column is left out when there is nothing to say for any resource.
+
+Open a row to see the busiest operations, which products use it, and its most common errors. **Usage by product** below it ranks products by how much they used the platform, with each product's own average and p95 latency. Calls that belong to no product are listed as **Workspace**. The product cards higher up show the same average and p95 latency.
 
 ## How it is measured
 
