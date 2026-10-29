@@ -1,0 +1,28 @@
+---
+title: Cloudflare
+sidebar_position: 4
+---
+
+# Cloudflare
+
+A Cloudflare connection is for [deploying TypeScript functions to Workers](../../deploy/overview) in your own account. It carries only the `deploy` scope and cannot manage storage, databases or brokers.
+
+## Connect
+
+You need your 32-character account id (Workers & Pages in the dashboard), a `workers.dev` subdomain on the account, and an API token with exactly two permissions, limited to that account:
+
+| Permission | Why |
+|------------|-----|
+| Account / Workers Scripts / Edit | Create Worker versions and deployments |
+| Account / Workers KV Storage / Edit | Keep release bundles in a namespace named `ductape-releases` until they are deployed |
+
+```bash
+read -s CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN
+ductape cloud connections create --provider cloudflare --name "Cloudflare" --tag cf_deploy --deploy
+ductape cloud connections complete cf_deploy --account-id <ACCOUNT_ID> --api-token-env CLOUDFLARE_API_TOKEN
+ductape cloud connections validate cf_deploy
+```
+
+The token is stored as a workspace secret and is never returned by any read. Validation checks it is live, that it can reach Workers and Workers KV, and that the account has a `workers.dev` subdomain, and names any permission that is missing. Write access is proved by the first deploy.
+
+See [Connect a cloud](../../deploy/connect-a-cloud#cloudflare-workers-preview) for what is different about Workers.

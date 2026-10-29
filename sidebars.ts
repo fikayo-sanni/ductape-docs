@@ -195,10 +195,32 @@ const sidebars: SidebarsConfig = {
                 'cloud/providers/aws',
                 'cloud/providers/gcp',
                 'cloud/providers/azure',
+                'cloud/providers/cloudflare',
                 'cloud/providers/mongodb-atlas',
                 'cloud/providers/neo4j-aura',
               ],
             },
+          ],
+        },
+
+        // Deploy
+        {
+          type: 'category',
+          label: 'Deploy',
+          collapsed: true,
+          items: [
+            'deploy/overview',
+            'deploy/quickstart',
+            'deploy/connect-a-cloud',
+            'deploy/build-and-release',
+            'deploy/plans-approval',
+            'deploy/traffic-rollback',
+            'deploy/versions',
+            'deploy/call-deployed-functions',
+            'deploy/security',
+            'deploy/operate',
+            'deploy/troubleshooting',
+            'deploy/cli-reference',
           ],
         },
 

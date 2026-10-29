@@ -1,0 +1,50 @@
+---
+title: Versions
+sidebar_position: 7
+---
+
+# Versions
+
+Several versions of a function can be available at once. Each version is deployed on its own, and each can be deprecated and later retired.
+
+| Status | What it means |
+|--------|---------------|
+| **Available** | Can be started and called |
+| **Deprecated** | On its way out. Running deployments keep serving and can still be updated, but nothing new can start on it. Reversible. |
+| **Retired** | Finished. It stops being routed to. Final. |
+
+## Deprecate and restore
+
+```bash
+ductape deploy versions list --product buydeck --function create-stock-reservation
+ductape deploy versions deprecate --product buydeck --function create-stock-reservation --fn-version 1.0.0 \
+  --reason "Replaced by 1.1.0" --replacement 1.1.0 --sunset 2027-01-31
+ductape deploy versions undeprecate --product buydeck --function create-stock-reservation --fn-version 1.0.0
+ductape deploy versions history --product buydeck --function create-stock-reservation --fn-version 1.0.0
+```
+
+A deprecation needs a reason of up to 500 characters. A sunset date must be in the future. A replacement must be an available version that is higher than the one being deprecated. People who call a deprecated version see the reason and the replacement.
+
+## Retire
+
+```bash
+ductape deploy versions retire --product buydeck --function create-stock-reservation --fn-version 1.0.0
+```
+
+Retiring is final and is for a person. Only a deprecated version can be retired, so its users have had notice, and only when nothing of it is serving: not a deployment that is still moving, and not one that is active and receiving traffic. Move traffic to another version first. It never deletes a release or a cloud resource.
+
+In the workbench, **Retire** asks you to type the version to confirm and, where the server asks, a code from your email.
+
+## Choosing a version at call time
+
+A caller asks for a version by selector:
+
+| Selector | Picks |
+|----------|-------|
+| `1.2.3` | Exactly that version |
+| `^1.2.0` | The newest `1.x.y` at or above 1.2.0 |
+| `~1.2.0` | The newest `1.2.x` at or above 1.2.0 |
+| `1.x`, `1.2.x` | The newest in that line |
+| `latest` | The newest available version |
+
+The control plane resolves it to a version that is routable, never a retired one, and tells the caller when it had to pick a deprecated one.

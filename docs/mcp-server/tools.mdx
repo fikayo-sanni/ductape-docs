@@ -364,6 +364,7 @@ The key split: **`ductape_cli` for anything that creates or modifies configurati
 | Manage cloud connections and cloud-linked resources | `ductape_cli` (`cloud connections`, `cloud resources`) |
 | Browse available tiers before provisioning | `ductape_cli` (`cloud tiers list --provider <p> --type <rt>`) |
 | Manage workspace secrets | `ductape_cli` (`secrets`) |
+| Scan a `.env` file and save its secrets to the workspace | `ductape_secrets_scan_env` (preview first; values never pass through the assistant) |
 | Link project folder to a product | `ductape_cli` (`link`) |
 | Sync sessions, notifications, or event brokers from declaration files | `ductape_cli` (`apply`) |
 | Generate or apply database migration files | `ductape_cli` (`db schema generate`, `db migrate`) |
@@ -377,6 +378,25 @@ The key split: **`ductape_cli` for anything that creates or modifies configurati
 | Run a feature, action, query, upload, dispatch | `ductape_execute` |
 | Get payload shape before a runtime call | `ductape_generate_payload` |
 | Generate copy-paste SDK code for an engineer | `ductape_generate_snippet` |
+
+## Deploy tools
+
+These act on [Ductape Deploy](../deploy/overview) in the active workspace, through the logged-in CLI. There is deliberately **no tool to approve a plan, retire a version, change an environment's policy or ask for a step-up code**: those are for a person, and the server refuses an agent that tries them through `ductape_cli`.
+
+| Tool | What it does |
+|------|--------------|
+| `ductape_cloud_connection_guide` / `_create` / `_complete` / `_validate` | Set up a connection, including `purpose: "deploy"`. Secrets are never arguments: a key is a file path and a secret is the name of an environment variable. |
+| `ductape_deploy_build`, `_build_status`, `_build_cancel` | Build source in the customer's cloud account (Cloud Build, CodeBuild or Container Registry Tasks), follow it, stop it |
+| `ductape_deploy_register_release`, `ductape_deploy_releases` | Register an immutable release; list or show releases |
+| `ductape_deploy_create_plan`, `ductape_deploy_deployment_plan` | Plan a new deployment, or a redeploy, rollback or traffic change. Changes nothing. |
+| `ductape_deploy_plans` | List plans by stage (use `pending_approval` to tell a person what is waiting) or show one |
+| `ductape_deploy_apply` | Apply a plan. Production plans are refused until a person approved that exact plan. |
+| `ductape_deploy_status` | List deployments, show one, or show its journal |
+| `ductape_deploy_versions`, `_version_deprecate`, `_version_undeprecate` | List versions and their history; deprecate or restore |
+| `ductape_deploy_environments`, `ductape_deploy_capabilities`, `ductape_deploy_orphans` | Read environments and their policy; what the control plane will do and whether a worker is running; resources no deployment accounts for |
+| `ductape_deploy_plan`, `ductape_deploy_release_hash` | Offline: plan a deployment or compute a release hash without contacting anything |
+
+An agent that creates and applies plans is recorded as an agent in the journal. See the [security model](../deploy/security).
 
 ## Error handling
 

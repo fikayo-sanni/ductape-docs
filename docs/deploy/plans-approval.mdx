@@ -1,0 +1,69 @@
+---
+title: Plans and approval
+sidebar_position: 5
+---
+
+# Plans and approval
+
+Nothing changes in your cloud until a plan is applied, and a plan can only be applied once, with the approval its environment asks for.
+
+## Plans
+
+```bash
+ductape deploy plans create --file plan.json
+ductape deploy plans list --product buydeck --stage pending_approval
+ductape deploy plans get <planId>
+```
+
+A plan lists each change, with the reason, and any warnings or placement violations. It is bound to a hash of everything in it, and it expires after an hour so a decision is never made on stale information.
+
+| Stage | Meaning |
+|-------|---------|
+| `pending_approval` | A person must approve this exact plan |
+| `approved` | Approved and ready to apply |
+| `ready` | The environment needs no approval; it can be applied |
+| `applied` | Applied, once |
+| `blocked` | It has a conflict or a placement violation and cannot be applied |
+| `expired` | Make a new one |
+
+## Approval
+
+By default production-like environments (`prd`, `prod`, `production`, `live`) need a person to approve; others let an agent apply. You decide, per environment.
+
+```bash
+ductape deploy environments list --product buydeck
+ductape deploy environments policy --product buydeck --env stg --require-approval true --allow-agent-apply false
+ductape deploy environments history --product buydeck --env stg
+```
+
+- **A person must approve** means an agent or script can create and apply plans only after a person approved the exact plan. Changing the plan voids the approval.
+- **An agent may apply** only matters when no approval is needed.
+- Every change to a policy is recorded, with who made it. Giving up a safeguard is allowed and is a person's decision.
+
+**A plan that copies a secret always needs a person.** On AWS Lambda a `{ "secret": "NAME" }` in a release's configuration is copied from your workspace into the function. Such a plan needs a person's approval of that exact plan in every environment, whatever the environment's policy says, and an agent cannot apply it alone. The plan names the secrets and where they go, never a value. A missing, revoked or expired secret, or one not allowed in the environment, is reported when the plan is made.
+
+Approving, retiring a version and changing a policy are decisions only an interactive person's session can make. Anything that holds only a server access key, such as the SDK, a script or an assistant, is treated as an agent and is refused.
+
+## A fresh code from your email
+
+A login can sit in a file for months, and a script holding it looks like a person. So a server can require a fresh code, sent to the person's own email, before a decision:
+
+```bash
+ductape deploy step-up start --plan <planId>
+ductape deploy step-up verify --plan <planId> --code 123456
+```
+
+`verify` prints a grant, good for ten minutes and for that one change by that one person. Put it in an environment variable and name it:
+
+```bash
+export GRANT='...'
+ductape deploy plans approve <planId> --grant-env GRANT
+```
+
+The same goes for `versions retire` and `environments policy`, with `--retire` or `--policy` choosing what the code is for. A code allows five tries; three can be asked for in ten minutes. The workbench does all of this in a dialog.
+
+## From the workbench
+
+The product's **Deployments** page has a **Plans** tab. Open a plan to see what it would change, the state of your cloud it was made from and, if you may, approve and apply it. Buttons that cannot be used say why: changes switched off on the server, a plan that expired, a code the server cannot send.
+
+You can make a plan from a release (**New plan**) or from a deployment that exists: **Change traffic**, **Redeploy** or **Roll back**.

@@ -1,0 +1,109 @@
+---
+title: Quickstart
+sidebar_position: 2
+---
+
+# Quickstart
+
+This deploys one function to Google Cloud Run, from a Dockerfile, with a person approving production. It takes about twenty minutes, most of it your cloud project's setup.
+
+You need the [Ductape CLI](/cli), a Google Cloud project, and a function whose [contract](../features/portable-functions) is ready.
+
+## 1. Connect your project
+
+Create a connection that carries the deploy scope, and ask for the guide for your cloud:
+
+```bash
+ductape cloud connections guide --provider gcp --purpose deploy
+ductape cloud connections create --provider gcp --name "GCP deploy" --tag gcp_deploy --deploy
+```
+
+The guide lists the APIs to switch on, the seven roles to grant, what a deploy leaves in your project and what to do when something goes wrong. Follow it, then complete and validate the connection. The service account key is read from a file on your disk and is never printed:
+
+```bash
+ductape cloud connections complete gcp_deploy --service-account-file ./key.json
+ductape cloud connections validate gcp_deploy
+```
+
+If validation fails, it names each missing permission and the role that grants it.
+
+## 2. Build
+
+Describe the build in a file. The version must equal the contract's version:
+
+```json title="build.json"
+{
+  "product": "buydeck",
+  "function": "create-stock-reservation",
+  "version": "1.0.0",
+  "connection": "gcp_deploy",
+  "region": "europe-west2",
+  "contract": { "namespace": "stock", "version": "1.0.0", "operations": { "reserve": { "input": { "type": "object" }, "output": { "type": "object" } } } },
+  "config": { "REGION": "eu" },
+  "verification": { "operation": "reserve", "input": {} }
+}
+```
+
+```bash
+ductape deploy builds create --file build.json --dir ./reservation --wait
+```
+
+The CLI packs the folder, leaves out `.git`, `node_modules` and `.env` files and tells you so, uploads it straight to a bucket in your project and starts the build there. When it succeeds, the control plane registers a release for you.
+
+`verification` is a synthetic call the new release must answer correctly before it takes any traffic.
+
+## 3. Plan
+
+```bash
+ductape deploy releases list --product buydeck
+```
+
+```json title="plan.json"
+{
+  "product": "buydeck",
+  "function": "create-stock-reservation",
+  "version": "1.0.0",
+  "env": "stg",
+  "target": { "kind": "cloud_run", "connection": "gcp_deploy", "region": "europe-west2" },
+  "releaseHash": "sha256:...",
+  "trafficPercent": 100
+}
+```
+
+```bash
+ductape deploy plans create --file plan.json
+```
+
+The plan lists each change it would make and why. Nothing has happened in your cloud.
+
+## 4. Approve and apply
+
+A staging environment does not need approval by default, so apply it:
+
+```bash
+ductape deploy plans apply <planId>
+```
+
+For production, a person approves that exact plan first. In a terminal or in the workbench:
+
+```bash
+ductape deploy plans approve <planId>
+ductape deploy plans apply <planId>
+```
+
+Follow it:
+
+```bash
+ductape deploy deployments list --product buydeck
+ductape deploy deployments journal <deploymentId>
+```
+
+The deployment moves through its steps. The new release is checked with your verification call before it takes traffic. If a step fails, it goes back to the last good release and the journal says why.
+
+## 5. Call it
+
+Your application keeps calling the function as it did. With the SDK pointed at deployed functions, the call goes to your Cloud Run service. See [Calling deployed functions](./call-deployed-functions).
+
+## Do it from the workbench
+
+Everything above can be done in the product's **Deployments** page: review plans, approve, apply, change traffic, deprecate and retire versions, set the approval policy and stop builds. See [Plans and approval](./plans-approval).

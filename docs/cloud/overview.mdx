@@ -7,7 +7,11 @@ sidebar_position: 0
 
 Connect a cloud account to your Ductape workspace **once**. Reference it by **tag** on any product component. Ductape imports or provisions the resource, stores credentials as workspace secrets, and refreshes them at runtime.
 
-Supported providers: [AWS](./providers/aws), [GCP](./providers/gcp), [Azure](./providers/azure), [MongoDB Atlas](./providers/mongodb-atlas), [Neo4j Aura](./providers/neo4j-aura).
+Supported providers: [AWS](./providers/aws), [GCP](./providers/gcp), [Azure](./providers/azure), [Cloudflare](./providers/cloudflare) (deploying Workers only), [MongoDB Atlas](./providers/mongodb-atlas), [Neo4j Aura](./providers/neo4j-aura).
+
+## Deploying code
+
+A connection can also be made for **deploying your own functions and services** into the account, with its own permissions and setup. That is [Ductape Deploy](../deploy/overview). A deploy connection carries only the `deploy` scope; make a separate connection to manage storage and databases.
 
 ## How it works
 

@@ -1,0 +1,71 @@
+---
+title: Security model
+sidebar_position: 9
+---
+
+# Security model
+
+## What runs where
+
+Ductape's control plane holds plans, approvals, versions, the journal and the credentials needed to act on your connection. Your source, your images, your running code and your data are in your own cloud account.
+
+## Access to your cloud
+
+You grant the least access that works, and you can read exactly what it is before you grant it. Each cloud's permissions are listed in its guide and checked on validation.
+
+- Nothing Ductape does can delete a resource. There is no delete permission in the roles it asks for, and there is no code path that deletes.
+- It only adds resources it tags `ductape_managed`, and never changes one it did not create.
+- On Azure the custom role cannot read secrets or assign roles. On AWS the role is limited to resources named `ductape-*`, and it may pass only the runtime role to Lambda and only the build role to CodeBuild.
+
+## Decisions
+
+- **Who can approve.** Only an interactive person's session. Anything using a server access key, or marked as an agent, is refused, and the marker can only lower what a request may do.
+- **What an approval covers.** One exact plan, by its hash. Any change voids it.
+- **Step-up.** A server can require a fresh code from the person's own email before approving, retiring or changing a policy. The resulting grant is for one change by one person and works once.
+- **Roles.** A server can limit those decisions to workspace owners and admins.
+- **Audit.** Plans, approvals, journals, version events and policy changes are kept, with who made them.
+
+## Cloudflare Workers
+
+Two things are different, and worth knowing before you choose it:
+
+- A Worker bundle passes through the control plane in memory on its way into your Workers KV. It is not stored by Ductape, which keeps only its digest. Your source never leaves your machine; the bundle is the built output.
+- There is no cloud-level access check in front of a Worker (the other clouds have one), because a `workers.dev` address is public. The function's signature check is the access control, so a call without a valid signature is refused by the code, and a Worker that has no signing key answers nothing.
+
+## AWS Fargate
+
+Fargate puts your containers behind an Application Load Balancer in your account, which changes two things:
+
+- The load balancer has no access check Ductape can pass to a caller (Lambda and Container Apps have one). A function is protected by its signature check, so a call without a valid signature is refused by the code. A service is as public as the load balancer, so limit who can reach it with a prefix list (see [Connect a cloud](./connect-a-cloud#aws-fargate-preview)). For a load balancer with no internet address at all, use `Scheme=internal`: Ductape cannot reach it, so a small relay function inside your VPC makes each check from within. The relay holds no key (Ductape builds and signs the request and judges the answer), calls only HTTPS port 443 hosts under your base domain with GET or POST, follows no redirects, caps the request at 1 MB and the answer at 256 KB, and runs with no permission beyond joining your VPC.
+- Signed requests travel over HTTPS only. Ductape refuses a connection whose listener is plain HTTP, which is why Fargate needs a domain and a certificate.
+- A release being checked answers only to a request carrying a header whose value is derived per release and per deployment, never stored. Nobody who finds the address can reach it.
+
+The signing key lives in Secrets Manager under `ductape/`, read by the task's execution role at start. It is never written into the task definition.
+
+## ECS Express Mode
+
+Express differs from every other target in one way that matters for safety: a release cannot be checked before it takes traffic, because AWS rolls each update out as a canary it controls. Ductape therefore checks it afterwards and returns to the last good release if that fails. The plan carries a warning that says so, and the workbench labels the target "checked after traffic starts". If you cannot accept a release being reachable before its check passes, use Fargate or Lambda.
+
+The rest is as on Fargate: no cloud-level access check Ductape can pass to a caller, so a function is protected by its signature check; the signing key lives in Secrets Manager and is injected by the execution role; the infrastructure role can only be handed to ECS, and Ductape never changes IAM.
+
+## Secrets copied into a function
+
+Lambda cannot be pointed at a secret, so a `{ "secret": "NAME" }` in a release's configuration is **copied** from your workspace's secrets into the function's configuration. The rules that go with it:
+
+- The value is decrypted on the control plane at the moment of the write, held in memory in a wrapper that shows `[redacted]` however it is printed, and passed once to AWS. It is not cached.
+- It is never in a plan, a journal, a version event, a log, an error message, an API answer, or an error report. If AWS quotes a value back in a failure, the message is scrubbed before it leaves the writer. Tests search every plan, journal row, error and captured log line for the value.
+- A fingerprint of the configuration is kept in the function version's description, where anyone who can read the function sees it. For secrets that fingerprint is a keyed hash, so a guessed password cannot be confirmed by hashing it, and a rotated secret still makes a new version.
+- A plan that copies a secret needs a person's approval of that exact plan, in every environment. An agent can propose and plan; it cannot approve or apply it alone.
+- Once written, the value lives in your AWS account, and anyone there who can read the function's configuration can read it. Ductape cannot change that.
+
+## Calling deployed functions
+
+- Each deployment has its own signing key, derived on the control plane from a master that is separate from the platform's encryption key, so rotating one never breaks the other.
+- A request is signed over its body and a timestamp. A signature is valid for five minutes.
+- Your cloud's own check sits in front: an identity token on Google Cloud, SigV4 on AWS, a token for the connection's application on Azure. Both must pass.
+- Only a server access key can ask for a route with credentials. A person's session never receives a signing key.
+- Secrets in a release's configuration are references. They are resolved in memory when written into your own secret manager. They never appear in a plan, a journal, an error or a log, and no endpoint returns a secret value.
+
+## What to do if something looks wrong
+
+Stop new changes at once by switching changes off on the control plane (`DEPLOY_ALLOW_MUTATIONS` unset), or take the workspace off the allowlist. Running functions keep serving. Then read the journals and the policy history to see what happened and who did it.

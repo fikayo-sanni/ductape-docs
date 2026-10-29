@@ -1,0 +1,87 @@
+---
+title: CLI reference
+sidebar_position: 12
+---
+
+# Deploy CLI reference
+
+All commands act on the active workspace and print JSON. The JSON files and API bodies name what they act on with three short keys: `product`, `function` and `connection` (a service is named by `service` instead of `function`). A cloud connection is `connection` wherever it appears, including inside `target`. Calls made on an assistant's behalf (`DUCTAPE_ACTOR=agent`) cannot approve, retire or change a policy.
+
+## Offline
+
+| Command | What it does |
+|---------|--------------|
+| `ductape deploy plan --spec <file>` | Show what a deployment would do, whether the placement is allowed and whether an apply is authorised, without contacting anything |
+| `ductape deploy release-hash --image <digest> --contract <file> [--config <file>]` | Compute a release's identity |
+
+## Releases, plans and deployments
+
+| Command | What it does |
+|---------|--------------|
+| `releases register --file <file>` | Register an immutable release |
+| `releases publish-worker --file <file> --connection <tag> --bundle <file>` (or `--entry <file>`) | Publish a Cloudflare Worker release: store the bundle in your own Workers KV and register a release from its digest |
+| `releases list [--product] [--function] [--fn-version]` | List releases |
+| `releases get <releaseHash>` | Show a release |
+| `plans create --file <file>` | Create a plan; changes nothing |
+| `plans list [--product] [--env] [--stage]` | List plans and where each stands |
+| `plans get <planId>` | Show a plan |
+| `plans approve <planId> [--grant-env VAR]` | Approve (a person only) |
+| `plans apply <planId>` | Apply an approved or permitted plan |
+| `deployments list [--product] [--env] [--fn-version] [--kind] [--connection]` | List deployments |
+| `deployments get <id>` / `journal <id>` | Show a deployment, or its journal |
+| `deployments redeploy <id>` | Plan running the current release again |
+| `deployments rollback <id> [--release-hash]` | Plan putting an earlier release back at full traffic |
+| `deployments traffic <id> --percent <n>` | Plan a new share of traffic |
+
+`redeploy`, `rollback` and `traffic` also take `--runtime-file` and, while the control plane does not read your cloud itself, `--observed-file`.
+
+## Builds
+
+| Command | What it does |
+|---------|--------------|
+| `builds create --file <file> [--dir] [--builder] [--dockerfile] [--context] [--wait]` | Build in your cloud and register a release |
+| `builds status <id>` / `list [--product] [--status] [--connection]` | Show builds |
+| `builds cancel <id>` | Stop a build that has not finished |
+
+## Versions and environments
+
+| Command | What it does |
+|---------|--------------|
+| `functions list [--product] [--kind]` | Functions and services with their latest available version |
+| `versions list` / `history` | A function's versions, or one version's history (`--product --function [--fn-version]`) |
+| `versions deprecate ... --reason <text> [--sunset] [--replacement]` | Deprecate a version |
+| `versions undeprecate ...` | Make it available again |
+| `versions retire ... [--grant-env VAR]` | Retire a deprecated version that is not serving (a person only; final) |
+| `environments list --product <tag>` | Environments with their policy and what is deployed |
+| `environments policy --product --env --require-approval <bool> --allow-agent-apply <bool> [--grant-env VAR]` | Set the policy (a person only) |
+| `environments history --product --env` | Who changed the policy, and when |
+
+## Server and clouds
+
+| Command | What it does |
+|---------|--------------|
+| `capabilities show` | What this control plane will do, and whether a worker is running |
+| `connections orphans <tag> [--region]` | Resources Ductape made that no deployment accounts for (read only) |
+| `step-up start` / `verify` | Ask for and verify an emailed code, for `--plan <id>`, `--retire ...`, `--policy ...` or `--scope <scope>` |
+
+## Secrets for a release
+
+```bash
+ductape secrets-scan-env                      # preview: reads ./.env, saves nothing
+ductape secrets-scan-env --apply              # save what the preview showed to the workspace
+```
+
+It classifies each variable from its name and the shape of its value, shows names, decisions and lengths, never a value, and with `--apply` saves the ones it marked as secrets. A release then refers to one as `{ "secret": "NAME" }`. The full options (`--only`, `--all`, `--exclude`, `--prefix`, `--overwrite`, `--env-file`, `--env`) are in [Secrets](../cli/secrets). An assistant can do the same with the `ductape_secrets_scan_env` MCP tool.
+
+## Cloud connections
+
+```bash
+ductape cloud connections guide --provider <gcp|aws|azure> --purpose deploy
+ductape cloud connections create --provider <p> --name <name> --tag <tag> --deploy [--save-template <file>]
+ductape cloud connections get <tag> --save-fargate-template <file>
+ductape cloud connections get <tag> --save-express-template <file>
+ductape cloud connections complete <tag> ...
+ductape cloud connections validate <tag>
+```
+
+`complete` takes `--account-id` and `--api-token-env` (Cloudflare), `--service-account-file` and `--runtime-service-account` (Google), `--role-arn`, `--runtime-role-arn`, `--build-role-arn` and `--default-region` (AWS), `--fargate-outputs-file` or each of `--fargate-cluster`, `--fargate-listener-arn`, `--fargate-base-domain`, `--fargate-vpc-id`, `--fargate-subnets`, `--fargate-security-groups`, `--fargate-task-role-arn`, `--fargate-execution-role-arn`, `--fargate-log-group`, `--fargate-private-tasks` and `--fargate-scale-down-idle on|off`, `--fargate-internal on|off` and `--fargate-verifier-function` (AWS Fargate; the last two are for an internal load balancer and come from the stack outputs), `--express-outputs-file` or `--express-infrastructure-role-arn` (AWS ECS Express Mode), and `--tenant-id`, `--subscription-id`, `--client-id`, `--client-secret-env`, `--default-location`, `--resource-group`, `--registry-name`, `--environment-name`, `--runtime-identity-id` and `--key-vault-uri` (Azure), and `--secrets-store-id` (Cloudflare). Secrets are never flag values: a key is a file and a secret is the name of an environment variable.

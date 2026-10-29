@@ -43,3 +43,7 @@ Pass `service_account_json` as a parsed object or JSON string. On credential rot
 | `cloudsql` | Databases (PostgreSQL) |
 | `spanner-graph` | Graphs |
 | `vertex-vector-search` | Vectors |
+
+## Deploying code
+
+This account can also run your own functions and services on **Google Cloud Run**, built in your account from your Dockerfile, with seven roles on the project. It uses a separate connection made with the `deploy` scope. See [Connect a cloud](../../deploy/connect-a-cloud) and [Ductape Deploy](../../deploy/overview).

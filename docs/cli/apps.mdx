@@ -28,6 +28,33 @@ ductape apps import ./api.yaml --type openapi
 ductape apps import ./collection.json --type postman --app-tag my-workspace:stripe --update
 ```
 
+## Webhook Definitions
+
+Manage webhook groups and event definitions without registering provider endpoints
+or publishing the app. These commands use the SDK proxy's top-level `webhooks`
+module, not `app.webhooks`.
+
+```bash
+ductape apps webhooks list --app stripe:payments --json
+ductape apps webhooks get --app stripe:payments --webhook payments --json
+ductape apps webhooks create --app stripe:payments --definition-file ductape/webhooks/payments.json
+ductape apps webhooks update --app stripe:payments --webhook payments --definition-file ductape/webhooks/patch.json
+ductape apps webhooks delete --app stripe:payments --webhook payments
+ductape apps webhooks events list --app stripe:payments --webhook payments --json
+ductape apps webhooks events create --app stripe:payments --webhook payments --definition-file ductape/webhooks/paid.json
+ductape apps webhooks events get --app stripe:payments --webhook payments --event paid --json
+ductape apps webhooks events update --app stripe:payments --webhook payments --event paid --definition-file ductape/webhooks/paid-patch.json
+ductape apps webhooks events delete --app stripe:payments --webhook payments --event paid
+```
+
+Use a local event `tag` such as `paid` in the JSON file. The CLI qualifies it with
+the parent webhook tag. Inspect the live schema before preparing definitions:
+webhook groups require `name`, `tag`, `description`, and `envs`; events require
+`name`, `tag`, `description`, `selector`, and a provider-backed `sample`.
+Verify provider signature handling and registration separately before publishing.
+All operations support `--profile` and `--json`. Creation and updates require
+`--definition-file` to avoid collision with the parent command's `--file` option.
+
 ## Import (Postman / OpenAPI)
 
 Imports use `POST /apps/v1/import` (same as the Workbench). Supported formats:
@@ -52,7 +79,7 @@ ductape apps import ./v2.json --type postman --app-id 507f1f77bcf86cd799439011 -
 Options:
 
 - `--update` — merge into an existing app when the tag already exists
-- `--version` — app version tag (default `0.0.1`)
+- `--version` — required explicit version label; no automatic default. Verify the provider API version (including date-based versions) against the imported endpoints and version headers. For unversioned or mixed-version APIs, use an explicitly chosen integration revision instead of claiming a provider version. Add this flag to each import example above.
 - `--json` — print API response
 
 ## How it works
