@@ -1,0 +1,79 @@
+---
+title: CLI reference
+sidebar_position: 5
+---
+
+# Work tracker CLI reference
+
+All commands act on the active workspace. Items are referred to as `W-12`. Every command takes:
+
+| Option | What it does |
+|--------|--------------|
+| `--client <client>` | Speak for an agent client: `claude-code`, `codex`, `cursor` or `other` (or set `DUCTAPE_AGENT_CLIENT`) |
+| `--session <id>` | The agent session (or set `DUCTAPE_WORK_SESSION`) |
+| `--input <file>` | A JSON object of request fields, merged over the flags |
+| `--json` | Print JSON |
+
+Without `--client`, a command acts as you. Commands marked **people only** ask for the code emailed to you (see [Confirming it is you](./approvals-and-policy#confirming-it-is-you)).
+
+## Sessions
+
+| Command | What it does |
+|---------|--------------|
+| `work session start [--name] [--product]` | Start an agent session for this repository and list the work waiting for it |
+| `work session heartbeat` | Keep the session alive and renew its claims |
+| `work session end [--summary]` | End the session; what it still holds goes back to ready |
+| `work sessions` | Open agent sessions in the workspace and what each holds |
+
+## Finding and reading work
+
+| Command | What it does |
+|---------|--------------|
+| `work ls [--ready] [--mine] [--open] [--status] [--product] [--label] [--component type:tag] [--path] [--parent] [--plan] [-q text] [--limit]` | List items |
+| `work show <ref>` | One item |
+| `work context <ref>` | Everything to know before working on an item |
+| `work events <ref> [--limit]` | An item's history |
+
+## Planning
+
+| Command | What it does |
+|---------|--------------|
+| `work create --title ... [--body] [--product] [--env] [--components] [--kind epic\|task\|subtask] [--priority] [--parent] [--depends-on] [--paths] [--labels] [--assignee me] [--critical] [--backlog]` | Create an item. `--components` takes `type:tag` (add `+` for one it will create); `--critical` is people only |
+| `work plan publish -f <file>` | Publish or update a plan: `{ plan_key, title, body?, product?, items: [{ key, title, body?, parent?, depends_on?, paths?, priority? }] }` |
+| `work depend <from> <to> [--relates]` | Record that `<from>` must finish before `<to>` |
+
+## Doing the work
+
+| Command | What it does |
+|---------|--------------|
+| `work claim <ref> [--paths]` | Take an item; warns when live work touches the same files |
+| `work update <ref> [--status] [--note] [--files] [--commit] [--commit-message] [--pr] [--parent] [--title] [--body] [--priority] [--paths] [--components] [--labels] [--critical\|--not-critical]` | Change an item or report progress. `--parent none` takes it out of its epic |
+| `work block <ref> --reason ... [--blocked-by <ref>] [--blocker-title] [--blocker-body]` | Mark it blocked, linking or creating the blocking work |
+| `work release <ref> [--note]` | Give it back without finishing |
+| `work done <ref> --outcome ... [--changed type:tag,...] [--commit] [--pr] [--force]` | Finish it. `--changed` components must exist in the product; `--force` (people only) finishes anyway |
+| `work test [--item <ref>] -- <command>` | Run tests and record the result on the item held |
+
+`update` and `done` also record artifacts, each repeatable: `--doc ref=url`, `--test-report ref=url`, `--release <ref>`, `--deployment <ref>`, `--build ref=url`, `--link <url>`.
+
+## People only
+
+| Command | What it does |
+|---------|--------------|
+| `work approvals [--product]` | Work waiting for a person, oldest first |
+| `work approve <ref> [--note] [--force]` | Approve: the item is completed and the approval recorded |
+| `work send-back <ref> --note ...` | Send it back, saying what to change |
+| `work rules [--product]` | List rules |
+| `work rule add --name --watch kind:tag --failures --within [--product] [--env] [--priority] [--critical]` | Open work when something keeps failing |
+| `work rule enable <id>`, `work rule disable <id>`, `work rule rm <id>` | Switch a rule on or off, or remove it |
+| `work keys [--product]` | List keys for outside systems |
+| `work key add --name [--product] [--priority] [--labels]` | Make a key; it is shown once |
+| `work key revoke <id>` | Revoke a key |
+| `work policy` | Show the workspace's policy |
+| `work policy set [--approvers members\|admins] [--self-approval yes\|no] [--critical patterns] [--agents-claim any\|assigned]` | Change it (workspace owner and admins) |
+| `work agent pause <agentId> [--reason]`, `work agent resume <agentId>` | Pause or resume an agent |
+
+## Hooks
+
+| Command | What it does |
+|---------|--------------|
+| `work install-hooks [--client claude-code\|codex\|cursor\|all] [--require-claim] [--local] [--print]` | Add the tracker's hooks to this repository |

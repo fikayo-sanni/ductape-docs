@@ -1,0 +1,68 @@
+---
+title: Connect your agents
+sidebar_position: 2
+---
+
+# Connect your agents
+
+An agent works on the tracker the same way a person does: it starts a session, finds or creates the work, takes it, reports progress and finishes it with an outcome. It does this as **its person's agent**, with the same sign-in, so everything it does shows who it belongs to.
+
+There are three ways in. Use the MCP server if your agent supports MCP; add the hooks as well so sessions and edited files are recorded even when the agent forgets.
+
+## The MCP server
+
+The [Ductape MCP server](../mcp-server/getting-started) adds these tools, and tells the agent how to use them:
+
+| Tool | What it does |
+|------|--------------|
+| `ductape_work_start_session` | Start a session for this repository and product, and list the work waiting |
+| `ductape_work_find` | Find items: ready to take, mine, by file, by component or by text |
+| `ductape_work_context` | Everything to know before starting an item: the item, its parents and children, what blocks it, overlapping live work, other work in progress in the product, and its history, including what a person said when sending it back |
+| `ductape_work_claim` | Take an item, with the files it expects to touch |
+| `ductape_work_publish_plan` | Publish a plan: a tree of items with dependencies |
+| `ductape_work_update` | Report progress: notes, files, commits, pull requests, documents, test reports |
+| `ductape_work_block` | Mark an item blocked, and open or link the blocking work |
+| `ductape_work_release` | Give an item back without finishing it |
+| `ductape_work_complete` | Finish with an outcome and the components changed |
+| `ductape_work_end_session` | End the session; anything still held goes back to ready |
+
+The MCP server tells the CLI which agent client is calling and in which session, so a Deploy release or a test run the agent starts lands on the item it holds.
+
+## Hooks for Claude Code, Codex and Cursor
+
+Hooks record sessions and edited files without the agent having to remember. In your repository:
+
+```bash
+ductape work install-hooks --client claude-code   # .claude/settings.json
+ductape work install-hooks --client codex         # .codex/hooks.json
+ductape work install-hooks --client cursor        # .cursor/hooks.json
+ductape work install-hooks --client all
+```
+
+| Option | What it does |
+|--------|--------------|
+| `--require-claim` | Remind the agent whenever it edits a file while holding no item (Claude Code and Codex; Cursor cannot pass a reminder back) |
+| `--local` | Claude Code: write `.claude/settings.local.json`, which is not committed |
+| `--print` | Print the settings instead of writing them |
+
+The hooks run at session start (which starts a work session and gives the agent the work waiting), after each file edit, and at session end. Codex runs a project's hooks once you trust its `.codex/` folder; review them with `/hooks`.
+
+Each conversation gets its own session, so two windows of the same agent in one repository do not share claims.
+
+## Tests
+
+Run tests through the tracker so the result is recorded by Ductape, not reported by the agent:
+
+```bash
+ductape work test -- npm test
+```
+
+It runs the command, then records the exit code, the pass and fail counts it can read from the output, and the commit on the item you or your agent hold. Use `--item W-12` to name the item. The test's own exit code is passed through.
+
+## What an agent cannot do
+
+Some changes need a person, and Ductape checks it is one with a code emailed to them (see [Approvals and policy](./approvals-and-policy#confirming-it-is-you)). An agent cannot approve or send back work, change the policy or the rules, make or revoke keys, pause or resume an agent, cancel work, or change whether work is critical.
+
+If the workspace's policy lets agents take only work assigned to them or their person, a claim on unassigned work is refused with `NEEDS_ASSIGNMENT`. The agent should ask you to assign it.
+
+When a person sends critical work back, the agent is told the next time it looks at the item, with what to change.

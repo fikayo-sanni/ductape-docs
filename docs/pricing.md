@@ -4,133 +4,54 @@ slug: /pricing
 title: Pricing in Ductape
 ---
 
-# How Ductape’s Per‑Action Pricing Works
+# Pricing
 
-Ductape’s pricing is built around a modular, per‑action model. Every operation you perform using our platform is counted as an “action.” Each pricing tier includes a monthly base fee along with defined quotas for different types of actions. When you exceed those quotas, you’re charged a fixed fee for each additional action. This approach ensures that you only pay for what you use while giving you a clear, predictable cost structure as your usage scales.
+Ductape is free to build with. You pay when you run production systems with a team: for projects, environments, access controls, audit logs and how long logs are kept. The current prices are on the [pricing page](https://ductape.app/pricing.html).
 
-## Key Concepts
-- **Base Fee & Quotas:**
-Each tier (Free, Beginner, Startup, and Enterprise) comes with a fixed monthly fee that includes specific quotas for key actions such as API requests, file transfer, and operations for various modules.
+## What is never charged
 
-- **Overage Charges:**
-When you exceed the included quotas, additional usage is billed per action at a fixed rate. For example, API requests beyond the monthly quota or file transfers beyond the allowance incur a small per‑action fee.
+- Component definitions, however many you create
+- SDK calls, CLI commands and MCP tool calls
+- Database queries and storage operations on your own infrastructure
+- Code your AI agents generate
 
-- **Defining an “Action”:**
-An “action” is a discrete operation within one of our modules. Depending on the component, an action might be a single API request, one gigabyte of file transfer, or one operational call on a module (like a cache operation or a database query). This standardized metric allows you to compare usage across different features.
+Ductape connects to the databases, storage and other infrastructure you already run; the SDK talks to them directly. Ductape stores component configuration, logs and usage information.
 
+## Plans
 
-## How Each Component Is Measured
-Below, each key component that factors into the per‑action pricing is explained:
+| | Free | Developer | Team | Business | Enterprise |
+|---|---|---|---|---|---|
+| Price | $0 | $19 / month | $99 / month | $299 / month | From $599 / month |
+| Projects | 1 | 3 | 10 | Unlimited | Unlimited |
+| Environments | 1 | 2 | 3 | 5 | Custom |
+| Log retention | 3 days | 7 days | 30 days | 90 days | Custom |
+| Team collaboration | Basic | Basic | Included | Advanced | Advanced |
+| Role-based access control | | | Basic | Advanced | Custom |
+| Audit logs | | | Limited | Included | Advanced |
+| Enterprise support | | | | Optional | Included |
+| Self-hosting | | | | | Custom licence |
 
+Enterprise prices are agreed per contract. Paying yearly takes 10% off twelve months of the monthly price, on the plans that offer it.
 
-### **API Requests**
-**What It Is:**
-Every time an API call is made through Ductape, it counts as one action.
-**How It’s Measured:**
+## Work tracker
 
-**Free Tier:** Includes 20,000 API requests per month.
+Each plan also includes a number of agent sessions open at once, open work items, rules that open work, and keys for outside systems for the [work tracker](./work/overview). An empty limit is unlimited.
 
-**Beginner Plan:** Includes 50,000 API requests per month.
+| | Free | Developer | Team, Business, Enterprise |
+|---|---|---|---|
+| Agent sessions at once | 3 | 10 | Unlimited |
+| Open work items | 100 | Unlimited | Unlimited |
+| Rules that open work | 5 | 25 | Unlimited |
+| Keys for outside systems | 2 | 5 | Unlimited |
 
-**Startup Plan:** Includes 100,000 API requests per month.
+## Reaching a limit
 
-**Overage Rates:**
+You cannot add more projects, environments or work tracker items past your plan's limit until you upgrade. Everything you already have keeps working, and nothing is removed. Work that a rule opens because something keeps failing is never held back by a limit.
 
-**Free:** $0.000025 per extra request
+## Usage
 
-**Beginner:** $0.00002 per extra request
+Ductape can measure how much log data each workspace sends, by project and environment, and show it on the Workbench's billing page. It is measured only: no plan charges for it.
 
-**Startup:** $0.000015 per extra request
+## Self-hosted
 
-Each API request beyond the included quota is billed at the respective rate.
-
-
-### **File Transfer**
-**What It Is:** File transfer measures the data (in GB) that is moved in or out of Ductape’s storage resources.
-
-**How It’s Measured:**
-
-***Free Tier:** 2 GB per month.
-
-**Beginner Plan:** 10 GB per month.
-
-**Startup Plan:** 50 GB per month.
-
-**Overage Rates:**
-
-**Free:** $0.0125 per additional GB
-
-**Beginner:** $0.010 per additional GB
-
-**Startup:** $0.008 per additional GB
-
-Usage above the allotted GB is charged per gigabyte.
-
-
-###  **Product Limits (Resources)**
-**What They Are:**
-These limits define how many operational “actions” you can perform within various Ductape resources. These include:
-
-**Caches & Databases:** Each tier offers a set number of caches and databases, each with a fixed number of actions available per month (e.g., in the Free Tier, you get 1 cache and 1 database with 4 actions each; in the Beginner Plan, you get 5 caches and 5 databases with 20 actions each; in the Startup Plan, you get 10 caches and 10 databases with 40 actions each).
-
-**Storage Units, Message Brokers, Notifiers, Jobs, and Cloud Functions:** Similarly, these resources are available in limited quantities per tier (for example, the Free Tier includes 1 storage unit, 1 message broker, 1 notifier, 1 job, and 2 cloud function calls; the Beginner and Startup plans increase these limits).
-
-**How They’re Measured:** An “action” in these modules might refer to an operation such as a cache query, a database operation, or a job execution. The limits are set as a total number of actions per month for each module. If your usage exceeds these limits, you may need to upgrade your tier or consider additional capacity add-ons.
-
-
-### **Users & Apps (API Definitions)**
-**What They Are:**
-Users: The number of individuals who can access and operate within your Ductape workspace.
-Apps (API Definitions): The number of APIs or apps you can import into your workspace.
-
-**How They’re Measured:**
-These are provided as flat limits per tier rather than per action. For instance:
-
-**Free Tier:** Up to 2 users and 2 API definitions.
-
-**Beginner Plan:** Up to 5 users and 10 API definitions.
-
-**Startup Plan:** Up to 10 users and 50 API definitions.
-
-Exceeding these numbers would require an upgrade or an add-on.
-
-
-### **Logs & Usage Data Retention**
-**What It Is:**
-This is the duration for which Ductape stores your logs and usage metrics.
-**How It’s Measured:**
-
-**Free Tier:** Retains logs/usage data for 1 week.
-
-**Beginner Plan:** Retains logs/usage data for 1 month.
-
-**Startup Plan:** Retains logs/usage data for 3 months.
-
-Retention periods are fixed per tier, providing more historical data as you move to higher tiers.
-
-
-### **Marketplace Access**
-**What It Is:**
-Marketplace access determines if you can publish your apps or products to Ductape’s App Store, along with the associated revenue retention percentage.
-
-**How It’s Measured:**
-
-**Free Tier:** No publishing allowed.
-
-**Beginner Plan:** Can publish, but you retain 60% of the revenue.
-
-**Startup Plan:** Can publish, with 80% revenue retention.
-
-This component is a qualitative feature rather than a per-action metric, but it is crucial for monetizing your applications.
-
-## **Summary**
-**Base Fee & Quotas:** Each tier provides a monthly base fee with set quotas for different action types (API requests, file transfers, module operations, etc.).
-
-**Overage Pricing:** If you exceed the included quotas, you pay a fixed fee per additional action ensuring a pay‑as‑you‑go model that scales with your usage.
-
-**Action Definition:** An “action” is defined by the operation in question whether it’s an API call, a gigabyte of file transfer, or a module-specific operation.
-
-**Component Measurements:** Each key component is measured with a specific quota and overage rate, giving you a predictable cost structure and the flexibility to scale.
-
-This modular, per‑action pricing approach ensures transparency and allows customers to pay only for what they use, making Ductape an efficient and scalable solution for API and cloud service integration.
-
+Ductape can run on your own infrastructure under a licence. See the [self-hosted options](https://ductape.app/self-hosted.html). If a licence lapses, what you have built keeps running; creating new things from the CLI and the Workbench is paused until it is renewed.

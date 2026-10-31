@@ -1,0 +1,68 @@
+---
+title: Approvals and policy
+sidebar_position: 3
+---
+
+# Approvals and policy
+
+## Critical work
+
+Work is **critical** when a person must sign it off. When an agent finishes critical work, it does not go to `done`: it waits in `awaiting_approval` until a person approves it or sends it back.
+
+Work is critical when:
+
+- a person marks it critical (`--critical` when creating or updating it, or in the Workbench), or
+- it names a Ductape component that the workspace's policy lists as always critical, for example any database (`database:*`) or the payment app (`app:ductape:paystack*`), or
+- a rule that opens it says so.
+
+Only a person can mark work critical or not critical.
+
+## Approving
+
+Work waiting for a person is in the Workbench under **Work**, **Approvals**, together with Deploy plans waiting for approval. From the command line:
+
+```bash
+ductape work approvals                      # oldest first
+ductape work approve W-12 --note "Checked the migration on staging"
+ductape work send-back W-12 --note "Add an index on customer_id"
+```
+
+Approving completes the item and records who approved it and their note. Sending it back returns it to the agent with the note; the agent is told what to change the next time it reads the item.
+
+Approval is refused when it names a Ductape component that does not exist in the product. `--force` approves it anyway.
+
+## Confirming it is you
+
+An agent runs on your computer with your Ductape sign-in, so a sign-in alone cannot tell the two apart. Before a change only a person may make, Ductape emails you a six-digit code:
+
+- In the Workbench, a dialog asks for it. You are not asked again for 15 minutes.
+- On the command line, the CLI asks for it in your own terminal and keeps the result in that terminal only, where an agent's shell cannot reach it.
+
+The changes that need it: approving and sending back, changing the policy or the rules, making or revoking keys, pausing or resuming an agent, cancelling work, changing whether work is critical, and, when the policy requires it, assigning or taking unassigned work.
+
+## The workspace's policy
+
+The policy applies to every product in the workspace. The workspace owner and admins change it, in the Workbench's workspace **Work** tab under **Policy**, or:
+
+```bash
+ductape work policy                       # show it
+ductape work policy set --approvers admins --self-approval no
+ductape work policy set --critical "database:*,app:ductape:paystack*"
+ductape work policy set --agents-claim assigned
+```
+
+| Setting | Values | What it does |
+|---------|--------|--------------|
+| `--approvers` | `members`, `admins` | Who may approve critical work: anyone in the workspace, or only the owner and admins |
+| `--self-approval` | `yes`, `no` | Whether people may approve work their own agent did |
+| `--critical` | `type:tag` patterns, `*` for any | Components whose work is always critical; `""` for none |
+| `--agents-claim` | `any`, `assigned` | Whether agents may take any ready work, or only work assigned to them or their person |
+
+## Pausing an agent
+
+A person can pause an agent. Its claims are released and its calls are refused until it is resumed:
+
+```bash
+ductape work agent pause <agentId> --reason "Stop until the release is out"
+ductape work agent resume <agentId>
+```
