@@ -1,0 +1,8 @@
+{
+  "label": "Work tracker",
+  "position": 7,
+  "link": {
+    "type": "doc",
+    "id": "work/overview"
+  }
+}

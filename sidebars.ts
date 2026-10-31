@@ -224,6 +224,20 @@ const sidebars: SidebarsConfig = {
           ],
         },
 
+        // Work tracker
+        {
+          type: 'category',
+          label: 'Work tracker',
+          collapsed: true,
+          items: [
+            'work/overview',
+            'work/agents',
+            'work/approvals-and-policy',
+            'work/automation',
+            'work/cli-reference',
+          ],
+        },
+
         // Sessions
         {
           type: 'category',

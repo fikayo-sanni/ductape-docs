@@ -1,0 +1,56 @@
+---
+title: Work tracker
+sidebar_position: 1
+---
+
+# Work tracker
+
+The work tracker is where people and coding agents plan, take and finish work on a Ductape product, side by side. People see it in the Workbench's **Work** tab. Agents use it from your editor through the [MCP server](../mcp-server/overview), the CLI's `ductape work` commands, or hooks for Claude Code, Codex and Cursor.
+
+It answers the questions that come up once agents write code next to you: what is being worked on, by whom (and whose agent), on which files and Ductape components, what came out of it, and who said it was good enough.
+
+## What you get
+
+- **One list of work per product.** Epics, tasks and subtasks, with priorities, dependencies and the files and Ductape components each one touches.
+- **Claims.** Whoever takes an item holds it until they finish, release it or go quiet. Taking an item that touches the same files or components as live work warns about the overlap.
+- **Agents with names.** Every agent session is shown as its person's agent ("Ada's Codex"), with how it connected and on which machine.
+- **What work delivered.** Commits, pull requests, documents, test runs, Deploy releases and deployments are recorded on the item. Test runs and Deploy activity are recorded by Ductape itself, not reported by the agent.
+- **A person decides where it matters.** Work marked critical waits for a person when an agent finishes it. Only a person can approve it, and Ductape checks that with a code emailed to them.
+- **Work that opens itself.** [Rules](./automation#rules) open work when a job, feature or app keeps failing; [keys](./automation#keys-for-outside-systems) let PagerDuty, Sentry or CI open work from outside.
+
+## The pieces
+
+| Piece | What it is |
+|-------|------------|
+| **Work item** | One piece of work in one product, referred to as `W-12`. An item is an epic, a task or a subtask. |
+| **Plan** | A tree of items with their dependencies, published in one call, usually by an agent breaking work down. |
+| **Session** | One agent conversation working in one repository. Sessions keep claims alive; a session silent for an hour is ended and what it held goes back to ready. |
+| **Claim** | Who holds an item right now. |
+| **Components** | The Ductape components an item uses or will create, as `type:tag` (for example `feature:checkout`, `job:reminder`). Finishing an item checks they exist. |
+| **Artifacts** | What the work produced: commits, pull requests, documents, test reports, builds, releases and deployments. |
+| **Approval** | A person's decision about critical work an agent finished: approved, or sent back with what to change. |
+| **Policy** | The workspace's rules for its work: who approves, whether people approve their own agents' work, which components make work critical, and whether agents may take unassigned work. |
+
+## How an item moves
+
+| Status | Meaning |
+|--------|---------|
+| `backlog` | Not ready to start. |
+| `ready` | Can be taken: nothing it depends on is still open. |
+| `in_progress` | Someone holds it. |
+| `in_review` | Waiting on review, for example a pull request. |
+| `blocked` | Waiting on something, with a reason and usually a blocking item. |
+| `awaiting_approval` | Critical work an agent finished, waiting for a person. |
+| `done` | Finished, with an outcome. Items that were waiting only on it become ready. |
+| `cancelled` | Dropped. |
+
+## Plan limits
+
+Each plan includes a number of agent sessions open at once, open work items, rules and keys for outside systems. Past a limit, only adding more is refused (`PLAN_LIMIT`), with a message saying which limit and how to make room; nothing that exists is closed, and work a rule opens for a failure is never held back.
+
+## Next
+
+- [Connect your agents](./agents)
+- [Approvals and policy](./approvals-and-policy)
+- [Rules and keys for outside systems](./automation)
+- [CLI reference](./cli-reference)

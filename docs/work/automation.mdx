@@ -1,0 +1,74 @@
+---
+title: Rules and keys for outside systems
+sidebar_position: 4
+---
+
+# Rules and keys for outside systems
+
+Work can open itself: from failures Ductape sees in your product, and from systems outside Ductape. Both are in the Workbench's **Work** tab under **Automation**.
+
+## Rules
+
+A rule opens a work item when one of the product's components keeps failing: so many failures in so many minutes. Ductape checks rules every minute against the runs the SDK logs. A rule opens one item with the latest errors on it, and while that item is open, later failures add notes to it instead of opening more.
+
+```bash
+ductape work rule add --name "Checkout keeps failing" --watch feature:checkout --failures 5 --within 10 --priority urgent --critical
+ductape work rules
+ductape work rule disable <id>
+ductape work rule enable <id>
+ductape work rule rm <id>        # work it opened stays
+```
+
+| Option | What it does |
+|--------|--------------|
+| `--watch <kind:tag>` | What to watch. Kinds: feature, job, database, app, event, notification, storage, cache, function, healthcheck, webhook |
+| `--failures <n>`, `--within <minutes>` | How many failures in how many minutes (at most 1440) |
+| `--env <slug>` | Only failures in this environment |
+| `--priority` | Priority of the work it opens: urgent, high (default), medium, low |
+| `--critical` | The work it opens waits for a person when an agent finishes it |
+
+Only a person can add, change or remove a rule. Work a rule opens is never refused by a plan limit.
+
+## Keys for outside systems
+
+A key lets a system outside Ductape (PagerDuty, Sentry, a CI job, a script) open work in one product, without anyone's sign-in. It is shown once; Ductape keeps only its hash.
+
+```bash
+ductape work key add --name "PagerDuty" --priority urgent --labels incident
+ductape work keys
+ductape work key revoke <id>     # work it opened stays
+```
+
+The outside system posts JSON with the key as a bearer token:
+
+```bash
+curl -X POST https://api.ductape.app/tickets/v1/work-intake \
+  -H "Authorization: Bearer dwi_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Checkout error rate above 5%",
+    "body": "Started 14:02 UTC after deploy 1f3c9a",
+    "priority": "urgent",
+    "labels": ["incident"],
+    "env": "prd",
+    "dedupe_key": "pd-incident-8812",
+    "url": "https://acme.pagerduty.com/incidents/8812",
+    "source": "PagerDuty"
+  }'
+```
+
+| Field | Required | What it is |
+|-------|----------|------------|
+| `title` | yes | The item's title |
+| `body` | no | Description |
+| `priority` | no | urgent, high, medium or low; otherwise the key's default |
+| `labels` | no | Up to 10, added to the key's own labels |
+| `components` | no | Ductape components it concerns, as `type:tag` |
+| `env` | no | The product's environment |
+| `dedupe_key` | no | The incident or issue id. While an item opened with this id is open, the same call adds a note to it instead of a new item |
+| `url` | no | A link back to the incident, recorded on the item |
+| `source` | no | The sender's name, shown on the item |
+
+The answer is `{ "ref": "W-31", "created": true }`, or `created: false` when it added to an open item. Each key may make 120 calls a minute.
+
+Only a person can make or revoke a key.
